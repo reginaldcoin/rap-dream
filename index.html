@@ -2646,7 +2646,7 @@
 
         <div class="section-title">
           <h2>Choose the move</h2>
-          <span>keyboard 1-9, 0, A, E, M, R, C, L, K, B</span>
+          <span>keyboard 1-9, 0, A, E, M, R, C, K, B</span>
         </div>
         <section id="actions" aria-label="Actions">
           <button type="button" data-act="job"><span class="key">1</span><b>work</b><small id="job-return">+$45–$75 · −30 energy</small></button>
@@ -2663,7 +2663,7 @@
           <button type="button" data-act="gear"><span class="key">7</span><b>gear</b><small id="gear-cost">next setup · $500</small></button>
           <button type="button" data-act="advance"><span class="key">A</span><b>label advance</b><small id="advance-offer">requires 1 release + 25 rep</small></button>
           <button type="button" data-act="show"><span class="key">6</span><b>show</b><small id="show-return">50 rep + 1 release + 5 hype · −35 energy</small></button>
-          <button type="button" data-act="legend"><span class="key">L</span><b>legend arc</b><small id="legend-action">locked · reach 100 rep to choose your myth</small></button>
+          <button type="button" data-act="legend"><span class="key">L</span><b>legend arc</b><small id="legend-action">your archetype is set when the run starts</small></button>
           <button type="button" data-act="realestate"><span class="key">R</span><b>real estate</b><small id="realestate-cost">first duplex · $25,000 · +$450 / night</small></button>
           <button type="button" data-act="sign"><span class="key">8</span><b>sign artist</b><small id="sign-cost">tier 6 + 150 rep · roster holds 3</small></button>
         </section>
@@ -2784,7 +2784,7 @@
           <div><strong>8 · sign artist</strong>Negotiate the split. Push too hard, they walk.</div>
           <div><strong>R · real estate</strong>Your read sets the return. Higher tier, harder read.</div>
           <div><strong>C · the market</strong>30 assets. 3 options a day: buy or sell. Network calls tomorrow's move for 1%.</div>
-          <div><strong>L · legend arc</strong>100 rep: pick your myth. Story only, never stats.</div>
+          <div><strong>archetype</strong>Picked when your run starts, beside your class. Story only, never stats: the world holds you to it.</div>
           <div><strong>A · label advance</strong>1 release + 25 rep. Big check now; label keeps catalog pay till 150% recoups.</div>
           <div><strong>E · school</strong>Defend the thesis. Degrees raise work pay.</div>
           <div><strong>0 · sleep</strong>Under 50 energy only. Settle up, restore, pay bills.</div>
@@ -4970,6 +4970,7 @@ render();
   /* Vault demos are bare quality numbers in state, so mix/feature metadata
      lives in this side table keyed by vault index. */
   var nwDemoMeta = {};
+  var nwFeatDone = {};
   function demoMetaAt(i) { return nwDemoMeta[i] || (nwDemoMeta[i] = {}); }
   function bestDemoIndex() {
     var demos = S.demos || [], bi = -1, bv = -Infinity;
@@ -5000,12 +5001,9 @@ render();
             meta.clubShare = (mixNow.club || 0) / mixTot;
             nwSongSerial++;
             meta.song = makeSong("rec|" + S.day + "|" + demos[demos.length - 1] + "|" + (mixNow.radio || 0) + "," + (mixNow.club || 0) + "," + (mixNow.street || 0) + "|" + nwSongSerial, mixNow);
-            if (nwPendingFeature) {
-              meta.feature = nwPendingFeature;
-              tape("the " + nwPendingFeature.name + " feature is on this one: booked, paid, and in the take.");
-              nwPendingFeature = null;
-              syncFeatStatus();
-            }
+            /* A booked verse no longer pins itself to this demo: it stays
+               in the pending slot and rides the next release instead, so
+               the record the player actually drops is the one that pays. */
             if (lean > 0.25) { tape("cut it for the speakers: radio and club heavy, a hype-leaning take."); }
             else if (lean < -0.25) { tape("cut it for the block: street heavy, a rep-leaning take."); }
             else { tape("balanced cut: radio, club and street in equal measure."); }
@@ -5023,19 +5021,30 @@ render();
               if (vcA < vcB) { removedVal = demosBefore[vi]; removedIdx = vi; break; }
             }
             if (removedIdx >= 0) {
-              for (vi = 0; vi < demosBefore.length; vi++) {
-                if (demosBefore[vi] === removedVal && nwDemoMeta[vi] && nwDemoMeta[vi].feature) { removedIdx = vi; break; }
-              }
               var rmeta = nwDemoMeta[removedIdx] || {};
+              /* The booked verse rides THIS release: if the demo that left
+                 the vault carries no feature of its own, the pending verse
+                 steps onto the record now. (An earlier build re-pinned the
+                 feature by matching demo values, which could pay the verse
+                 out on the wrong record and strip it from a demo still
+                 sitting in the vault. Gone.) */
+              if (!rmeta.feature && nwPendingFeature) {
+                rmeta.feature = nwPendingFeature;
+                nwPendingFeature = null;
+              }
               tiltGains(h0, r0, typeof rmeta.mix === "number" ? rmeta.mix : 0);
               if (rmeta.feature) {
                 var f = rmeta.feature;
-                var bonusFans = 20 * f.power + (f.power >= 7 ? 150 : 0);
+                var priorVerses = nwFeatDone[f.name] || 0;
+                var bonusFans = Math.round((20 * f.power + (f.power >= 7 ? 150 : 0)) * (1 + Math.min(1, 0.25 * priorVerses)));
+                nwFeatDone[f.name] = priorVerses + 1;
                 S.fans = (S.fans || 0) + bonusFans;
                 S.hype = (S.hype || 0) + 2 * f.power;
                 S.rep = (S.rep || 0) + f.power;
-                tape("the " + f.name + " verse did what features do: +" + formatNumber(bonusFans) + " fans who came for the guest and stayed for you.");
+                tape("the " + f.name + " verse did what features do: +" + formatNumber(bonusFans) + " fans who came for the guest and stayed for you." + (priorVerses > 0 ? " verse number " + (priorVerses + 1) + " together: the chemistry is real, and it pays." : ""));
                 wire("That " + f.name + " feature is moving: the guest verse put new ears on your record.");
+                shout("FEATURE PAYOFF: " + f.name.toUpperCase());
+                syncFeatStatus();
                 if (typeof render === "function") { render(); }
               }
               var shiftedMeta = {};
@@ -5764,7 +5773,7 @@ render();
     if (patron && patronPower > power && wasDissed(patron.name)) {
       return { power: power, status: "refuse", reason: "camp", line: "that's " + patron.name + "'s camp: you dissed their top name, so the whole orbit is closed to you." };
     }
-    return { power: power, status: "open", price: price, line: "feature verse · $" + formatNumber(price) };
+    return { power: power, status: "open", price: price, line: "feature verse · $" + formatNumber(price) + " · pays out on release" };
   }
   var featRoom = document.createElement("div");
   featRoom.id = "features-room";
@@ -5773,7 +5782,7 @@ render();
   featRoom.setAttribute("aria-modal", "true");
   featRoom.setAttribute("aria-labelledby", "features-room-title");
   featRoom.innerHTML = "<div class=\"market-room-inner\"><div class=\"room-head\"><h2 id=\"features-room-title\">Features market</h2><button id=\"close-features-room\" class=\"room-close\" type=\"button\">close</button></div>"
-    + "<p class=\"market-room-copy\">Book a verse from the names in your world and put it on a record. Price follows standing. Beef is the only locked door: diss a rapper and they won't get on your record, and diss a camp's top name and their whole orbit stops answering. A feature rides your best demo without one into its release; with no demo in the vault, it lands on your next cut. One feature per record.</p>"
+    + "<p class=\"market-room-copy\">Book a verse from the names in your world and put it on a record. Price follows standing. Beef is the only locked door: diss a rapper and they won't get on your record, and diss a camp's top name and their whole orbit stops answering. A booked verse rides your next release, whichever demo the drop takes, and pays out in fans and rep the moment the record lands. One feature per record.</p>"
     + "<div id=\"features-list\" class=\"coin-picks\" aria-label=\"Rappers selling features\"></div></div>";
   document.body.appendChild(featRoom);
   var featDeck = $("actions");
@@ -5802,7 +5811,9 @@ render();
     featBtn.disabled = Boolean(S.over);
     featBtn.classList.toggle("is-locked", Boolean(S.over));
     if (nwPendingFeature) {
-      featSub.textContent = "a " + nwPendingFeature.name + " verse is waiting on your next cut";
+      featSub.textContent = (S.demos || []).length
+        ? "a " + nwPendingFeature.name + " verse rides your next release"
+        : "a " + nwPendingFeature.name + " verse is waiting on your next cut";
     } else if (featuredDemoIndex() >= 0) {
       featSub.textContent = "a feature is riding your next release";
     } else {
@@ -5851,25 +5862,27 @@ render();
     var st = featStatus(def, idx, ladderDefs());
     if (st.status === "refuse") { shout("NO VERSE: " + (st.reason === "camp" ? "THAT CAMP IS CLOSED TO YOU" : "YOU'RE BEEFING WITH " + def.name.toUpperCase())); return; }
     pruneFeatMeta();
-    var demos = S.demos || [];
-    var bi = bestDemoIndex();
-    if (bi >= 0 && nwDemoMeta[bi] && nwDemoMeta[bi].feature) {
-      shout("YOUR BEST DEMO ALREADY CARRIES A FEATURE");
+    /* One feature rides the next release, full stop. The booking lives in
+       the pending slot until a record actually drops: releases take the
+       oldest demo in the vault, not the best one, so pinning the verse to
+       a demo at booking time stranded it behind later records while the
+       status line promised a ride that never came. */
+    if (nwPendingFeature) {
+      shout("A FEATURE IS ALREADY BOOKED: IT RIDES YOUR NEXT RELEASE");
       return;
     }
-    if (bi < 0 && nwPendingFeature) {
-      shout("A FEATURE IS ALREADY WAITING ON YOUR NEXT CUT");
+    if (featuredDemoIndex() >= 0) {
+      shout("YOUR NEXT RELEASE ALREADY CARRIES A FEATURE");
       return;
     }
     if ((S.money || 0) < st.price) { shout("NOT ENOUGH CASH: " + def.name.toUpperCase() + "'S VERSE IS $" + formatNumber(st.price) + ", YOU HOLD $" + formatNumber(S.money || 0)); return; }
     S.money -= st.price;
     var feat = { name: def.name, power: st.power };
-    if (bi >= 0) {
-      demoMetaAt(bi).feature = feat;
-      tape("booked a " + def.name + " feature for $" + formatNumber(st.price) + ": it is riding your best vault demo into its release.");
+    nwPendingFeature = feat;
+    if ((S.demos || []).length) {
+      tape("booked a " + def.name + " feature for $" + formatNumber(st.price) + ": it rides your next release, whichever demo the drop takes.");
     } else {
-      nwPendingFeature = feat;
-      tape("booked a " + def.name + " feature for $" + formatNumber(st.price) + ": no demo in the vault, so it lands on your next cut.");
+      tape("booked a " + def.name + " feature for $" + formatNumber(st.price) + ": no demo in the vault, so it lands on your next cut and rides that record out.");
     }
     wire("You booked a " + def.name + " feature. The co-sign is already doing numbers.");
     shout("FEATURE BOOKED: " + def.name.toUpperCase());
@@ -5894,6 +5907,7 @@ render();
     seedBeats();
     nwDissLog = {};
     nwPendingFeature = null;
+    nwFeatDone = {};
     nwPriceHist = {};
     nwHistDay = 0;
     nwInterviewDone = {};
@@ -6722,14 +6736,34 @@ render();
     return t;
   }
   function tlEnginePost() {
+    /* Template and closer cooldowns: never-repeat covers exact strings,
+       but skeletons and closer lines used to recur inside one sitting.
+       Now a template sits out for a few engine posts after it fires, and
+       a closer or bank line sits out longer. Stamps land only on the post
+       that actually ships, never on a discarded candidate. */
+    if (!tl.cool) { tl.cool = { n: 0, tpl: {}, line: {} }; }
+    var cool = tl.cool;
+    function coolReady(map, key, span) { var last = map[key]; return last == null || (cool.n - last) >= span; }
+    var usedTpl = -1;
+    var usedLines = [];
+    function pickCool(bank, span) {
+      var ready = bank.filter(function (entry) { return coolReady(cool.line, entry, span); });
+      var chosen = pick(ready.length ? ready : bank);
+      if (usedLines.indexOf(chosen) < 0) { usedLines.push(chosen); }
+      return chosen;
+    }
     var motifNames = Object.keys(TL_MOTIFS);
     for (var tries = 0; tries < 12; tries += 1) {
+      usedTpl = -1;
+      usedLines = [];
       var motif = pick(motifNames);
       var ing = TL_MOTIFS[motif];
       var x = pick(ing);
-      var tpl = Math.floor(Math.random() * 9);
+      var tplPool = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(function (t) { return coolReady(cool.tpl, t, 9); });
+      var tpl = pick(tplPool.length ? tplPool : [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+      usedTpl = tpl;
       var text = "";
-      if (tpl === 0) { text = tlFill(pick(TL_EVENTS), x) + ". " + pick(TL_VERDICTS); }
+      if (tpl === 0) { text = tlFill(pickCool(TL_EVENTS, 10), x) + ". " + pickCool(TL_VERDICTS, 14); }
       else if (tpl === 1) { if (Math.random() < TL_EAT_TEMPLATES.length / (TL_EAT_TEMPLATES.length + 6)) { text = tlFill(pick(TL_EAT_TEMPLATES), pick(TL_MOTIFS.food)); } else { text = tlFill(pick(["just handled {x}", "still thinking about {x}", "gave up on {x} for today", "paid for {x} and felt it", "waited on {x} like it was a person", "cleaned around {x} and called it progress"]), x); } }
       else if (tpl === 2) {
         var numKind = Math.floor(Math.random() * 3);
@@ -6738,13 +6772,18 @@ render();
         else { text = tlFill("{x}", x) + ", " + pick(TL_NUMBERS) + " hours deep and counting"; }
       }
       else if (tpl === 3) { text = tlFill(pick(["why is {x} like this", "who told {x} it could act like that", "anybody else stuck on {x} or just me", "since when is {x} the main character"]), x) + "??"; }
-      else if (tpl === 4) { text = "day " + pick(TL_NUMBERS) + " of " + x + " running my whole schedule. i did not sign up for this"; if (Math.random() < 0.4) { text = x + " started up again this morning. day " + pick(TL_NUMBERS) + ". i am choosing patience"; } }
-      else if (tpl === 5) { text = tlFill(pick(TL_EVENTS), x) + ". that concludes the report"; }
-      else if (tpl === 6) { text = "saw " + x + " " + pick(TL_SIGHT_DO); if (Math.random() < 0.35) { text += ". " + pick(["no notes", "respect", "we move"]); } }
-      else if (tpl === 7) { if (Math.random() < TL_FOOD_LAWS.length / (TL_LAWS.length + TL_FOOD_LAWS.length)) { text = "new rule: " + tlFill(pick(TL_FOOD_LAWS), pick(TL_MOTIFS.food)); } else { text = "new rule: " + tlFill(pick(TL_LAWS), x); } }
-      else { text = pick(["mom", "dad", "mom", "dad", "little sister", "my brother", "auntie", "cousin", "uncle", "the twins"]) + " " + pick(TL_FAMILY_DO); if (motif === "family") { text = x + " " + pick(TL_FAMILY_DO); } }
+      else if (tpl === 4) { text = "day " + pick(TL_NUMBERS) + " of " + x + " running my whole schedule. i did not sign up for this"; if (Math.random() < 0.4 && coolReady(cool.line, "patience-variant", 14)) { text = x + " started up again this morning. day " + pick(TL_NUMBERS) + ". i am choosing patience"; usedLines.push("patience-variant"); } }
+      else if (tpl === 5) { text = tlFill(pickCool(TL_EVENTS, 10), x) + ". that concludes the report"; }
+      else if (tpl === 6) { text = "saw " + x + " " + pickCool(TL_SIGHT_DO, 14); if (Math.random() < 0.35) { text += ". " + pickCool(["no notes", "respect", "we move"], 14); } }
+      else if (tpl === 7) { if (Math.random() < TL_FOOD_LAWS.length / (TL_LAWS.length + TL_FOOD_LAWS.length)) { text = "new rule: " + tlFill(pickCool(TL_FOOD_LAWS, 14), pick(TL_MOTIFS.food)); } else { text = "new rule: " + tlFill(pickCool(TL_LAWS, 14), x); } }
+      else { text = pick(["mom", "dad", "mom", "dad", "little sister", "my brother", "auntie", "cousin", "uncle", "the twins"]) + " " + pickCool(TL_FAMILY_DO, 14); if (motif === "family") { text = x + " " + pickCool(TL_FAMILY_DO, 14); } }
       text = tlVoice(text);
-      if (text && text.length >= 12 && !tlSeen(text) && !tlEatingEmbedsPerson(text)) { return text; }
+      if (text && text.length >= 12 && !tlSeen(text) && !tlEatingEmbedsPerson(text)) {
+        if (usedTpl >= 0) { cool.tpl[usedTpl] = cool.n; }
+        usedLines.forEach(function (L) { cool.line[L] = cool.n; });
+        cool.n += 1;
+        return text;
+      }
     }
     return null;
   }
@@ -10563,6 +10602,28 @@ render();
       officeOv.classList.add("hidden");
       if (window.RapDreamOpenLabel) { window.RapDreamOpenLabel(); }
     }, false));
+    if (debt > 0) {
+      /* Pay the balance down right here at the desk, where the debt is
+         displayed: part or in full, straight from cash on hand. A full
+         payoff zeroes dealBalance, and recoupment keys off the balance,
+         so the label takes nothing more once the books are clear. */
+      var cashNow = Math.max(0, Math.floor(S.money || 0));
+      var rdOfficePay = function (amt) {
+        return function () {
+          var pay = Math.min(amt, Math.max(0, Math.round(S.dealBalance || 0)), Math.max(0, Math.floor(S.money || 0)));
+          if (pay <= 0) { shout("NOTHING TO PAY WITH"); return; }
+          S.money -= pay;
+          S.dealBalance = Math.max(0, (S.dealBalance || 0) - pay);
+          tapeLine("office desk: paid " + fmt(pay) + " straight off the label balance. " + (S.dealBalance > 0 ? fmt(S.dealBalance) + " still owed." : "books clear: the label recoups nothing more."));
+          shout(S.dealBalance > 0 ? "PAID OFF THE BALANCE" : "BOOKS CLEAR");
+          render();
+          paintOffice();
+        };
+      };
+      if (debt > 100 && cashNow >= 100) { paper.appendChild(plcBtn("pay $100 off the balance", "a set chunk, straight from cash on hand", rdOfficePay(100), false)); }
+      if (debt > 2) { paper.appendChild(plcBtn("pay half · $" + fmt(Math.floor(debt / 2)), "half the balance, gone today", rdOfficePay(Math.floor(debt / 2)), cashNow < Math.floor(debt / 2))); }
+      paper.appendChild(plcBtn("pay in full · $" + fmt(debt), "zero the debt: the label stops recouping from your earnings", rdOfficePay(debt), cashNow < debt));
+    }
     var chart = plcSec(body, "the chart on the wall");
     var top = "";
     try { top = chartTopText(); } catch (e) {}
@@ -10621,188 +10682,218 @@ render();
      A slingshot against the machine sky. Drag back, let go, drop drones.
      Fully original: no borrowed art, no borrowed characters. */
   var skyRun = 0;
+  /* Sky tax sound: four small synthesized voices, no files. Launch is a
+     whoosh, hit is metal on metal, crash is the fall ending on the roof,
+     sale is the scrap till. */
+  function skySfx(kind) {
+    try {
+      if (typeof getAudioContext !== "function") { return; }
+      var ctx = getAudioContext();
+      if (!ctx) { return; }
+      var t0 = ctx.currentTime;
+      function tone(type, f0, f1, dur, gain, when) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        var at = t0 + (when || 0);
+        o.type = type;
+        o.frequency.setValueAtTime(f0, at);
+        if (f1) { o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), at + dur); }
+        g.gain.setValueAtTime(gain, at);
+        g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(at); o.stop(at + dur + 0.02);
+      }
+      function noiseHit(dur, fFrom, fTo, gain, type) {
+        var len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+        var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        var d = buf.getChannelData(0);
+        for (var i = 0; i < len; i++) { d[i] = Math.random() * 2 - 1; }
+        var src = ctx.createBufferSource(); src.buffer = buf;
+        var flt = ctx.createBiquadFilter(); flt.type = type || "bandpass";
+        flt.frequency.setValueAtTime(fFrom, t0);
+        if (fTo) { flt.frequency.exponentialRampToValueAtTime(Math.max(30, fTo), t0 + dur); }
+        var g = ctx.createGain();
+        g.gain.setValueAtTime(gain, t0);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        src.connect(flt); flt.connect(g); g.connect(ctx.destination);
+        src.start(t0); src.stop(t0 + dur + 0.02);
+      }
+      if (kind === "launch") { noiseHit(0.22, 1100, 260, 0.10); tone("sine", 320, 110, 0.18, 0.05, 0); }
+      else if (kind === "hit") { tone("square", 210, 90, 0.07, 0.10, 0); tone("sine", 1560, 1180, 0.14, 0.07, 0); noiseHit(0.06, 2600, 1800, 0.06); }
+      else if (kind === "crash") { tone("sawtooth", 170, 38, 0.38, 0.12, 0); noiseHit(0.32, 500, 90, 0.14, "lowpass"); }
+      else if (kind === "sale") { tone("sine", 1318, null, 0.09, 0.08, 0); tone("sine", 1760, null, 0.14, 0.08, 0.07); tone("triangle", 2637, null, 0.10, 0.04, 0.07); }
+    } catch (e) { /* sky tax sound never blocks the sky */ }
+  }
+
+  /* SKY TAX, endless: no timer, no round cap, no miss streak. The sky
+     keeps restocking itself, stones are free, and every drone that hits
+     the roof is a scrap sold for $1,000 on the spot. The session ends
+     only when the player walks away, and walking away pays +1 rep. */
   function startSkyTax() {
     if (S.over) { return; }
-    var room = gel("minigame-room");
-    if (room && !room.classList.contains("hidden")) { return; }
-    if ((S.energy || 0) < 15) { shout("SKY TAX: NEED 15 ENERGY"); return; }
-    S.energy = Math.max(0, (S.energy || 0) - 15);
-    var myRun = ++skyRun;
-    var myState = S;
-    try { activeMiniAction = "skytax"; } catch (e) {}
-    setMini("Sky tax", "outside // slingshot vs the machine sky", "Drag back, let go. Ten drones cross. Twelve stones. Three misses in a row ends the round.");
+    var skyRoom = gel("minigame-room");
+    if (skyRoom && !skyRoom.classList.contains("hidden")) { return; }
+    if ((S.energy || 0) < 15) { tapeLine("not enough energy to work the roof. the drones keep the sky tonight."); return; }
+    activeMiniAction = "sky tax";
+    S.energy -= 15;
+    var W = 520, H = 320, ROOF = H - 34;
+    setMini("Sky tax", "outside // slingshot vs the machine sky",
+      "Drag back and let go. The sky does not empty: every drone you drop is a scrap sold for $1,000 on the spot, and the stones never run out. Walk away when you have had enough: the session pays its rep then.");
     var stage = gel("minigame-stage");
-    if (!stage) { return; }
     stage.innerHTML = "";
     var field = mkEl("div", "sky-field");
-    stage.appendChild(field);
-    field.appendChild(mkEl("div", "sky-skyline"));
-    field.appendChild(mkEl("div", "sky-roof"));
-    var W = field.clientWidth || 340;
-    var H = 320;
-    var forkX = Math.round(W / 2), forkY = H - 62;
-    var sling = mkEl("div", "sky-sling");
-    sling.style.left = (forkX - 23) + "px";
-    sling.style.top = (H - 92) + "px";
-    var armL = mkEl("div", "sky-arm l"); var armR = mkEl("div", "sky-arm r"); var grip = mkEl("div", "sky-grip");
-    sling.appendChild(armL); sling.appendChild(armR); sling.appendChild(grip);
-    field.appendChild(sling);
+    field.style.width = W + "px"; field.style.height = H + "px";
+    var roof = mkEl("div", "sky-roof"); field.appendChild(roof);
+    var forkX = 70, forkY = H - 64;
+    var fork = mkEl("div", "sky-fork"); fork.style.left = (forkX - 5) + "px"; fork.style.top = forkY + "px"; field.appendChild(fork);
+    var bandBack = mkEl("div", "sky-band"); var bandFront = mkEl("div", "sky-band front");
+    field.appendChild(bandBack); field.appendChild(bandFront);
     var dots = [];
-    for (var di = 0; di < 9; di += 1) { var dot = mkEl("div", "sky-dot"); dot.style.display = "none"; field.appendChild(dot); dots.push(dot); }
-    var band = mkEl("div", "sky-band");
-    band.style.display = "none";
-    field.appendChild(band);
-    var GRAV = 620;
-    var stonesLeft = 12, spawned = 0, resolved = 0, hits = 0, score = 0, streak = 0;
-    var drones = [], stones = [], done = false, startedAt = performance.now(), lastSpawn = 0, lastT = 0, raf = 0;
-    var SIZES = [
-      { w: 58, h: 30, pts: 10, v: [38, 62] },
-      { w: 42, h: 24, pts: 20, v: [68, 100] },
-      { w: 30, h: 18, pts: 30, v: [108, 150] }
-    ];
-    function hud() {
-      var st = gel("minigame-status");
-      if (st) { st.textContent = "stones " + stonesLeft + " · down " + hits + " · score " + score + " · streak " + streak + "/3"; }
+    for (var di = 0; di < 9; di++) { var dot = mkEl("i", "sky-dot"); field.appendChild(dot); dots.push(dot); }
+    var hud = mkEl("div", "sky-hud"); field.appendChild(hud);
+    var flash = mkEl("div", "sky-flash"); flash.textContent = "HIT"; field.appendChild(flash);
+    stage.appendChild(field);
+    var actions = mkEl("div", "mini-actions");
+    stage.appendChild(actions);
+    var leaveBtn = mkEl("button", "button sky-leave");
+    leaveBtn.type = "button";
+    leaveBtn.textContent = "walk away · bank the session";
+    actions.appendChild(leaveBtn);
+
+    var runId = ++miniRun, done = false;
+    var drones = [], stones = [];
+    var downed = 0, sessionScraps = 0, spawnIn = 200, last = performance.now();
+    var drag = null;
+
+    function hudText() {
+      hud.textContent = "drones down " + downed + " · scraps " + fmt(sessionScraps) + " · the sky restocks itself · walk away to bank +1 rep";
     }
-    function spawnDrone(now) {
-      var kind = SIZES[Math.floor(Math.random() * SIZES.length)];
-      var fromLeft = Math.random() < 0.5;
-      var speed = kind.v[0] + Math.random() * (kind.v[1] - kind.v[0]);
+    hudText();
+    function droneEl(d) {
       var el = mkEl("div", "sky-drone");
-      el.style.width = kind.w + "px";
-      el.style.height = kind.h + "px";
-      el.appendChild(mkEl("span", "sky-eye"));
-      field.appendChild(el);
-      var d = { el: el, w: kind.w, h: kind.h, pts: kind.pts, x: fromLeft ? -kind.w - 4 : W + 4, y: 18 + Math.random() * 165, vx: (fromLeft ? 1 : -1) * speed, falling: false, vy: 0, dead: false };
-      drones.push(d);
-      spawned += 1;
-      lastSpawn = now;
+      el.innerHTML = "<i class=\"sky-eye\"></i><i class=\"sky-rotor r1\"></i><i class=\"sky-rotor r2\"></i>";
+      el.style.left = d.x + "px"; el.style.top = d.y + "px";
+      if (d.falling) { el.classList.add("falling"); }
+      return el;
+    }
+    function stoneEl() { var el = mkEl("i", "sky-stone"); return el; }
+    function placeBand(el, x1, y1, x2, y2) {
+      var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+      el.style.width = len + "px"; el.style.left = x1 + "px"; el.style.top = y1 + "px";
+      el.style.transform = "rotate(" + (Math.atan2(dy, dx) * 180 / Math.PI) + "deg)";
+    }
+    function drawBands(px, py) {
+      var sx = px == null ? forkX : px, sy = py == null ? forkY : py;
+      placeBand(bandBack, forkX - 8, forkY + 4, sx, sy);
+      placeBand(bandFront, forkX + 8, forkY + 4, sx, sy);
+      var vx = (forkX - sx) * 5.2, vy = (forkY - sy) * 5.2;
+      for (var i = 0; i < dots.length; i++) {
+        var t = (i + 1) * 0.09, gx = forkX + vx * t, gy = forkY + vy * t + 0.5 * 620 * t * t;
+        dots[i].style.left = gx + "px"; dots[i].style.top = gy + "px";
+        dots[i].style.opacity = drag ? "0.85" : "0.25";
+      }
+    }
+    function spawnDrone() {
+      drones.push({ x: W + 10, y: 26 + Math.random() * 120, vx: -(55 + Math.random() * 75), ph: Math.random() * 6.28, falling: false, vy: 0, el: null });
+    }
+    function launchStone(vx, vy) {
+      var el = stoneEl(); field.appendChild(el);
+      stones.push({ x: forkX, y: forkY, vx: vx, vy: vy, el: el });
+      skySfx("launch");
+    }
+    function bankScrap(d) {
+      downed++;
+      sessionScraps += 1000;
+      S.money = (S.money || 0) + 1000;
+      if (window.RapDreamCounter) { window.RapDreamCounter.bump("drones"); window.RapDreamCounter.bump("scraps"); }
+      skySfx("sale");
+      hudText();
+      if (downed === 1) { tapeLine("first drone down: the scrap buyer wires $1,000 before the dust settles."); }
+      else if (downed % 10 === 0) { tapeLine("sky tax: " + downed + " drones down this session. the roof is a business now."); }
+      render();
     }
     function finish() {
       if (done) { return; }
       done = true;
-      if (raf) { cancelAnimationFrame(raf); }
-      try { miniRun += 1; } catch (e) {}
+      window.__rdSky = null;
+      S.rep = (S.rep || 0) + 1;
+      tapeLine("sky tax: " + downed + (downed === 1 ? " drone" : " drones") + " down, " + fmt(sessionScraps) + " in scraps sold, +1 rep for the session. the sky keeps what is left.");
+      shout("SKY TAX BANKED: +1 REP");
+      playCompletionChime(0.8);
+      activeMiniAction = null;
+      miniRun++;
+      var room = gel("minigame-room");
       if (room) { room.classList.add("hidden"); }
-      try { activeMiniAction = null; } catch (e) {}
-      var cash = Math.min(score, 150);
-      var fans = Math.floor(score / 2);
-      S.money = (S.money || 0) + cash;
-      S.fans = (S.fans || 0) + fans;
-      tapeLine("sky tax: " + hits + " down, " + score + " points. +$" + fmt(cash) + " salvage, +" + fmt(fans) + " fans.");
-      shout("SKY TAX: " + score + " POINTS");
-      try { if (typeof playCompletionChime === "function") { playCompletionChime(score >= 150 ? 0.9 : score >= 60 ? 0.6 : 0.35); } } catch (e) {}
-      try { if (typeof recordCashPoint === "function") { recordCashPoint(); } } catch (e) {}
-      try { render(); } catch (e) {}
+      render();
     }
-    function step(now) {
-      if (done || myRun !== skyRun || myState !== S) { return; }
-      if (!room || room.classList.contains("hidden")) { done = true; return; }
-      var dt = Math.min(0.05, lastT ? (now - lastT) / 1000 : 0.016);
-      lastT = now;
-      if (spawned < 10 && now - lastSpawn > 1050) { spawnDrone(now); }
-      drones.forEach(function (d) {
-        if (d.dead) { return; }
-        if (d.falling) {
-          d.vy += GRAV * dt;
-          d.y += d.vy * dt;
-          d.el.style.transform = "rotate(24deg)";
-          if (d.y > H + 50) { d.dead = true; d.el.remove(); }
-        } else {
-          d.x += d.vx * dt;
-          if ((d.vx > 0 && d.x > W + 70) || (d.vx < 0 && d.x < -d.w - 70)) {
-            d.dead = true; d.el.remove(); resolved += 1;
-          }
-        }
-        if (!d.dead) { d.el.style.left = d.x + "px"; d.el.style.top = d.y + "px"; }
-      });
-      stones = stones.filter(function (st) { return !st.dead; });
-      stones.forEach(function (st) {
-        st.vy += GRAV * dt;
-        st.x += st.vx * dt;
-        st.y += st.vy * dt;
-        st.el.style.left = st.x + "px";
-        st.el.style.top = st.y + "px";
-        var hitDrone = null;
-        drones.forEach(function (d) {
-          if (hitDrone || d.dead || d.falling) { return; }
-          if (st.x + 11 > d.x && st.x < d.x + d.w && st.y + 11 > d.y && st.y < d.y + d.h) { hitDrone = d; }
-        });
-        if (hitDrone) {
-          st.dead = true; st.el.remove();
-          hitDrone.falling = true; hitDrone.vy = 20;
-          hitDrone.el.classList.add("hit");
-          hits += 1; resolved += 1; score += hitDrone.pts; streak = 0;
-          hud();
-        } else if (st.y > H + 46 || st.x < -70 || st.x > W + 70) {
-          st.dead = true; st.el.remove();
-          streak += 1;
-          hud();
-          if (streak >= 3) { finish(); }
-        }
-      });
-      var flying = stones.some(function (st) { return !st.dead; });
-      if (!done && resolved >= 10 && !flying) { finish(); return; }
-      if (!done && stonesLeft <= 0 && !flying && spawned >= 10) { finish(); return; }
-      if (!done && now - startedAt > 60000) { finish(); return; }
-      raf = requestAnimationFrame(step);
-    }
-    var aiming = false, pullX = 0, pullY = 0;
-    function aimPoint(e) {
+    leaveBtn.addEventListener("click", finish);
+    window.__rdSky = {
+      drones: drones,
+      launch: function (vx, vy) { launchStone(vx, vy); },
+      downed: function () { return downed; },
+      scraps: function () { return sessionScraps; },
+      finish: finish
+    };
+    function fieldPos(evt) {
       var r = field.getBoundingClientRect();
-      return { x: e.clientX - r.left, y: e.clientY - r.top };
-    }
-    function drawAim() {
-      var vx = -pullX * 5, vy = -pullY * 5;
-      dots.forEach(function (dot, i) {
-        var t = 0.12 * (i + 1);
-        var x = forkX + vx * t, y = forkY + vy * t + 0.5 * GRAV * t * t;
-        dot.style.display = "block";
-        dot.style.left = (x - 2) + "px";
-        dot.style.top = (y - 2) + "px";
-      });
-      var len = Math.sqrt(pullX * pullX + pullY * pullY);
-      band.style.display = "block";
-      band.style.left = forkX + "px";
-      band.style.top = forkY + "px";
-      band.style.width = len + "px";
-      band.style.transform = "rotate(" + Math.atan2(pullY, pullX) + "rad)";
-    }
-    function clearAim() {
-      dots.forEach(function (dot) { dot.style.display = "none"; });
-      band.style.display = "none";
+      return { x: (evt.clientX - r.left) * (W / r.width), y: (evt.clientY - r.top) * (H / r.height) };
     }
     field.addEventListener("pointerdown", function (e) {
-      if (done || stonesLeft <= 0) { return; }
-      aiming = true; pullX = 0; pullY = 0;
-      try { field.setPointerCapture(e.pointerId); } catch (err) {}
-      e.preventDefault();
+      var p = fieldPos(e);
+      if (Math.abs(p.x - forkX) < 64 && Math.abs(p.y - forkY) < 64) { drag = p; field.setPointerCapture(e.pointerId); }
     });
-    field.addEventListener("pointermove", function (e) {
-      if (!aiming) { return; }
-      var p = aimPoint(e);
-      pullX = Math.max(-110, Math.min(110, p.x - forkX));
-      pullY = Math.max(-110, Math.min(110, p.y - forkY));
-      drawAim();
+    field.addEventListener("pointermove", function (e) { if (drag) { drag = fieldPos(e); } });
+    field.addEventListener("pointerup", function (e) {
+      if (!drag) { return; }
+      var p = fieldPos(e);
+      var pullX = forkX - p.x, pullY = forkY - p.y;
+      drag = null;
+      if (Math.sqrt(pullX * pullX + pullY * pullY) > 14) { launchStone(pullX * 5.2, pullY * 5.2); }
     });
-    function releaseStone() {
-      if (!aiming) { return; }
-      aiming = false;
-      clearAim();
-      var len = Math.sqrt(pullX * pullX + pullY * pullY);
-      if (len < 22 || stonesLeft <= 0) { return; }
-      stonesLeft -= 1;
-      var el = mkEl("div", "sky-stone");
-      field.appendChild(el);
-      stones.push({ el: el, x: forkX - 5, y: forkY - 5, vx: -pullX * 5, vy: -pullY * 5, dead: false });
-      hud();
+    drawBands(null, null);
+    function step(now) {
+      if (done || runId !== miniRun) { return; }
+      if (gel("minigame-room").classList.contains("hidden")) { finish(); return; }
+      var dt = Math.min(0.05, (now - last) / 1000); last = now;
+      spawnIn -= dt * 1000;
+      if (spawnIn <= 0 && drones.length < 7) { spawnDrone(); spawnIn = 850 + Math.random() * 500; }
+      for (var i = drones.length - 1; i >= 0; i--) {
+        var d = drones[i];
+        if (d.falling) {
+          d.vy += 900 * dt; d.y += d.vy * dt;
+          if (d.y + 22 >= ROOF) {
+            skySfx("crash");
+            field.removeChild(d.el);
+            drones.splice(i, 1);
+            bankScrap(d);
+            continue;
+          }
+        } else {
+          d.x += d.vx * dt;
+          d.y += Math.sin(now / 340 + d.ph) * 12 * dt;
+          if (d.x < -50) { drones.splice(i, 1); if (d.el) { field.removeChild(d.el); } continue; }
+        }
+        if (!d.el) { d.el = droneEl(d); field.appendChild(d.el); }
+        d.el.style.left = d.x + "px"; d.el.style.top = d.y + "px";
+        if (d.falling) { d.el.classList.add("falling"); }
+      }
+      for (var si = stones.length - 1; si >= 0; si--) {
+        var st = stones[si];
+        st.vy += 620 * dt; st.x += st.vx * dt; st.y += st.vy * dt;
+        st.el.style.left = (st.x - 5) + "px"; st.el.style.top = (st.y - 5) + "px";
+        var hit = false;
+        for (var dj = 0; dj < drones.length; dj++) {
+          var dr = drones[dj];
+          if (dr.falling) { continue; }
+          var cx = dr.x + 17, cy = dr.y + 11, ddx = st.x - cx, ddy = st.y - cy;
+          if (ddx * ddx + ddy * ddy < 30 * 30) { dr.falling = true; dr.vy = 20; hit = true; skySfx("hit"); flash.classList.add("on"); setTimeout(function () { flash.classList.remove("on"); }, 130); break; }
+        }
+        if (hit || st.y > H + 20 || st.x > W + 30 || st.x < -30) { field.removeChild(st.el); stones.splice(si, 1); }
+      }
+      drawBands(drag ? drag.x : null, drag ? drag.y : null);
+      requestAnimationFrame(step);
     }
-    field.addEventListener("pointerup", releaseStone);
-    field.addEventListener("pointercancel", function () { aiming = false; clearAim(); });
-    hud();
-    spawnDrone(performance.now());
-    raf = requestAnimationFrame(step);
-    try { render(); } catch (e) {}
+    requestAnimationFrame(step);
+    render();
   }
   window.RapDreamSkyTax = startSkyTax;
 
@@ -11463,5 +11554,520 @@ render();
   try { render(); } catch (e) { /* first paint never blocks the game */ }
 })();
 </script>
+<script>
+"use strict";
+/* RAP DREAM patch layer 9: archetype at spawn + expectations, the record
+   verdict splash, the hit eruption, lifetime counters + play counter,
+   park robot ball, and the legend-control removal. Loads last: wrappers
+   installed here see the final state of every earlier layer. */
+(function () {
+  function gel(id) { return document.getElementById(id); }
+  function mkEl(tag, cls, text) { var el = document.createElement(tag); if (cls) { el.className = cls; } if (text != null) { el.textContent = text; } return el; }
+  function tape(txt) { if (typeof log === "function") { log(txt); } }
+  function wireIn(txt) { if (typeof queueWire === "function") { try { queueWire(S, txt); } catch (e) {} } }
+  function shoutIn(txt) { if (typeof shout === "function") { shout(txt); } }
+  function holdActive() { return !!window.__rdHoldActive; }
+
+  var style = document.createElement("style");
+  style.textContent = [
+    ".sky-leave{margin-top:10px}",
+    ".rd-splash{position:fixed;inset:0;z-index:96;display:flex;align-items:center;justify-content:center;background:rgba(4,7,11,.72);padding:18px}",
+    ".rd-splash.hidden{display:none}",
+    ".rd-splash-card{max-width:620px;width:100%;text-align:center;background:#0b1017;border:1px solid #2b4258;border-radius:5px;padding:34px 26px 28px;box-shadow:0 24px 80px rgba(0,0,0,.55)}",
+    ".rd-splash-kicker{font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.32em;text-transform:uppercase;color:#7f95a8}",
+    ".rd-splash-word{font:900 64px/1.02 'Archivo Black',sans-serif;text-transform:uppercase;margin:12px 0 8px}",
+    ".rd-splash-sub{font:500 15px/1.55 'Space Grotesk',sans-serif;color:#d5efff}",
+    ".rd-splash-lines{font:500 13px/1.6 'Space Grotesk',sans-serif;color:#9fc6de;margin-top:12px}",
+    ".pk-stage{position:relative;width:100%;aspect-ratio:1/1;max-width:560px;margin:0 auto;background:#12202c;border:2px solid #3d6076;border-radius:5px;overflow:hidden}",
+    ".pk-line-mark{position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(159,198,222,.25)}",
+    ".pk-circle{position:absolute;left:50%;top:50%;width:34%;aspect-ratio:1;border:2px solid rgba(159,198,222,.3);border-radius:50%;transform:translate(-50%,-50%)}",
+    ".pk-hoop{position:absolute;top:4px;width:36px;height:9px;background:#ffcf3f;border-radius:5px;box-shadow:0 0 0 2px #7a5b12}",
+    ".pk-hoop.center{left:50%;transform:translateX(-50%)}",
+    ".pk-hoop.adj{left:calc(50% + 52px)}",
+    ".pk-bot{position:absolute;width:24px;height:32px;background:#5b7d94;border-radius:5px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}",
+    ".pk-bot i{position:absolute;left:50%;top:-9px;width:13px;height:13px;margin-left:-6.5px;background:#9fc6de;border-radius:50%}",
+    ".pk-bot.away{background:#94655b}.pk-bot.away i{background:#e8c39f}",
+    ".pk-bot.down{transform:rotate(86deg);background:#44586a}",
+    ".pk-bot.medic{background:#e8eef2}.pk-bot.medic i{background:#ff7d9c}",
+    ".pk-stretcher{position:absolute;width:44px;height:7px;background:#ff7d9c;border-radius:5px}",
+    ".pk-ball{position:absolute;width:13px;height:13px;background:#ff9d3f;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}",
+    ".pk-score{font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#ffcf3f;text-align:center;margin-top:12px}",
+    ".pk-talk{font:500 13px/1.6 'Space Grotesk',sans-serif;color:#9fc6de;text-align:center;margin-top:6px;min-height:21px}"
+  ].join("\n");
+  document.head.appendChild(style);
+
+  /* ============ lifetime counters + play counter (items 9 + 11) ====== */
+  var CTR = { plays: 0, drones: 0, scraps: 0 };
+  var CTR_KEY = "rapdream.counters.v1";
+  try {
+    var raw = window.localStorage ? window.localStorage.getItem(CTR_KEY) : null;
+    if (raw) { var parsed = JSON.parse(raw); if (parsed) { CTR.plays = parsed.plays | 0; CTR.drones = parsed.drones | 0; CTR.scraps = parsed.scraps | 0; } }
+  } catch (e) { /* in-memory only: the counters still live for the session */ }
+  var saveQueued = false;
+  function saveCtr() {
+    if (saveQueued) { return; }
+    saveQueued = true;
+    setTimeout(function () {
+      saveQueued = false;
+      try { if (window.localStorage) { window.localStorage.setItem(CTR_KEY, JSON.stringify(CTR)); } } catch (e) {}
+    }, 400);
+  }
+  window.RapDreamCounter = {
+    bump: function (kind) { if (kind === "drones" || kind === "scraps" || kind === "plays") { CTR[kind]++; saveCtr(); } },
+    get: function () { return { plays: CTR.plays, drones: CTR.drones, scraps: CTR.scraps }; }
+  };
+  window.RapDreamPlayCount = function () { return CTR.plays; };
+  try { document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { try { if (window.localStorage) { window.localStorage.setItem(CTR_KEY, JSON.stringify(CTR)); } } catch (e) {} } }); } catch (e) {}
+
+  function ensureStatTiles() {
+    var stats = document.querySelector(".stats");
+    if (!stats) { return; }
+    if (!gel("rd-stat-scraps")) {
+      var t1 = mkEl("div", "stat");
+      t1.appendChild(mkEl("span", "label", "scraps sold"));
+      var v1 = mkEl("span", "val", "0"); v1.id = "rd-stat-scraps"; t1.appendChild(v1);
+      stats.appendChild(t1);
+    }
+    if (!gel("rd-stat-drones")) {
+      var t2 = mkEl("div", "stat");
+      t2.appendChild(mkEl("span", "label", "drones downed"));
+      var v2 = mkEl("span", "val", "0"); v2.id = "rd-stat-drones"; t2.appendChild(v2);
+      stats.appendChild(t2);
+    }
+    var sv = gel("rd-stat-scraps"); if (sv) { sv.textContent = String(CTR.scraps); }
+    var dv = gel("rd-stat-drones"); if (dv) { dv.textContent = String(CTR.drones); }
+  }
+
+  var playCounted = false;
+  setInterval(function () {
+    var RD = window.RapDreamStart;
+    if (RD && RD.picked && !playCounted) { playCounted = true; CTR.plays++; saveCtr(); }
+    if (RD && !RD.picked && playCounted) { playCounted = false; }
+  }, 700);
+
+  /* ============ archetype = second class (item 4) =================== */
+  var ARCS = [
+    { id: "revolutionary", label: "the revolutionary", desc: "Urgency, conviction, and a public life that turns every release into a cause." },
+    { id: "narrator", label: "the cinematic narrator", desc: "Specific street stories, immaculate scenes, and a catalog that feels like a city on film." },
+    { id: "architect", label: "the executive architect", desc: "The music is the foundation; ownership, leverage, and succession become the larger composition." },
+    { id: "inventor", label: "the restless inventor", desc: "Sound, fashion, design, and beautiful disorder keep mutating around one impossible vision." },
+    { id: "masked", label: "the masked auteur", desc: "Mystery, dense craft, and total control keep the underground myth larger than the public face." },
+    { id: "archivist", label: "the infinite archivist", desc: "A blog-era prodigy who treats every cypher as a draft and every spare hour as a session. The archive becomes the mythology." },
+    { id: "warfare", label: "the mixtape warlord", desc: "Beef, jokes, public pressure, and immaculate timing turn every rival move into a campaign. The stunt is strategy; the tape is the weapon." }
+  ];
+  var SPEC_NAMES = { revolutionary: "Martyr", narrator: "Storyteller", architect: "Mogul", inventor: "Genius", warfare: "Villain", masked: "the Masked Auteur", archivist: "the Archivist" };
+  function archLabel(id) { for (var i = 0; i < ARCS.length; i++) { if (ARCS[i].id === id) { return ARCS[i].label; } } return null; }
+
+  var archOv = mkEl("section", "rd-overlay hidden"); archOv.id = "rd-archetype";
+  archOv.setAttribute("aria-label", "Pick your archetype");
+  archOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>pick your archetype</h3><p>a second class, picked at spawn beside your class and your region. story only, never stats: the world holds you to it.</p></div></div><div class=\"rd-panel-body\"></div></div>";
+  var archBody = archOv.querySelector(".rd-panel-body");
+  var archRows = mkEl("div", "rd-rows");
+  ARCS.forEach(function (arc) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("data-archetype", arc.id);
+    var st = mkEl("strong", null, arc.label);
+    var sp = mkEl("span", null, arc.desc);
+    b.appendChild(st); b.appendChild(sp);
+    b.addEventListener("click", function () { chooseArchetype(arc); });
+    archRows.appendChild(b);
+  });
+  archBody.appendChild(archRows);
+  document.body.appendChild(archOv);
+  try { archOv.classList.add("hidden"); } catch (e) {}
+
+  var archState = { forS: null, chosen: false };
+  function chooseArchetype(arc) {
+    S.legend = arc.id;
+    S.rdArchetype = arc.id;
+    archState.chosen = true;
+    archOv.classList.add("hidden");
+    if (typeof banner === "function") { banner("ARCHETYPE: " + arc.label.toUpperCase()); }
+    tape("archetype: " + arc.label + ". picked at spawn, beside the class. the world holds you to it from here.");
+    render();
+  }
+  function archGateTick() {
+    var RD = window.RapDreamStart;
+    if (archState.forS !== S) { archState.forS = S; archState.chosen = !!S.legend; }
+    if (!RD || !RD.picked || archState.chosen || S.over) { if (!archOv.classList.contains("hidden") && archState.chosen) { archOv.classList.add("hidden"); } return; }
+    var startOv = gel("rd-start");
+    if (startOv && !startOv.classList.contains("hidden")) { return; }
+    if (archOv.classList.contains("hidden")) { archOv.classList.remove("hidden"); }
+  }
+  setInterval(archGateTick, 600);
+
+  /* legend controls: dead everywhere. The parked grid button stays
+     disabled, the L key never opens anything, the legend room never
+     shows, and the EVERYTHING entry becomes stated text. */
+  window.addEventListener("keydown", function (e) {
+    if ((e.key === "l" || e.key === "L") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      var t = e.target;
+      var tag = t && t.tagName ? String(t.tagName).toUpperCase() : "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) { return; }
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+  setInterval(function () {
+    var lb = document.querySelector('[data-act="legend"]');
+    if (lb) { if (!lb.disabled) { lb.disabled = true; } lb.tabIndex = -1; }
+    var lr = gel("legend-room");
+    if (lr && !lr.classList.contains("hidden")) { lr.classList.add("hidden"); }
+  }, 900);
+
+  /* ============ archetype expectations (item 5) ==================== */
+  function maxTension() { var m = 0; (S.rivals || []).forEach(function (r) { if (r && typeof r.tension === "number" && r.tension > m) { m = r.tension; } }); return m; }
+  var CONTRACTS = {
+    revolutionary: [
+      { key: "rev-deal", wire: true, test: function () { return (S.dealCount || 0) >= 1; }, line: "The revolutionary signed the paper. The timeline is asking what the cause costs now." },
+      { key: "rev-rich", wire: true, test: function () { return (S.money || 0) >= 75000; }, line: "The martyr is rich and quiet about it. People notice both halves." },
+      { key: "rev-indie", wire: true, test: function () { return S.day >= 18 && (S.dealCount || 0) === 0 && (S.tracks || 0) >= 1; }, line: "No deal, no leash: the revolutionary is still self made, and the city respects the paperwork." },
+      { key: "rev-cause", wire: false, test: function () { return (S.dealCount || 0) === 0 && (S.fans || 0) >= 50000; }, line: "the cause is working: the music is moving with no machine behind it." }
+    ],
+    narrator: [
+      { key: "nar-deep", wire: true, test: function () { return (S.tracks || 0) >= 6; }, line: "The narrator's catalog reads like a city now: every record another street you can walk." },
+      { key: "nar-quiet", wire: true, test: function () { return S.day >= 16 && (S.tracks || 0) <= 1; }, line: "The storyteller has barely told a story. The city is still waiting on chapter two." }
+    ],
+    architect: [
+      { key: "arc-roster", wire: true, test: function () { return (S.artists || []).length >= 2; }, line: "The architect is building: a roster, a structure, a future that outlives the hits." },
+      { key: "arc-solo", wire: true, test: function () { return S.day >= 18 && (S.artists || []).length === 0; }, line: "The mogul has signed nobody. An empire of one, and the city is starting to say it out loud." }
+    ],
+    inventor: [
+      { key: "inv-bench", wire: true, test: function () { return (S.tier || 1) >= 6; }, line: "The inventor's bench keeps mutating: new chain, new sound, same restless signature." },
+      { key: "inv-starter", wire: true, test: function () { return S.day >= 20 && (S.tier || 1) <= 2; }, line: "The genius is still on the starter kit. The city expected experiments by now." }
+    ],
+    masked: [
+      { key: "msk-myth", wire: true, test: function () { return (S.rep || 0) >= (S.hype || 0) + 25 && (S.tracks || 0) >= 2; }, line: "No face, all myth: the masked auteur lets the work talk, and the work is loud." },
+      { key: "msk-chase", wire: true, test: function () { return S.day >= 14 && (S.hype || 0) >= (S.rep || 0) + 40; }, line: "The masked one is chasing every light in the room. The mystery is thinning." }
+    ],
+    archivist: [
+      { key: "ach-vault", wire: false, test: function () { return (S.demos || []).length >= 3; }, line: "the archive grows: demos stacked in the vault like drafts of a mythology." },
+      { key: "ach-deep", wire: true, test: function () { return (S.tracks || 0) >= 8; }, line: "The archivist's catalog is a library, and the city keeps checking books out." },
+      { key: "ach-empty", wire: true, test: function () { return S.day >= 18 && (S.tracks || 0) === 0 && (S.demos || []).length === 0; }, line: "The infinite archivist has archived nothing. Blank shelves, so far." }
+    ],
+    warfare: [
+      { key: "war-wins", wire: true, test: function () { return (S.careerWins || 0) >= 3 || maxTension() >= 50; }, line: "The warlord campaigns in public, and the receipts are stacking." },
+      { key: "war-peace", wire: true, test: function () { return S.day >= 20 && (S.careerWins || 0) === 0 && maxTension() < 30; }, line: "The mixtape warlord has not started one war. The city is checking the title." }
+    ]
+  };
+  var expectState = { forS: null, lastDay: 0, fired: {} };
+  function evalExpectations() {
+    if (expectState.forS !== S) { expectState.forS = S; expectState.lastDay = S.day; expectState.fired = {}; return; }
+    if (S.day === expectState.lastDay) { return; }
+    expectState.lastDay = S.day;
+    if (!S.legend || S.over) { return; }
+    var rules = CONTRACTS[S.legend] || [];
+    for (var i = 0; i < rules.length; i++) {
+      var r = rules[i];
+      if (expectState.fired[r.key]) { continue; }
+      var hit = false;
+      try { hit = !!r.test(); } catch (e) { hit = false; }
+      if (hit) {
+        expectState.fired[r.key] = true;
+        if (r.wire) { wireIn(r.line); } else { tape(r.line); }
+        break;
+      }
+    }
+  }
+
+  /* ============ record verdict splash (item 3) ====================== */
+  function verdictFor(score) {
+    if (score >= 0.85) { return { word: "Awesome", color: "#b5ff20" }; }
+    if (score >= 0.65) { return { word: "Great", color: "#ffcf3f" }; }
+    if (score >= 0.45) { return { word: "Good", color: "#d5efff" }; }
+    if (score >= 0.25) { return { word: "Meh", color: "#9fb6c9" }; }
+    return { word: "Wack", color: "#ff7d9c" };
+  }
+  var verdictOv = mkEl("section", "rd-splash hidden"); verdictOv.id = "rd-verdict";
+  verdictOv.innerHTML = "<div class=\"rd-splash-card\"><div class=\"rd-splash-kicker\">the take</div><div class=\"rd-splash-word\"></div><div class=\"rd-splash-sub\"></div></div>";
+  document.body.appendChild(verdictOv);
+  var verdictTimer = null;
+  verdictOv.addEventListener("click", function () { verdictOv.classList.add("hidden"); if (verdictTimer) { clearTimeout(verdictTimer); verdictTimer = null; } });
+  function showVerdict(score, demoAdded) {
+    var v = verdictFor(score);
+    if (holdActive()) {
+      tape("the take rated itself: " + v.word.toLowerCase() + "." + (demoAdded ? " demo in the vault." : " no demo saved."));
+      return;
+    }
+    var word = verdictOv.querySelector(".rd-splash-word");
+    word.textContent = v.word;
+    word.style.color = v.color;
+    verdictOv.querySelector(".rd-splash-sub").textContent = demoAdded ? "demo in the vault. the city will have its say at the drop." : "no demo saved. the pocket was not there this time.";
+    verdictOv.classList.remove("hidden");
+    if (typeof playCompletionChime === "function") { try { playCompletionChime(score); } catch (e) {} }
+    if (verdictTimer) { clearTimeout(verdictTimer); }
+    verdictTimer = setTimeout(function () { verdictOv.classList.add("hidden"); verdictTimer = null; }, 2800);
+  }
+  var prevMiniFinishV = miniFinish;
+  miniFinish = function (action, result, stageEl) {
+    var demosBefore = (S.demos || []).length;
+    var out = prevMiniFinishV(action, result, stageEl);
+    try {
+      if (action === "record" && result && typeof result.score === "number") {
+        showVerdict(result.score, (S.demos || []).length > demosBefore);
+      }
+    } catch (e) { /* the splash never blocks the take */ }
+    return out;
+  };
+
+  /* ============ hit record eruption (item 2) ======================== */
+  var FAN_LINES = [
+    "the group chat is just the hook typed over and over",
+    "your comments turned into a choir: everybody knows the words",
+    "fans are filming themselves hearing it for the first time, again",
+    "the plays jumped again while you were reading this"
+  ];
+  var LABEL_LINES = [
+    "the label called it a moment on the morning call",
+    "your A&R is telling strangers they heard it first",
+    "the building is using your hook as a ringtone",
+    "the label group chat is one long trophy emoji"
+  ];
+  var hitOv = mkEl("section", "rd-splash hidden"); hitOv.id = "rd-hit";
+  hitOv.innerHTML = "<div class=\"rd-splash-card\"><div class=\"rd-splash-kicker\">it is official</div><div class=\"rd-splash-word\" style=\"color:#ffcf3f\">Hit Record</div><div class=\"rd-splash-sub\"></div><div class=\"rd-splash-lines\"></div></div>";
+  document.body.appendChild(hitOv);
+  var hitTimer = null;
+  hitOv.addEventListener("click", function () { hitOv.classList.add("hidden"); if (hitTimer) { clearTimeout(hitTimer); hitTimer = null; } });
+  var eruptFired = {};
+  function erupt(key) {
+    if (eruptFired[key]) { return; }
+    eruptFired[key] = true;
+    var fanLine = FAN_LINES[(S.tracks || 0) % FAN_LINES.length];
+    var labelLine = LABEL_LINES[(S.tracks || 0) % LABEL_LINES.length];
+    wireIn("The city is singing it back: your record is a hit and every room knows the words.");
+    if (holdActive()) {
+      tape("hit record: the fans erupted. " + fanLine + ".");
+      tape("the label is watching the numbers climb: " + labelLine + ".");
+      return;
+    }
+    shoutIn("HIT RECORD");
+    hitOv.querySelector(".rd-splash-sub").textContent = "the record landed and the whole world reacted at once.";
+    hitOv.querySelector(".rd-splash-lines").textContent = "fans: " + fanLine + ". · the label: " + labelLine + ".";
+    hitOv.classList.remove("hidden");
+    if (typeof playCompletionChime === "function") { try { playCompletionChime(1); } catch (e) {} }
+    if (hitTimer) { clearTimeout(hitTimer); }
+    hitTimer = setTimeout(function () { hitOv.classList.add("hidden"); hitTimer = null; }, 3400);
+  }
+  var logEl = gel("log");
+  if (logEl && typeof MutationObserver === "function") {
+    new MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        m.addedNodes.forEach(function (node) {
+          if (!node || node.nodeType !== 1) { return; }
+          var t = node.textContent || "";
+          var isHit = /NUMBER ONE/.test(t) || /top 10: your record/.test(t);
+          var dm = t.match(/hits the chart: debuts at #(\d+)/);
+          if (!isHit && dm && parseInt(dm[1], 10) <= 10) { isHit = true; }
+          if (isHit) {
+            var hsum = 0; for (var hi = 0; hi < t.length; hi++) { hsum = (hsum + t.charCodeAt(hi) * (hi + 1)) % 100000; }
+            erupt("hit-" + S.day + "-" + (S.tracks || 0) + "-" + t.length + "-" + hsum);
+          }
+        });
+      });
+    }).observe(logEl, { childList: true });
+  }
+
+  /* ============ park robot ball (item 10) =========================== */
+  var PARK_TALK = [
+    "they have not missed a shot since tuesday",
+    "that one just jumped clear over the fence line",
+    "the tall one plays like the hoop owes it money",
+    "medic crew stays ready. the park league provides",
+    "a hundred feet up, a hundred feet down, nothing but net",
+    "the replacement jogged in like it had been waiting all week",
+    "every game out here ends the same way: nobody surprised"
+  ];
+  var parkOv = mkEl("section", "rd-overlay hidden"); parkOv.id = "rd-park";
+  parkOv.setAttribute("aria-label", "Park robot ball");
+  parkOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>park robot ball</h3><p>the park league on a hundred foot square of cracked concrete. hoops up high, robots higher. watch only: nobody bets on perfection.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  var parkBody = parkOv.querySelector(".rd-panel-body");
+  var pkStage = mkEl("div", "pk-stage");
+  pkStage.innerHTML = "<div class=\"pk-line-mark\"></div><div class=\"pk-circle\"></div><div class=\"pk-hoop center\"></div><div class=\"pk-hoop adj\"></div>";
+  var pkScore = mkEl("div", "pk-score", "park league · home 0 · away 0 · perfect from the field, always");
+  var pkTalk = mkEl("div", "pk-talk", PARK_TALK[0]);
+  parkBody.appendChild(pkStage);
+  parkBody.appendChild(pkScore);
+  parkBody.appendChild(pkTalk);
+  document.body.appendChild(parkOv);
+  parkOv.querySelector(".rd-close").addEventListener("click", function () { closePark(); });
+  parkOv.addEventListener("click", function (e) { if (e.target === parkOv) { closePark(); } });
+
+  var pk = null;
+  function pkBotEl(cls) { var b = mkEl("div", "pk-bot " + (cls || "")); b.appendChild(document.createElement("i")); return b; }
+  function openPark() {
+    parkOv.classList.remove("hidden");
+    if (pk) { return; }
+    pkStage.querySelectorAll(".pk-bot,.pk-ball,.pk-stretcher").forEach(function (n) { n.remove(); });
+    var reduced = false;
+    try { reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    var bots = [];
+    for (var i = 0; i < 6; i++) {
+      var el = pkBotEl(i % 2 ? "away" : "");
+      pkStage.appendChild(el);
+      bots.push({ el: el, x: 12 + Math.random() * 72, y: 30 + Math.random() * 55, tx: 0, ty: 0, jump: 0, vy: 0, down: false, home: i % 2 === 0 });
+      bots[i].tx = bots[i].x; bots[i].ty = bots[i].y;
+    }
+    var ball = mkEl("div", "pk-ball"); pkStage.appendChild(ball);
+    var medic = pkBotEl("medic"); medic.style.display = "none"; pkStage.appendChild(medic);
+    var stretcher = mkEl("div", "pk-stretcher"); stretcher.style.display = "none"; pkStage.appendChild(stretcher);
+    pk = { bots: bots, ball: ball, medic: medic, stretcher: stretcher, holder: 0, shot: null, home: 0, away: 0, talk: 0, last: performance.now(), injAt: performance.now() + 16000 + Math.random() * 12000, inj: null, raf: 0 };
+    function place(el, x, y) { el.style.left = "calc(" + x + "% - 12px)"; el.style.top = "calc(" + y + "% - 16px)"; }
+    function frame(now) {
+      if (!pk || parkOv.classList.contains("hidden")) { pk = null; return; }
+      var dt = Math.min(0.05, (now - pk.last) / 1000); pk.last = now;
+      pk.talk += dt;
+      if (pk.talk > 6) { pk.talk = 0; pkTalk.textContent = PARK_TALK[Math.floor(Math.random() * PARK_TALK.length)]; }
+      pk.bots.forEach(function (b, bi) {
+        if (b.down) { return; }
+        if (pk.inj && pk.inj.bot === b) { return; }
+        var dx = b.tx - b.x, dy = b.ty - b.y, dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 2) { b.tx = 8 + Math.random() * 80; b.ty = 26 + Math.random() * 62; if (Math.random() < 0.3) { b.vy = 26 + Math.random() * 20; } }
+        else { b.x += dx / dist * 26 * dt; b.y += dy / dist * 26 * dt; }
+        if (b.vy > 0 || b.jump > 0) { b.jump += b.vy * dt; b.vy -= 120 * dt; if (b.jump <= 0) { b.jump = 0; b.vy = 0; } }
+        b.el.style.left = "calc(" + b.x + "% - 12px)";
+        b.el.style.top = "calc(" + (b.y - b.jump * 0.9) + "% - 16px)";
+      });
+      var holder = pk.bots[pk.holder % pk.bots.length];
+      if (holder.down) { pk.holder++; holder = pk.bots[pk.holder % pk.bots.length]; }
+      if (!pk.shot && Math.random() < dt * 0.5) {
+        var toAdj = Math.random() < 0.5;
+        pk.shot = { t: 0, dur: 0.75, x0: holder.x, y0: holder.y - 4, x1: toAdj ? 56.5 : 50, y1: 3, home: holder.home };
+      }
+      if (pk.shot) {
+        var s = pk.shot; s.t += dt / s.dur;
+        var tt = Math.min(1, s.t);
+        var bx = s.x0 + (s.x1 - s.x0) * tt;
+        var by = s.y0 + (s.y1 - s.y0) * tt - Math.sin(tt * Math.PI) * 26;
+        pk.ball.style.left = "calc(" + bx + "% - 6px)"; pk.ball.style.top = "calc(" + by + "% - 6px)";
+        if (s.t >= 1) {
+          if (s.home) { pk.home += 3; } else { pk.away += 3; }
+          pkScore.textContent = "park league · home " + pk.home + " · away " + pk.away + " · perfect from the field, always";
+          pk.shot = null;
+          pk.holder = Math.floor(Math.random() * pk.bots.length);
+        }
+      } else {
+        pk.ball.style.left = "calc(" + (holder.x + 3) + "% - 6px)"; pk.ball.style.top = "calc(" + (holder.y - holder.jump * 0.9 - 2) + "% - 6px)";
+      }
+      if (!pk.inj && now > pk.injAt) {
+        var cand = pk.bots[Math.floor(Math.random() * pk.bots.length)];
+        cand.down = true; cand.el.classList.add("down");
+        pk.inj = { bot: cand, phase: "to", mx: -6, my: cand.y };
+        pk.medic.style.display = "block"; pk.stretcher.style.display = "block";
+        pkTalk.textContent = "one is down. the medic crew rolls like it has done this a thousand times";
+      }
+      if (pk.inj) {
+        var inj = pk.inj, med = pk.medic;
+        if (inj.phase === "to") {
+          inj.mx += 30 * dt;
+          pk.medic.style.left = "calc(" + inj.mx + "% - 12px)"; pk.medic.style.top = "calc(" + inj.bot.y + "% - 16px)";
+          pk.stretcher.style.left = "calc(" + (inj.mx + 4) + "% - 22px)"; pk.stretcher.style.top = "calc(" + (inj.bot.y + 6) + "% - 3px)";
+          if (inj.mx >= inj.bot.x - 5) { inj.phase = "load"; inj.wait = 0.9; }
+        } else if (inj.phase === "load") {
+          inj.wait -= dt;
+          if (inj.wait <= 0) { inj.phase = "out"; }
+        } else if (inj.phase === "out") {
+          inj.mx += 30 * dt;
+          pk.medic.style.left = "calc(" + inj.mx + "% - 12px)";
+          pk.stretcher.style.left = "calc(" + (inj.mx + 4) + "% - 22px)";
+          inj.bot.el.style.left = "calc(" + (inj.mx + 4) + "% - 12px)";
+          if (inj.mx > 104) {
+            inj.bot.down = false; inj.bot.el.classList.remove("down");
+            inj.bot.x = -6; inj.bot.y = 40 + Math.random() * 30; inj.bot.tx = 20 + Math.random() * 40; inj.bot.ty = inj.bot.y;
+            inj.bot.el.style.left = "calc(-6% - 12px)"; inj.bot.el.style.top = "calc(" + inj.bot.y + "% - 16px)";
+            pk.medic.style.display = "none"; pk.stretcher.style.display = "none";
+            pkTalk.textContent = "the replacement jogged in like it had been waiting all week";
+            pk.inj = null;
+            pk.injAt = now + 20000 + Math.random() * 16000;
+          }
+        }
+      }
+      pk.raf = requestAnimationFrame(frame);
+    }
+    pk.bots.forEach(function (b) { place(b.el, b.x, b.y); });
+    if (reduced) {
+      pkTalk.textContent = "the park league, paused mid play: perfect from the field, always";
+      pk = null;
+      return;
+    }
+    pk.raf = requestAnimationFrame(frame);
+  }
+  function closePark() {
+    parkOv.classList.add("hidden");
+    if (pk && pk.raf) { cancelAnimationFrame(pk.raf); }
+    pk = null;
+  }
+
+  /* entry points: the OUTSIDE menu and the EVERYTHING outside group */
+  var menuRoom = gel("menu-room");
+  if (menuRoom && typeof MutationObserver === "function") {
+    new MutationObserver(function () {
+      if (menuRoom.classList.contains("hidden")) { return; }
+      var h2 = menuRoom.querySelector("h2");
+      if (!h2 || h2.textContent.trim().toUpperCase() !== "OUTSIDE") { return; }
+      var grid = menuRoom.querySelector(".menu-grid");
+      if (!grid || gel("rd-park-btn")) { return; }
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "menu-btn"; b.id = "rd-park-btn";
+      b.appendChild(mkEl("b", null, "park robot ball"));
+      b.appendChild(mkEl("small", null, "the park league · watch only · they never miss"));
+      b.addEventListener("click", function () { menuRoom.classList.add("hidden"); openPark(); });
+      grid.appendChild(b);
+    }).observe(menuRoom, { attributes: true, attributeFilter: ["class"] });
+  }
+  var evOv = gel("rd-everything");
+  if (evOv && typeof MutationObserver === "function") {
+    new MutationObserver(function () {
+      if (evOv.classList.contains("hidden")) { return; }
+      /* legend arc becomes stated text, never a button */
+      var body = evOv.querySelector(".rd-panel-body");
+      if (!body) { return; }
+      var btns = body.querySelectorAll("button");
+      for (var i = 0; i < btns.length; i++) {
+        var st = btns[i].querySelector("strong");
+        if (st && st.textContent.trim().toLowerCase() === "legend arc") {
+          var row = mkEl("p", "rd-sub", "archetype: " + (archLabel(S.legend) || "not picked yet") + " · set at spawn · the world holds you to it");
+          row.id = "rd-arch-state";
+          btns[i].replaceWith(row);
+          break;
+        }
+      }
+      var archRow = gel("rd-arch-state");
+      if (archRow) { archRow.textContent = "archetype: " + (archLabel(S.legend) || "not picked yet") + " · set at spawn · the world holds you to it"; }
+      if (!gel("rd-play-line")) {
+        var line = mkEl("p", "rd-sub", "");
+        line.id = "rd-play-line";
+        body.appendChild(line);
+      }
+      gel("rd-play-line").textContent = "runs started on this machine: " + CTR.plays + " · drones downed: " + CTR.drones + " · scraps sold: " + CTR.scraps;
+      /* park entry in the outside group */
+      var groups = body.querySelectorAll(".rd-group");
+      for (var g = 0; g < groups.length; g++) {
+        var h3 = groups[g].querySelector("h3");
+        if (h3 && h3.textContent.trim().toLowerCase() === "outside" && !groups[g].querySelector("#rd-park-ev")) {
+          var pb = document.createElement("button");
+          pb.type = "button"; pb.id = "rd-park-ev";
+          pb.appendChild(mkEl("strong", null, "park robot ball"));
+          pb.appendChild(mkEl("span", null, "the park league · watch only · they never miss"));
+          pb.addEventListener("click", function () { evOv.classList.add("hidden"); openPark(); });
+          groups[g].appendChild(pb);
+        }
+      }
+    }).observe(evOv, { attributes: true, attributeFilter: ["class"] });
+  }
+
+  /* ============ render wrap: tiles + expectations =================== */
+  var prevRender9 = render;
+  render = function () {
+    var out = prevRender9.apply(this, arguments);
+    try { ensureStatTiles(); } catch (e) {}
+    try { evalExpectations(); } catch (e) {}
+    try { archGateTick(); } catch (e) {}
+    return out;
+  };
+  try { ensureStatTiles(); } catch (e) {}
+})();
+</script>
+
 </body>
 </html>
