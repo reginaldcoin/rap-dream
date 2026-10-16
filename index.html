@@ -4275,7 +4275,7 @@ syncDoll();
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -9682,8 +9682,46 @@ render();
     if (X.morningQueue.indexOf(kind) < 0) { X.morningQueue.push(kind); }
     showNextMorning();
   }
+  function rdAutoNote(txt) { try { (window.__rdAutoAnswers = window.__rdAutoAnswers || []).push(txt); } catch (e) {} }
+  /* autoplay tune-up: under a hold, the morning stack answers itself,
+     conservatively. Safe answers only. The label gets closed with
+     nothing taken, nothing paid, nothing signed. A package that already
+     landed gets opened and kept — never worn or shown on the spot. A
+     feature offer is never answered under a hold: accepting commits
+     the run and passing starts a grudge, so it stays queued and waits
+     for the player. Every answer lands in the autoplay recap. */
+  function rdAutoAnswerMorning() {
+    var again = true;
+    while (again) {
+      again = false;
+      for (var i = 0; i < X.morningQueue.length; i += 1) {
+        var kind = X.morningQueue[i];
+        if (kind === "label-advance" || kind === "label-zero") {
+          X.morningQueue.splice(i, 1); again = true;
+          rdAutoNote(kind === "label-advance"
+            ? "the label came with the advance talk: closed it. no advance taken, no deal signed, nothing paid."
+            : "the label came with the books at zero: closed it. nothing paid, nothing signed.");
+          break;
+        }
+        if (kind === "package") {
+          X.morningQueue.splice(i, 1); again = true;
+          if (shop.pending) {
+            shop.pending = null;
+            var w = shopWords();
+            var gear = Math.random() < 0.5;
+            var itemName = w[0] + " " + w[1] + " " + (gear ? pick(SHOP_GEAR) : pick(SHOP_FURN));
+            if (gear) { shop.ownedGear.push(itemName); } else { shop.stored.push(itemName); }
+            tape("autoplay opened the package at the door: a " + itemName + ". kept, not worn, not shown.");
+            rdAutoNote("package at the door: opened it — a " + itemName + ". kept it; did not wear it or show it.");
+            try { render(); } catch (e) {}
+          }
+          break;
+        }
+      }
+    }
+  }
   function showNextMorning() {
-    if (rdHoldActive()) { return; }
+    if (rdHoldActive()) { rdAutoAnswerMorning(); return; }
     if (X.morningBusy || !X.morningQueue.length) { return; }
     if (anyOverlayOpen()) { return; }
     var kind = X.morningQueue[0];
@@ -9711,6 +9749,7 @@ render();
     }
   }
   window.__rdFlushMorning = function () { try { showNextMorning(); } catch (e) {} };
+  window.__rdMorningWaiting = function () { try { return X.morningQueue.slice(); } catch (e) { return []; } };
   [labelOv, pkgOv, offerOv].forEach(function (ov) {
     ov.addEventListener("click", function () {
       setTimeout(function () {
@@ -10402,6 +10441,10 @@ render();
     + "@keyframes rdHoldGlow{from{box-shadow:0 0 0 rgba(105,189,255,0)}to{box-shadow:0 0 16px rgba(105,189,255,.4)}}"
     + "body.rd-holding #minigame-room,body.rd-holding #travel-room,body.rd-holding .market-room,body.rd-holding #menu-room,body.rd-holding #rd-phone,body.rd-holding #instructions,body.rd-holding .rd-overlay,body.rd-holding #nw-interview,body.rd-holding #endcard{visibility:hidden!important;pointer-events:none!important}"
     + ".rd-drip{margin-top:8px;padding:7px 10px;border:2px ridge #d9efff;border-radius:8px;background:#050b12;color:#d5efff;font-family:'VT323',monospace;font-size:15.5px;line-height:1.35;min-height:20px;transition:opacity .45s ease;overflow-wrap:anywhere}"
+    + ".rd-recap-btn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;margin-top:8px;min-height:46px;padding:8px 12px;border:2px solid #31516c;border-radius:8px;background:#050b12;color:#eefbff;font-family:'VT323',monospace;cursor:pointer}"
+    + ".rd-recap-btn strong{font-size:16px;letter-spacing:.1em;color:#9fc6de}"
+    + ".rd-recap-btn small{font-size:13px;color:#9fb6c9}"
+    + ".rd-recap-head{font-weight:700;color:#d5efff}"
     + "@media (prefers-reduced-motion: reduce){.rd-hold-btn.rd-hold-on,body.rd-holding .stats .val,body.rd-holding #market-card{animation:none}}";
   document.head.appendChild(css);
 
@@ -10724,176 +10767,198 @@ render();
     } catch (e) { /* sky tax sound never blocks the sky */ }
   }
 
-  /* SKY TAX, endless: no timer, no round cap, no miss streak. The sky
-     keeps restocking itself, stones are free, and every drone that hits
-     the roof is a scrap sold for $1,000 on the spot. The session ends
-     only when the player walks away, and walking away pays +1 rep. */
+  /* SKY TAX, restored: the original slingshot from the Oct 14 build —
+     boxy drones in mixed sizes crossing both ways, stones / down /
+     score / streak on the status line, points banking as salvage cash
+     and fans — with the caps off: drones keep crossing, stones never
+     run out, and no miss streak ends it. The run ends when the player
+     walks away, and walking away banks the score. The four dedicated
+     sounds ride along: launch, hit, crash, and the scrap sale. */
   function startSkyTax() {
     if (S.over) { return; }
-    var skyRoom = gel("minigame-room");
-    if (skyRoom && !skyRoom.classList.contains("hidden")) { return; }
-    if ((S.energy || 0) < 15) { tapeLine("not enough energy to work the roof. the drones keep the sky tonight."); return; }
-    activeMiniAction = "sky tax";
-    S.energy -= 15;
-    var W = 520, H = 320, ROOF = H - 34;
-    setMini("Sky tax", "outside // slingshot vs the machine sky",
-      "Drag back and let go. The sky does not empty: every drone you drop is a scrap sold for $1,000 on the spot, and the stones never run out. Walk away when you have had enough: the session pays its rep then.");
+    var room = gel("minigame-room");
+    if (room && !room.classList.contains("hidden")) { return; }
+    if ((S.energy || 0) < 15) { shout("SKY TAX: NEED 15 ENERGY"); return; }
+    S.energy = Math.max(0, (S.energy || 0) - 15);
+    var myRun = ++skyRun;
+    var myState = S;
+    try { activeMiniAction = "skytax"; } catch (e) {}
+    setMini("Sky tax", "outside // slingshot vs the machine sky", "Drag back, let go. Drones keep crossing, stones never run out, and no miss streak ends it. Points bank as salvage and fans when you walk away.");
     var stage = gel("minigame-stage");
+    if (!stage) { return; }
     stage.innerHTML = "";
     var field = mkEl("div", "sky-field");
-    field.style.width = W + "px"; field.style.height = H + "px";
-    var roof = mkEl("div", "sky-roof"); field.appendChild(roof);
-    var forkX = 70, forkY = H - 64;
-    var fork = mkEl("div", "sky-fork"); fork.style.left = (forkX - 5) + "px"; fork.style.top = forkY + "px"; field.appendChild(fork);
-    var bandBack = mkEl("div", "sky-band"); var bandFront = mkEl("div", "sky-band front");
-    field.appendChild(bandBack); field.appendChild(bandFront);
-    var dots = [];
-    for (var di = 0; di < 9; di++) { var dot = mkEl("i", "sky-dot"); field.appendChild(dot); dots.push(dot); }
-    var hud = mkEl("div", "sky-hud"); field.appendChild(hud);
-    var flash = mkEl("div", "sky-flash"); flash.textContent = "HIT"; field.appendChild(flash);
     stage.appendChild(field);
     var actions = mkEl("div", "mini-actions");
-    stage.appendChild(actions);
     var leaveBtn = mkEl("button", "button sky-leave");
     leaveBtn.type = "button";
-    leaveBtn.textContent = "walk away · bank the session";
+    leaveBtn.textContent = "walk away · bank it";
+    leaveBtn.addEventListener("click", function () { finish(); });
     actions.appendChild(leaveBtn);
-
-    var runId = ++miniRun, done = false;
-    var drones = [], stones = [];
-    var downed = 0, sessionScraps = 0, spawnIn = 200, last = performance.now();
-    var drag = null;
-
-    function hudText() {
-      hud.textContent = "drones down " + downed + " · scraps " + fmt(sessionScraps) + " · the sky restocks itself · walk away to bank +1 rep";
+    stage.appendChild(actions);
+    field.appendChild(mkEl("div", "sky-skyline"));
+    field.appendChild(mkEl("div", "sky-roof"));
+    var W = field.clientWidth || 340;
+    var H = 320;
+    var forkX = Math.round(W / 2), forkY = H - 62;
+    var sling = mkEl("div", "sky-sling");
+    sling.style.left = (forkX - 23) + "px";
+    sling.style.top = (H - 92) + "px";
+    var armL = mkEl("div", "sky-arm l"); var armR = mkEl("div", "sky-arm r"); var grip = mkEl("div", "sky-grip");
+    sling.appendChild(armL); sling.appendChild(armR); sling.appendChild(grip);
+    field.appendChild(sling);
+    var dots = [];
+    for (var di = 0; di < 9; di += 1) { var dot = mkEl("div", "sky-dot"); dot.style.display = "none"; field.appendChild(dot); dots.push(dot); }
+    var band = mkEl("div", "sky-band");
+    band.style.display = "none";
+    field.appendChild(band);
+    var GRAV = 620;
+    var spawned = 0, hits = 0, score = 0, streak = 0;
+    var drones = [], stones = [], done = false, startedAt = performance.now(), lastSpawn = 0, lastT = 0, raf = 0;
+    var SIZES = [
+      { w: 58, h: 30, pts: 10, v: [38, 62] },
+      { w: 42, h: 24, pts: 20, v: [68, 100] },
+      { w: 30, h: 18, pts: 30, v: [108, 150] }
+    ];
+    function hud() {
+      var st = gel("minigame-status");
+      if (st) { st.textContent = "stones ∞ · down " + hits + " · score " + score + " · streak " + streak; }
     }
-    hudText();
-    function droneEl(d) {
+    function spawnDrone(now) {
+      var kind = SIZES[Math.floor(Math.random() * SIZES.length)];
+      var fromLeft = Math.random() < 0.5;
+      var speed = kind.v[0] + Math.random() * (kind.v[1] - kind.v[0]);
       var el = mkEl("div", "sky-drone");
-      el.innerHTML = "<i class=\"sky-eye\"></i><i class=\"sky-rotor r1\"></i><i class=\"sky-rotor r2\"></i>";
-      el.style.left = d.x + "px"; el.style.top = d.y + "px";
-      if (d.falling) { el.classList.add("falling"); }
-      return el;
-    }
-    function stoneEl() { var el = mkEl("i", "sky-stone"); return el; }
-    function placeBand(el, x1, y1, x2, y2) {
-      var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
-      el.style.width = len + "px"; el.style.left = x1 + "px"; el.style.top = y1 + "px";
-      el.style.transform = "rotate(" + (Math.atan2(dy, dx) * 180 / Math.PI) + "deg)";
-    }
-    function drawBands(px, py) {
-      var sx = px == null ? forkX : px, sy = py == null ? forkY : py;
-      placeBand(bandBack, forkX - 8, forkY + 4, sx, sy);
-      placeBand(bandFront, forkX + 8, forkY + 4, sx, sy);
-      var vx = (forkX - sx) * 5.2, vy = (forkY - sy) * 5.2;
-      for (var i = 0; i < dots.length; i++) {
-        var t = (i + 1) * 0.09, gx = forkX + vx * t, gy = forkY + vy * t + 0.5 * 620 * t * t;
-        dots[i].style.left = gx + "px"; dots[i].style.top = gy + "px";
-        dots[i].style.opacity = drag ? "0.85" : "0.25";
-      }
-    }
-    function spawnDrone() {
-      drones.push({ x: W + 10, y: 26 + Math.random() * 120, vx: -(55 + Math.random() * 75), ph: Math.random() * 6.28, falling: false, vy: 0, el: null });
-    }
-    function launchStone(vx, vy) {
-      var el = stoneEl(); field.appendChild(el);
-      stones.push({ x: forkX, y: forkY, vx: vx, vy: vy, el: el });
-      skySfx("launch");
-    }
-    function bankScrap(d) {
-      downed++;
-      sessionScraps += 1000;
-      S.money = (S.money || 0) + 1000;
-      if (window.RapDreamCounter) { window.RapDreamCounter.bump("drones"); window.RapDreamCounter.bump("scraps"); }
-      skySfx("sale");
-      hudText();
-      if (downed === 1) { tapeLine("first drone down: the scrap buyer wires $1,000 before the dust settles."); }
-      else if (downed % 10 === 0) { tapeLine("sky tax: " + downed + " drones down this session. the roof is a business now."); }
-      render();
+      el.style.width = kind.w + "px";
+      el.style.height = kind.h + "px";
+      el.appendChild(mkEl("span", "sky-eye"));
+      field.appendChild(el);
+      var d = { el: el, w: kind.w, h: kind.h, pts: kind.pts, x: fromLeft ? -kind.w - 4 : W + 4, y: 18 + Math.random() * 165, vx: (fromLeft ? 1 : -1) * speed, falling: false, vy: 0, dead: false };
+      drones.push(d);
+      spawned += 1;
+      lastSpawn = now;
     }
     function finish() {
       if (done) { return; }
       done = true;
-      window.__rdSky = null;
-      S.rep = (S.rep || 0) + 1;
-      tapeLine("sky tax: " + downed + (downed === 1 ? " drone" : " drones") + " down, " + fmt(sessionScraps) + " in scraps sold, +1 rep for the session. the sky keeps what is left.");
-      shout("SKY TAX BANKED: +1 REP");
-      playCompletionChime(0.8);
-      activeMiniAction = null;
-      miniRun++;
-      var room = gel("minigame-room");
+      if (raf) { cancelAnimationFrame(raf); }
+      try { miniRun += 1; } catch (e) {}
       if (room) { room.classList.add("hidden"); }
-      render();
+      try { activeMiniAction = null; } catch (e) {}
+      var cash = Math.min(score, 150);
+      var fans = Math.floor(score / 2);
+      S.money = (S.money || 0) + cash;
+      S.fans = (S.fans || 0) + fans;
+      skySfx("sale");
+      tapeLine("sky tax: " + hits + " down, " + score + " points. +$" + fmt(cash) + " salvage, +" + fmt(fans) + " fans.");
+      shout("SKY TAX: " + score + " POINTS");
+      try { if (typeof playCompletionChime === "function") { playCompletionChime(score >= 150 ? 0.9 : score >= 60 ? 0.6 : 0.35); } } catch (e) {}
+      try { if (typeof recordCashPoint === "function") { recordCashPoint(); } } catch (e) {}
+      try { render(); } catch (e) {}
     }
-    leaveBtn.addEventListener("click", finish);
-    window.__rdSky = {
-      drones: drones,
-      launch: function (vx, vy) { launchStone(vx, vy); },
-      downed: function () { return downed; },
-      scraps: function () { return sessionScraps; },
-      finish: finish
-    };
-    function fieldPos(evt) {
-      var r = field.getBoundingClientRect();
-      return { x: (evt.clientX - r.left) * (W / r.width), y: (evt.clientY - r.top) * (H / r.height) };
-    }
-    field.addEventListener("pointerdown", function (e) {
-      var p = fieldPos(e);
-      if (Math.abs(p.x - forkX) < 64 && Math.abs(p.y - forkY) < 64) { drag = p; field.setPointerCapture(e.pointerId); }
-    });
-    field.addEventListener("pointermove", function (e) { if (drag) { drag = fieldPos(e); } });
-    field.addEventListener("pointerup", function (e) {
-      if (!drag) { return; }
-      var p = fieldPos(e);
-      var pullX = forkX - p.x, pullY = forkY - p.y;
-      drag = null;
-      if (Math.sqrt(pullX * pullX + pullY * pullY) > 14) { launchStone(pullX * 5.2, pullY * 5.2); }
-    });
-    drawBands(null, null);
     function step(now) {
-      if (done || runId !== miniRun) { return; }
-      if (gel("minigame-room").classList.contains("hidden")) { finish(); return; }
-      var dt = Math.min(0.05, (now - last) / 1000); last = now;
-      spawnIn -= dt * 1000;
-      if (spawnIn <= 0 && drones.length < 7) { spawnDrone(); spawnIn = 850 + Math.random() * 500; }
-      for (var i = drones.length - 1; i >= 0; i--) {
-        var d = drones[i];
+      if (done || myRun !== skyRun || myState !== S) { return; }
+      if (!room || room.classList.contains("hidden")) { done = true; return; }
+      var dt = Math.min(0.05, lastT ? (now - lastT) / 1000 : 0.016);
+      lastT = now;
+      if (now - lastSpawn > 1050) { spawnDrone(now); }
+      drones.forEach(function (d) {
+        if (d.dead) { return; }
         if (d.falling) {
-          d.vy += 900 * dt; d.y += d.vy * dt;
-          if (d.y + 22 >= ROOF) {
-            skySfx("crash");
-            field.removeChild(d.el);
-            drones.splice(i, 1);
-            bankScrap(d);
-            continue;
-          }
+          d.vy += GRAV * dt;
+          d.y += d.vy * dt;
+          d.el.style.transform = "rotate(24deg)";
+          if (d.y > H + 50) { d.dead = true; d.el.remove(); skySfx("crash"); }
         } else {
           d.x += d.vx * dt;
-          d.y += Math.sin(now / 340 + d.ph) * 12 * dt;
-          if (d.x < -50) { drones.splice(i, 1); if (d.el) { field.removeChild(d.el); } continue; }
+          if ((d.vx > 0 && d.x > W + 70) || (d.vx < 0 && d.x < -d.w - 70)) {
+            d.dead = true; d.el.remove();
+          }
         }
-        if (!d.el) { d.el = droneEl(d); field.appendChild(d.el); }
-        d.el.style.left = d.x + "px"; d.el.style.top = d.y + "px";
-        if (d.falling) { d.el.classList.add("falling"); }
-      }
-      for (var si = stones.length - 1; si >= 0; si--) {
-        var st = stones[si];
-        st.vy += 620 * dt; st.x += st.vx * dt; st.y += st.vy * dt;
-        st.el.style.left = (st.x - 5) + "px"; st.el.style.top = (st.y - 5) + "px";
-        var hit = false;
-        for (var dj = 0; dj < drones.length; dj++) {
-          var dr = drones[dj];
-          if (dr.falling) { continue; }
-          var cx = dr.x + 17, cy = dr.y + 11, ddx = st.x - cx, ddy = st.y - cy;
-          if (ddx * ddx + ddy * ddy < 30 * 30) { dr.falling = true; dr.vy = 20; hit = true; skySfx("hit"); flash.classList.add("on"); setTimeout(function () { flash.classList.remove("on"); }, 130); break; }
+        if (!d.dead) { d.el.style.left = d.x + "px"; d.el.style.top = d.y + "px"; }
+      });
+      stones = stones.filter(function (st) { return !st.dead; });
+      stones.forEach(function (st) {
+        st.vy += GRAV * dt;
+        st.x += st.vx * dt;
+        st.y += st.vy * dt;
+        st.el.style.left = st.x + "px";
+        st.el.style.top = st.y + "px";
+        var hitDrone = null;
+        drones.forEach(function (d) {
+          if (hitDrone || d.dead || d.falling) { return; }
+          if (st.x + 11 > d.x && st.x < d.x + d.w && st.y + 11 > d.y && st.y < d.y + d.h) { hitDrone = d; }
+        });
+        if (hitDrone) {
+          st.dead = true; st.el.remove();
+          hitDrone.falling = true; hitDrone.vy = 20;
+          hitDrone.el.classList.add("hit");
+          hits += 1; score += hitDrone.pts; streak = 0; skySfx("hit"); if (window.RapDreamCounter) { window.RapDreamCounter.bump("drones"); }
+          hud();
+        } else if (st.y > H + 46 || st.x < -70 || st.x > W + 70) {
+          st.dead = true; st.el.remove();
+          streak += 1;
+          hud();
         }
-        if (hit || st.y > H + 20 || st.x > W + 30 || st.x < -30) { field.removeChild(st.el); stones.splice(si, 1); }
-      }
-      drawBands(drag ? drag.x : null, drag ? drag.y : null);
-      requestAnimationFrame(step);
+      });
+      raf = requestAnimationFrame(step);
     }
-    requestAnimationFrame(step);
-    render();
+    var aiming = false, pullX = 0, pullY = 0;
+    function aimPoint(e) {
+      var r = field.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function drawAim() {
+      var vx = -pullX * 5, vy = -pullY * 5;
+      dots.forEach(function (dot, i) {
+        var t = 0.12 * (i + 1);
+        var x = forkX + vx * t, y = forkY + vy * t + 0.5 * GRAV * t * t;
+        dot.style.display = "block";
+        dot.style.left = (x - 2) + "px";
+        dot.style.top = (y - 2) + "px";
+      });
+      var len = Math.sqrt(pullX * pullX + pullY * pullY);
+      band.style.display = "block";
+      band.style.left = forkX + "px";
+      band.style.top = forkY + "px";
+      band.style.width = len + "px";
+      band.style.transform = "rotate(" + Math.atan2(pullY, pullX) + "rad)";
+    }
+    function clearAim() {
+      dots.forEach(function (dot) { dot.style.display = "none"; });
+      band.style.display = "none";
+    }
+    field.addEventListener("pointerdown", function (e) {
+      if (done) { return; }
+      aiming = true; pullX = 0; pullY = 0;
+      try { field.setPointerCapture(e.pointerId); } catch (err) {}
+      e.preventDefault();
+    });
+    field.addEventListener("pointermove", function (e) {
+      if (!aiming) { return; }
+      var p = aimPoint(e);
+      pullX = Math.max(-110, Math.min(110, p.x - forkX));
+      pullY = Math.max(-110, Math.min(110, p.y - forkY));
+      drawAim();
+    });
+    function releaseStone() {
+      if (!aiming) { return; }
+      aiming = false;
+      clearAim();
+      var len = Math.sqrt(pullX * pullX + pullY * pullY);
+      if (len < 22) { return; }
+      var el = mkEl("div", "sky-stone");
+      field.appendChild(el);
+      stones.push({ el: el, x: forkX - 5, y: forkY - 5, vx: -pullX * 5, vy: -pullY * 5, dead: false });
+      skySfx("launch");
+      hud();
+    }
+    field.addEventListener("pointerup", releaseStone);
+    field.addEventListener("pointercancel", function () { aiming = false; clearAim(); });
+    hud();
+    spawnDrone(performance.now());
+    raf = requestAnimationFrame(step);
+    try { render(); } catch (e) {}
   }
   window.RapDreamSkyTax = startSkyTax;
 
@@ -11064,19 +11129,60 @@ render();
      half are sampled from the player's own manual habits this run,
      tilted by the consult profile (which paid reads they buy). Trips
      and purchases ride the mirror half inside a cash reserve rail.
-     Hard rails: no bets, no offer or modal answers, no label advance,
-     no market or real-estate buys, ever. One tick per beat: 600ms
-     (100 BPM), which sits just under fast manual play; a day change
-     breathes for two beats. Sounds from the wrappable sound layer are
+     Hard rails: no bets, no label advance, no market or real-estate
+     buys, ever. Popups that surface under a hold are answered by the
+     morning stack, conservatively: safe answers only, and anything
+     risky stays queued for the player (see rdAutoAnswerMorning).
+     One tick per beat: 240ms, and a day change rides the same beat —
+     no double breath, so a held run feels like the line is going
+     brrr. Sounds from the wrappable sound layer are
      queued onto the same grid, one per slot. Release cuts everything
      at once; a hold spanning more than 3 day advances signs off with
      one short exit jingle instead of silence. */
-  var RD_HOLD_TICK_MS = 600;
-  var RD_HOLD_BAR_MS = 1200;
+  var RD_HOLD_TICK_MS = 240;
+  var RD_HOLD_BAR_MS = 240;
   var RD_HOLD_RESERVE = 350;
   var rdHoldTimer = null, rdHoldMini = null, rdHoldStartDay = 0, rdHoldAnchor = 0;
   var rdHoldWaiting = false, rdHoldStall = 0, rdDripTimer = null, rdDripIdx = 0;
   var rdSfxTimers = [], rdSfxNext = 0;
+  /* autoplay recap: a snapshot at grab time, the conservative popup
+     answers logged by the morning stack, and whatever is still queued
+     when the thumb lets go — painted into the recap panel on demand. */
+  var rdRecap = null, rdHoldSnap = null, rdHoldWaitNotes = [];
+  function rdSnapNow() {
+    var ac = S.actionCounts || {};
+    return { day: S.day || 1, money: S.money || 0, fans: S.fans || 0, rep: Math.round(S.rep || 0), recorded: ac.record || 0, released: ac.release || 0 };
+  }
+  function rdMorningName(k) {
+    if (k === "label-advance") { return "the label: the advance talk (autoplay never takes advances or signs)"; }
+    if (k === "label-zero") { return "the label: books at zero"; }
+    if (k === "package") { return "package at the door"; }
+    if (k === "offer") { return "a feature offer (accepting commits the run, passing starts a grudge — your call)"; }
+    return k;
+  }
+  function rdPaintRecap() {
+    var rov = gel("rd-recap");
+    if (!rov || !rdRecap) { return; }
+    var body = rov.querySelector(".rd-panel-body");
+    if (!body) { return; }
+    body.innerHTML = "";
+    var f = rdRecap.from, t = rdRecap.to;
+    function line(txt, cls) { body.appendChild(mkEl("p", cls || "rd-sub", txt)); }
+    function sgn(n) { return (n < 0 ? "-" : "+") + Math.abs(n).toLocaleString("en-US"); }
+    function moneySgn(n) { return (n < 0 ? "-$" : "+$") + Math.abs(n).toLocaleString("en-US"); }
+    function money(n) { return (n < 0 ? "-$" : "$") + Math.abs(n).toLocaleString("en-US"); }
+    line("days advanced: " + (t.day - f.day) + " (day " + f.day + " \u2192 day " + t.day + ")");
+    line("cash: " + money(f.money) + " \u2192 " + money(t.money) + " (" + moneySgn(t.money - f.money) + ")");
+    line("fans: " + f.fans.toLocaleString("en-US") + " \u2192 " + t.fans.toLocaleString("en-US") + " (" + sgn(t.fans - f.fans) + ")");
+    line("rep: " + f.rep + " \u2192 " + t.rep + " (" + sgn(t.rep - f.rep) + ")");
+    line("songs: " + (t.recorded - f.recorded) + " recorded \u00b7 " + (t.released - f.released) + " released");
+    line("popups autoplay answered:", "rd-recap-head");
+    if (rdRecap.answers.length) { rdRecap.answers.forEach(function (a) { line("\u00b7 " + a); }); }
+    else { line("\u00b7 none came up."); }
+    line("still waiting on you:", "rd-recap-head");
+    if (rdRecap.waiting.length) { rdRecap.waiting.forEach(function (a) { line("\u00b7 " + a); }); }
+    else { line("\u00b7 nothing. the desk is clear."); }
+  }
 
   function rdHoldBusy() {
     var sels = [".market-room:not(.hidden)", ".rd-overlay:not(.hidden)", "#menu-room:not(.hidden)", "#rd-phone:not(.hidden)", "#instructions:not(.hidden)", "#endcard:not(.hidden)"];
@@ -11143,7 +11249,25 @@ render();
     rdHoldMini = null; rdHoldWaiting = false; rdHoldStall = 0;
     rdHoldStartDay = S.day || 1;
     rdHoldAnchor = performance.now();
+    rdHoldSnap = rdSnapNow();
+    rdHoldWaitNotes = [];
+    window.__rdAutoAnswers = [];
     document.body.classList.add("rd-holding");
+    /* the button stays pinned while held: the wrap is fixed in place
+       at its exact on-screen spot, above rooms and overlays, so the
+       thumb always sees what it is holding and can let go. */
+    try {
+      var holdWrap = document.querySelector(".rd-hold-wrap");
+      if (holdWrap) {
+        var hwRect = holdWrap.getBoundingClientRect();
+        holdWrap.style.position = "fixed";
+        holdWrap.style.left = hwRect.left + "px";
+        holdWrap.style.top = hwRect.top + "px";
+        holdWrap.style.width = hwRect.width + "px";
+        holdWrap.style.zIndex = "130";
+        holdWrap.style.margin = "0";
+      }
+    } catch (e) {}
     rdHoldPaint("run");
     rdDripStart();
     rdHoldTimer = setTimeout(rdHoldTick, 300);
@@ -11155,6 +11279,22 @@ render();
     if (rdHoldTimer) { clearTimeout(rdHoldTimer); rdHoldTimer = null; }
     rdHoldMini = null; rdHoldWaiting = false;
     document.body.classList.remove("rd-holding");
+    try {
+      var holdWrap2 = document.querySelector(".rd-hold-wrap");
+      if (holdWrap2) {
+        holdWrap2.style.position = ""; holdWrap2.style.left = ""; holdWrap2.style.top = "";
+        holdWrap2.style.width = ""; holdWrap2.style.zIndex = ""; holdWrap2.style.margin = "";
+      }
+    } catch (e) {}
+    try {
+      var toS = rdSnapNow();
+      var waitingList = [];
+      try { if (window.__rdMorningWaiting) { window.__rdMorningWaiting().forEach(function (k) { waitingList.push(rdMorningName(k)); }); } } catch (e) {}
+      rdHoldWaitNotes.forEach(function (n) { waitingList.push(n); });
+      rdRecap = { from: rdHoldSnap || toS, to: toS, answers: (window.__rdAutoAnswers || []).slice(), waiting: waitingList };
+      var recapBtn = gel("rd-recap-btn");
+      if (recapBtn && ((toS.day - rdRecap.from.day) > 0 || rdRecap.answers.length || rdRecap.waiting.length)) { recapBtn.classList.remove("hidden"); }
+    } catch (e) {}
     rdDripStop();
     var days = (S.day || 1) - rdHoldStartDay;
     var jingle = reason === "release" && days > 3;
@@ -11459,6 +11599,19 @@ render();
     var drip = mkEl("div", "rd-drip hidden");
     drip.id = "rd-drip";
     wrap.appendChild(drip);
+    var recapBtn2 = mkEl("button", "rd-recap-btn hidden");
+    recapBtn2.id = "rd-recap-btn";
+    recapBtn2.type = "button";
+    recapBtn2.innerHTML = "<strong>AUTOPLAY RECAP</strong><small>what the hold did while you were holding</small>";
+    wrap.appendChild(recapBtn2);
+    var recapOv = mkEl("section", "rd-overlay hidden");
+    recapOv.id = "rd-recap";
+    recapOv.setAttribute("aria-label", "Autoplay recap");
+    recapOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>autoplay recap</h3><p>what the hold did while you were holding.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+    document.body.appendChild(recapOv);
+    recapOv.querySelector(".rd-close").addEventListener("click", function () { recapOv.classList.add("hidden"); });
+    recapOv.addEventListener("click", function (e) { if (e.target === recapOv) { recapOv.classList.add("hidden"); } });
+    recapBtn2.addEventListener("click", function () { rdPaintRecap(); recapOv.classList.remove("hidden"); });
     meters.parentNode.insertBefore(wrap, meters.nextSibling);
     btn.addEventListener("pointerdown", function (ev) { ev.preventDefault(); rdHoldStart(); });
     btn.addEventListener("pointerleave", function () { if (rdHoldOn) { rdHoldStop("release"); } });
@@ -11537,6 +11690,7 @@ render();
         if (nd) { fixInlineDay(nd, S.day || 1); }
         if (ivBlocked() && !ivDeferred) {
           ivDeferred = true;
+          if (rdHoldOn) { rdHoldWaitNotes.push("the interview: it came up during the hold and is still waiting on you"); }
           ivEl.classList.add("hidden");
           ivPoll = setInterval(function () {
             if (ivEl && !ivEl.classList.contains("hidden")) { clearInterval(ivPoll); ivPoll = null; ivDeferred = false; return; }
@@ -11578,6 +11732,7 @@ render();
     ".rd-splash-word{font:900 64px/1.02 'Archivo Black',sans-serif;text-transform:uppercase;margin:12px 0 8px}",
     ".rd-splash-sub{font:500 15px/1.55 'Space Grotesk',sans-serif;color:#d5efff}",
     ".rd-splash-lines{font:500 13px/1.6 'Space Grotesk',sans-serif;color:#9fc6de;margin-top:12px}",
+    "#rd-archetype .rd-rows button strong{margin-right:.55em}",
     ".pk-stage{position:relative;width:100%;aspect-ratio:1/1;max-width:560px;margin:0 auto;background:#12202c;border:2px solid #3d6076;border-radius:5px;overflow:hidden}",
     ".pk-line-mark{position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(159,198,222,.25)}",
     ".pk-circle{position:absolute;left:50%;top:50%;width:34%;aspect-ratio:1;border:2px solid rgba(159,198,222,.3);border-radius:50%;transform:translate(-50%,-50%)}",
@@ -11669,7 +11824,7 @@ render();
     b.setAttribute("data-archetype", arc.id);
     var st = mkEl("strong", null, arc.label);
     var sp = mkEl("span", null, arc.desc);
-    b.appendChild(st); b.appendChild(sp);
+    b.appendChild(st); b.appendChild(document.createTextNode(" ")); b.appendChild(sp);
     b.addEventListener("click", function () { chooseArchetype(arc); });
     archRows.appendChild(b);
   });
@@ -11880,10 +12035,10 @@ render();
   ];
   var parkOv = mkEl("section", "rd-overlay hidden"); parkOv.id = "rd-park";
   parkOv.setAttribute("aria-label", "Park robot ball");
-  parkOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>park robot ball</h3><p>the park league on a hundred foot square of cracked concrete. hoops up high, robots higher. watch only: nobody bets on perfection.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  parkOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>park robot ball</h3><p>the park league on a hundred foot square of cracked concrete. one hoop up high, robots higher. watch only: nobody bets on perfection.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
   var parkBody = parkOv.querySelector(".rd-panel-body");
   var pkStage = mkEl("div", "pk-stage");
-  pkStage.innerHTML = "<div class=\"pk-line-mark\"></div><div class=\"pk-circle\"></div><div class=\"pk-hoop center\"></div><div class=\"pk-hoop adj\"></div>";
+  pkStage.innerHTML = "<div class=\"pk-line-mark\"></div><div class=\"pk-circle\"></div><div class=\"pk-hoop center\"></div>";
   var pkScore = mkEl("div", "pk-score", "park league · home 0 · away 0 · perfect from the field, always");
   var pkTalk = mkEl("div", "pk-talk", PARK_TALK[0]);
   parkBody.appendChild(pkStage);
@@ -11931,8 +12086,7 @@ render();
       var holder = pk.bots[pk.holder % pk.bots.length];
       if (holder.down) { pk.holder++; holder = pk.bots[pk.holder % pk.bots.length]; }
       if (!pk.shot && Math.random() < dt * 0.5) {
-        var toAdj = Math.random() < 0.5;
-        pk.shot = { t: 0, dur: 0.75, x0: holder.x, y0: holder.y - 4, x1: toAdj ? 56.5 : 50, y1: 3, home: holder.home };
+        pk.shot = { t: 0, dur: 0.75, x0: holder.x, y0: holder.y - 4, x1: 50, y1: 3, home: holder.home };
       }
       if (pk.shot) {
         var s = pk.shot; s.t += dt / s.dur;
