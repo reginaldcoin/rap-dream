@@ -4275,7 +4275,7 @@ syncDoll();
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -10849,6 +10849,9 @@ render();
       var fans = Math.floor(score / 2);
       S.money = (S.money || 0) + cash;
       S.fans = (S.fans || 0) + fans;
+      /* the downed drones are the scraps: they autosell with the salvage,
+         so the scrapped counter (run + lifetime) bumps here, at the bank. */
+      if (hits > 0 && window.RapDreamCounter) { window.RapDreamCounter.bump("scraps", hits); }
       skySfx("sale");
       tapeLine("sky tax: " + hits + " down, " + score + " points. +$" + fmt(cash) + " salvage, +" + fmt(fans) + " fans.");
       shout("SKY TAX: " + score + " POINTS");
@@ -11239,6 +11242,17 @@ render();
   }
   function rdHoldStart() {
     if (rdHoldOn || S.over) { return; }
+    /* spawn gate: the hold cannot start until the run is actually dealt —
+       class + region picked, archetype picked, and no start surface
+       (chooser, pick, archetype, instructions) standing over the deck. */
+    var RDG = window.RapDreamStart;
+    if (!RDG || !RDG.picked) { return; }
+    if (!S.legend) { return; }
+    var startSels = ["rd-start", "rd-pick", "rd-archetype", "instructions"];
+    for (var gi = 0; gi < startSels.length; gi += 1) {
+      var gov = gel(startSels[gi]);
+      if (gov && !gov.classList.contains("hidden") && gov.style.display !== "none") { return; }
+    }
     if (rdHoldBusy()) { return; }
     var df = gel("dayflash");
     if (df && !df.classList.contains("hidden")) { return; }
@@ -11768,8 +11782,26 @@ render();
     }, 400);
   }
   window.RapDreamCounter = {
-    bump: function (kind) { if (kind === "drones" || kind === "scraps" || kind === "plays") { CTR[kind]++; saveCtr(); } },
-    get: function () { return { plays: CTR.plays, drones: CTR.drones, scraps: CTR.scraps }; }
+    /* one bump, two scopes: the lifetime totals above (never wiped) and
+       the per-run counters riding on S itself (rdRunDrones / rdRunScraps),
+       so a fresh state reads 0 / 0 and a saved run carries its own tally. */
+    bump: function (kind, n) {
+      var step = (typeof n === "number" && n > 0) ? Math.floor(n) : 1;
+      if (kind === "drones" || kind === "scraps" || kind === "plays") { CTR[kind] += step; saveCtr(); }
+      try {
+        if (typeof S !== "undefined" && S) {
+          if (kind === "drones") { S.rdRunDrones = (S.rdRunDrones | 0) + step; }
+          if (kind === "scraps") { S.rdRunScraps = (S.rdRunScraps | 0) + step; }
+        }
+      } catch (e) {}
+      try { ensureStatTiles(); } catch (e) {}
+    },
+    get: function () { return { plays: CTR.plays, drones: CTR.drones, scraps: CTR.scraps }; },
+    getRun: function () {
+      var d = 0, s = 0;
+      try { if (typeof S !== "undefined" && S) { d = S.rdRunDrones | 0; s = S.rdRunScraps | 0; } } catch (e) {}
+      return { drones: d, scraps: s };
+    }
   };
   window.RapDreamPlayCount = function () { return CTR.plays; };
   try { document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { try { if (window.localStorage) { window.localStorage.setItem(CTR_KEY, JSON.stringify(CTR)); } } catch (e) {} } }); } catch (e) {}
@@ -11779,7 +11811,7 @@ render();
     if (!stats) { return; }
     if (!gel("rd-stat-scraps")) {
       var t1 = mkEl("div", "stat");
-      t1.appendChild(mkEl("span", "label", "scraps sold"));
+      t1.appendChild(mkEl("span", "label", "SCRAPPED"));
       var v1 = mkEl("span", "val", "0"); v1.id = "rd-stat-scraps"; t1.appendChild(v1);
       stats.appendChild(t1);
     }
@@ -11789,8 +11821,11 @@ render();
       var v2 = mkEl("span", "val", "0"); v2.id = "rd-stat-drones"; t2.appendChild(v2);
       stats.appendChild(t2);
     }
-    var sv = gel("rd-stat-scraps"); if (sv) { sv.textContent = String(CTR.scraps); }
-    var dv = gel("rd-stat-drones"); if (dv) { dv.textContent = String(CTR.drones); }
+    /* dashboard tiles read the PER-RUN counters; the lifetime totals live
+       only in the EVERYTHING panel. Scraps autosell: one number, scrapped. */
+    var runNow = window.RapDreamCounter && window.RapDreamCounter.getRun ? window.RapDreamCounter.getRun() : { drones: 0, scraps: 0 };
+    var sv = gel("rd-stat-scraps"); if (sv) { sv.textContent = String(runNow.scraps); }
+    var dv = gel("rd-stat-drones"); if (dv) { dv.textContent = String(runNow.drones); }
   }
 
   var playCounted = false;
@@ -12193,7 +12228,7 @@ render();
         line.id = "rd-play-line";
         body.appendChild(line);
       }
-      gel("rd-play-line").textContent = "runs started on this machine: " + CTR.plays + " · drones downed: " + CTR.drones + " · scraps sold: " + CTR.scraps;
+      gel("rd-play-line").textContent = "runs started on this machine: " + CTR.plays + " · drones downed: " + CTR.drones + " · scrapped: " + CTR.scraps;
       /* park entry in the outside group */
       var groups = body.querySelectorAll(".rd-group");
       for (var g = 0; g < groups.length; g++) {
@@ -12220,6 +12255,187 @@ render();
     return out;
   };
   try { ensureStatTiles(); } catch (e) {}
+})();
+</script>
+<script>
+"use strict";
+/* RAP DREAM patch layer 10: save and continue. The full run autosaves to
+   browser storage as it progresses; the start screen offers CONTINUE when
+   a save is waiting; a fresh start overwrites it; a corrupt save falls
+   back to a fresh start without crashing; storage failures degrade
+   silently to no-save. The lifetime counters key is never touched here.
+   GOATMODE's unlock keeps its own persistent flag so it survives runs. */
+(function () {
+  if (typeof S === "undefined") { return; }
+  function gel(id) { return document.getElementById(id); }
+  var SAVE_KEY = "rapdream.save.v1";
+  var GOAT_KEY = "rapdream.goatmode.v1";
+  function store() { try { return window.localStorage || null; } catch (e) { return null; } }
+  function safeStringify(obj) {
+    var seen = [];
+    try {
+      return JSON.stringify(obj, function (k, v) {
+        if (typeof v === "function") { return undefined; }
+        if (v && typeof v === "object") {
+          if (seen.indexOf(v) >= 0) { return undefined; }
+          seen.push(v);
+        }
+        return v;
+      });
+    } catch (e) { return null; }
+  }
+  function readSave() {
+    var ls = store(); if (!ls) { return null; }
+    try {
+      var raw = ls.getItem(SAVE_KEY);
+      if (!raw) { return null; }
+      var d = JSON.parse(raw);
+      if (!d || d.v !== 1 || !d.state || typeof d.state !== "object") { return null; }
+      var st = d.state;
+      if (typeof st.money !== "number" || typeof st.day !== "number" || typeof st.fans !== "number") { return null; }
+      if (st.over) { return null; }
+      return d;
+    } catch (e) { return null; }
+  }
+  function runLive() {
+    var RD = window.RapDreamStart;
+    return !!(RD && RD.picked && typeof S !== "undefined" && S && !S.over);
+  }
+  function writeSave() {
+    if (!runLive()) { return; }
+    var ls = store(); if (!ls) { return; }
+    try {
+      var RD = window.RapDreamStart;
+      var payload = {
+        v: 1,
+        savedAt: Date.now(),
+        state: S,
+        rd: { cls: RD.cls, region: RD.region, channel: RD.channel, words: RD.words, nickname: RD.nickname, deeds: RD.deeds }
+      };
+      var txt = safeStringify(payload);
+      if (txt) { ls.setItem(SAVE_KEY, txt); }
+    } catch (e) { /* storage failure: the run just plays unsaved */ }
+  }
+  /* autosave: renders mark the run dirty; a slow tick writes it out, and
+     hiding the tab writes it immediately. */
+  var dirty = false;
+  if (typeof render === "function") {
+    var prevRender10 = render;
+    render = function () {
+      var out = prevRender10.apply(this, arguments);
+      dirty = true;
+      return out;
+    };
+  }
+  setInterval(function () { if (dirty) { dirty = false; writeSave(); } }, 1200);
+  try { document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { writeSave(); } }); } catch (e) {}
+
+  /* GOATMODE unlock persists on its own flag: once any run unlocks it,
+     later runs (fresh or continued) carry it. */
+  setInterval(function () {
+    var ls = store(); if (!ls) { return; }
+    try {
+      if (typeof S !== "undefined" && S && S.goatUnlocked) { ls.setItem(GOAT_KEY, "1"); }
+      else if (runLive() && ls.getItem(GOAT_KEY) === "1") { S.goatUnlocked = true; dirty = true; }
+    } catch (e) {}
+  }, 1000);
+
+  /* CONTINUE on the start screen, whenever a save is waiting. */
+  function fmtN(n) { try { return formatNumber(n); } catch (e) { return String(n); } }
+  function paintContinue() {
+    var startOv = gel("rd-start");
+    if (!startOv || startOv.classList.contains("hidden")) { return; }
+    var d = readSave();
+    var old = gel("rd-continue-btn");
+    if (!d) { if (old) { old.remove(); } return; }
+    if (old) { return; }
+    var grid = startOv.querySelector(".rd-grid");
+    var panel = startOv.querySelector(".rd-panel");
+    if (!grid || !panel) { return; }
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "rd-opt";
+    b.id = "rd-continue-btn";
+    var strong = document.createElement("strong");
+    strong.textContent = "Continue";
+    var small = document.createElement("small");
+    small.textContent = "day " + d.state.day + " · $" + fmtN(d.state.money) + " · " + fmtN(d.state.fans) + " fans — pick the run back up";
+    b.appendChild(strong);
+    b.appendChild(small);
+    b.addEventListener("click", continueRun);
+    grid.insertBefore(b, grid.firstChild);
+    var sub = panel.querySelector(".rd-sub");
+    if (sub) { sub.textContent = "a run is waiting where you left it. continue it, or start fresh."; }
+  }
+  function applyRD(d) {
+    var RD = window.RapDreamStart;
+    if (!RD) { return; }
+    var rd = d.rd || {};
+    RD.cls = rd.cls || S.rdClass || null;
+    RD.region = rd.region || S.rdRegion || null;
+    RD.channel = rd.channel || null;
+    RD.words = rd.words || null;
+    RD.nickname = rd.nickname || null;
+    RD.deeds = rd.deeds || {};
+    RD.picked = true;
+    RD.startDone = true;
+    RD.startPending = false;
+    if (RD.cls) { window.RapDreamClassRegion = { cls: RD.cls, region: RD.region, channel: RD.channel }; }
+  }
+  function hideStartSurfaces() {
+    ["rd-start", "rd-pick", "rd-archetype", "instructions"].forEach(function (id) {
+      var o = gel(id);
+      if (o) { o.classList.add("hidden"); }
+    });
+  }
+  function continueRun() {
+    var d = readSave();
+    if (!d) { paintContinue(); return; }
+    try {
+      S = d.state;
+      applyRD(d);
+      if (typeof render === "function") { render(); }
+      /* the render hook treats a swapped state like a new run and resets
+         the start flow; re-apply the picks and close the surfaces again. */
+      applyRD(d);
+      hideStartSurfaces();
+      if (typeof render === "function") { render(); }
+      if (typeof log === "function") { log("picked the run back up: day " + S.day + ", the desk exactly where you left it."); }
+      dirty = true;
+    } catch (e) {
+      /* a save that cannot be restored never crashes the start screen:
+         fall back to the fresh-start options already standing. */
+      try { hideStartSurfaces(); var so = gel("rd-start"); if (so) { so.classList.remove("hidden"); } } catch (e2) {}
+    }
+  }
+  var startOvEl = gel("rd-start");
+  if (startOvEl && typeof MutationObserver === "function") {
+    new MutationObserver(function () { paintContinue(); }).observe(startOvEl, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true });
+  }
+  setInterval(paintContinue, 1500);
+  paintContinue();
+
+  /* spawn input gate, belt and braces: while the picks are unfinished or
+     any start surface is up, a press that lands on the hold button is
+     swallowed here in the capture phase, before the deck ever sees it.
+     A run already in progress is untouched: once the picks are done and
+     the surfaces are down, this guard never fires. */
+  document.addEventListener("pointerdown", function (ev) {
+    var btn = gel("rd-hold-btn");
+    if (!btn) { return; }
+    var t = ev.target;
+    if (!t || (t !== btn && !(btn.contains && btn.contains(t)))) { return; }
+    var RD = window.RapDreamStart;
+    var blocked = !RD || !RD.picked || typeof S === "undefined" || !S || !S.legend;
+    if (!blocked) {
+      var ids = ["rd-start", "rd-pick", "rd-archetype", "instructions"];
+      for (var i = 0; i < ids.length; i += 1) {
+        var o = gel(ids[i]);
+        if (o && !o.classList.contains("hidden") && o.style.display !== "none") { blocked = true; break; }
+      }
+    }
+    if (blocked) { ev.preventDefault(); ev.stopPropagation(); }
+  }, true);
 })();
 </script>
 
