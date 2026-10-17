@@ -2510,6 +2510,10 @@
     .coin-pick:disabled { opacity: .55; cursor: not-allowed; }
     .coin-pick .feat-refusal { color: #ff5d7a; }
     .coin-pick .feat-grudge { color: #e7a414; }
+    /* In-panel booking feedback: every tap on a market row answers here,
+       inside the room, because the banner shout renders under the room. */
+    .feat-note { min-height: 22px; margin: 12px 0 0; color: var(--signal); font-family: "VT323", monospace; font-size: 18px; line-height: 1.35; }
+    .feat-note:empty { min-height: 0; margin: 0; }
 
   </style>
 </head>
@@ -5783,6 +5787,7 @@ render();
   featRoom.setAttribute("aria-labelledby", "features-room-title");
   featRoom.innerHTML = "<div class=\"market-room-inner\"><div class=\"room-head\"><h2 id=\"features-room-title\">Features market</h2><button id=\"close-features-room\" class=\"room-close\" type=\"button\">close</button></div>"
     + "<p class=\"market-room-copy\">Book a verse from the names in your world and put it on a record. Price follows standing. Beef is the only locked door: diss a rapper and they won't get on your record, and diss a camp's top name and their whole orbit stops answering. A booked verse rides your next release, whichever demo the drop takes, and pays out in fans and rep the moment the record lands. One feature per record.</p>"
+    + "<p id=\"features-note\" class=\"feat-note\" role=\"status\" aria-live=\"polite\"></p>"
     + "<div id=\"features-list\" class=\"coin-picks\" aria-label=\"Rappers selling features\"></div></div>";
   document.body.appendChild(featRoom);
   var featDeck = $("actions");
@@ -5820,9 +5825,28 @@ render();
       featSub.textContent = "book a verse · prices follow standing · your beef locks doors";
     }
   }
+  /* Every answer a row tap earns lands in the panel's own note line.
+     The old path shouted to the banner, and the banner (z-index 40)
+     renders under this room (z-index 46), so taps looked dead: bookings
+     and refusals alike fired where the player could not see them. */
+  var featNoteHold = false;
+  function featNote(txt) {
+    var note = $("features-note");
+    if (!note) { return; }
+    note.textContent = txt || "";
+    featNoteHold = true;
+  }
+  window.RapDreamFeatNote = featNote;
   function renderFeatList() {
     var list = $("features-list");
     if (!list) { return; }
+    var note = $("features-note");
+    if (note && !featNoteHold) {
+      note.textContent = nwPendingFeature
+        ? "booked: a " + nwPendingFeature.name + " verse " + ((S.demos || []).length ? "rides your next release." : "is waiting on your next cut.")
+        : "";
+    }
+    featNoteHold = false;
     list.innerHTML = "";
     var defs = ladderDefs();
     if (!defs.length) {
@@ -5842,9 +5866,14 @@ render();
       var small = document.createElement("small");
       small.textContent = st.line;
       if (st.status === "refuse") { b.disabled = true; small.className = "feat-refusal"; }
+      if (nwPendingFeature && nwPendingFeature.name === def.name && st.status !== "refuse") {
+        b.classList.add("selected");
+        b.disabled = true;
+        small.textContent = "booked · " + ((S.demos || []).length ? "rides your next release" : "waiting on your next cut");
+      }
       b.appendChild(strong);
       b.appendChild(small);
-      if (st.status !== "refuse") {
+      if (st.status !== "refuse" && !b.disabled) {
         b.addEventListener("click", function () { buyFeature(def, idx); });
       }
       list.appendChild(b);
@@ -5860,7 +5889,7 @@ render();
   }
   function buyFeature(def, idx) {
     var st = featStatus(def, idx, ladderDefs());
-    if (st.status === "refuse") { shout("NO VERSE: " + (st.reason === "camp" ? "THAT CAMP IS CLOSED TO YOU" : "YOU'RE BEEFING WITH " + def.name.toUpperCase())); return; }
+    if (st.status === "refuse") { shout("NO VERSE: " + (st.reason === "camp" ? "THAT CAMP IS CLOSED TO YOU" : "YOU'RE BEEFING WITH " + def.name.toUpperCase())); featNote("no verse: " + st.line); return; }
     pruneFeatMeta();
     /* One feature rides the next release, full stop. The booking lives in
        the pending slot until a record actually drops: releases take the
@@ -5869,20 +5898,24 @@ render();
        status line promised a ride that never came. */
     if (nwPendingFeature) {
       shout("A FEATURE IS ALREADY BOOKED: IT RIDES YOUR NEXT RELEASE");
+      featNote("a feature is already booked: the " + nwPendingFeature.name + " verse rides your next release.");
       return;
     }
     if (featuredDemoIndex() >= 0) {
       shout("YOUR NEXT RELEASE ALREADY CARRIES A FEATURE");
+      featNote("your next release already carries a feature.");
       return;
     }
-    if ((S.money || 0) < st.price) { shout("NOT ENOUGH CASH: " + def.name.toUpperCase() + "'S VERSE IS $" + formatNumber(st.price) + ", YOU HOLD $" + formatNumber(S.money || 0)); return; }
+    if ((S.money || 0) < st.price) { shout("NOT ENOUGH CASH: " + def.name.toUpperCase() + "'S VERSE IS $" + formatNumber(st.price) + ", YOU HOLD $" + formatNumber(S.money || 0)); featNote("not enough cash: " + def.name + "'s verse is $" + formatNumber(st.price) + ", you hold $" + formatNumber(S.money || 0) + "."); return; }
     S.money -= st.price;
     var feat = { name: def.name, power: st.power };
     nwPendingFeature = feat;
     if ((S.demos || []).length) {
       tape("booked a " + def.name + " feature for $" + formatNumber(st.price) + ": it rides your next release, whichever demo the drop takes.");
+      featNote("booked: a " + def.name + " feature for $" + formatNumber(st.price) + ". it rides your next release.");
     } else {
       tape("booked a " + def.name + " feature for $" + formatNumber(st.price) + ": no demo in the vault, so it lands on your next cut and rides that record out.");
+      featNote("booked: a " + def.name + " feature for $" + formatNumber(st.price) + ". no demo in the vault, so it lands on your next cut.");
     }
     wire("You booked a " + def.name + " feature. The co-sign is already doing numbers.");
     shout("FEATURE BOOKED: " + def.name.toUpperCase());
@@ -9672,6 +9705,7 @@ render();
       e.stopPropagation();
       shout("NO VERSE: " + name.toUpperCase() + " IS STILL HOLDING THE GRUDGE");
       tape(name + " refused the booking flat: you passed on their feature money, and they do not forget a closed door.");
+      try { if (typeof window.RapDreamFeatNote === "function") { window.RapDreamFeatNote("no verse: " + name + " is still holding the grudge. you passed on their feature money, and they do not forget a closed door."); } } catch (e2) {}
       return;
     }
     if (X.offer.friendly[name]) {
