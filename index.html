@@ -6359,8 +6359,12 @@ render();
   }
 
   /* ---------- SONG WRITING ENGINE ---------- */
-  var WR_FRAGS = ["say less, mean more", "run deep, move quiet", "no rush, all weight", "came from nothing, act like it", "count it twice, spend it once", "eyes up, chin down", "built it brick by brick", "never folded, never told", "small words, big echo", "patience pays the rent", "heavy is the hand that feeds", "dreamed it, then did it", "low voice, loud results", "kept every receipt", "moved quiet, arrived loud", "one take, no net", "roots first, fruit later", "stood on it, all ten", "less talk, more proof", "the work talks first", "bend, don't break", "low water, deep roots", "enough is a place", "the step is the road", "still here, still standing", "soft hands, hard ground", "carry light, hit heavy", "the valley feeds the river", "name it and it shrinks", "less noise, more signal"];
-  var WR_TOPICS = ["the block", "the booth", "mama's porch", "the radar", "the ledger", "payday", "the dream", "the city", "the mirror", "the water", "the root", "the night bus", "the corner store", "the front step", "the kitchen table", "the long way home"];
+  /* the voice: swaggy Dao — the philosophy arrives as nature images
+     and boasts, never as stated lessons. Battle energy up front,
+     stillness underneath. Every fragment is built to be quoted
+     outside the game: one compressed line, portable as it stands. */
+  var WR_FRAGS = ["river low, pockets deep", "water never lost a fight", "rooted down, shining up", "the oak don't chase the wind", "rain falls, I rise", "empty cup, full table", "soft step, heavy landing", "the valley stays fed", "moved like weather, quiet like snow", "the tide works for me", "deep roots, loud fruit", "the moon don't beg the night", "current carries the crown", "I flow, they freeze", "low ground, high water", "the stream outlasts the dam", "wind talks, the mountain stands", "ice melts, I don't", "the root never brags, the fruit does", "downhill all the way to the bag", "unmoved, unbothered, upstream", "the river gets paid in oceans", "stand like pine, spend like spring", "they dam, I delta", "shore money, deep water name", "still pond, deep end", "grew through the crack, bloomed loud", "no dam on this river", "the rain don't ask permission", "bend low, rise paid", "quiet water, loud echo", "seasons turn, I collect", "the well don't chase the bucket", "stone face, water heart", "all current, no anchor", "front line first, philosophy after"];
+  var WR_TOPICS = ["the block", "the booth", "mama's porch", "the river", "the ledger", "the tide", "the dream", "the city", "the valley", "the root", "the night bus", "first rain", "the front step", "the kitchen table", "the mountain", "the long way home"];
   var WR_ARCH_KEYS = {
     performer: ["spotlight", "encore", "the crowd", "center stage"],
     catalog: ["the vault", "royalties", "the archive", "old tapes"],
@@ -6379,7 +6383,7 @@ render();
     gear: ["the setup", "new mic"], beef: ["the radar", "tension"], advance: ["the office", "the check"],
     legend: ["the myth", "the story"], sleep: ["the dream", "rest"], tournament: ["the bracket", "the final"]
   };
-  var WR_GENERIC_KEYS = ["the come up", "day one", "no sleep", "the long way", "mama's kitchen", "the north star", "bus money", "the last laugh", "heavy heart", "clean hands"];
+  var WR_GENERIC_KEYS = ["the river", "the root", "low water", "the valley", "first rain", "the tide", "the still pond", "the pine", "the delta", "the undercurrent"];
   var wr = { songs: [], used: {}, current: null, view: "home" };
   function wrOptionPool() {
     var pool = [];
@@ -6421,17 +6425,26 @@ render();
     return [first, second || { key: "the come up", why: "off the top: the engine dealing wild", src: "wild" }];
   }
   var WR_CLASS_FRAGS = {
-    trap: ["perc talking, let it talk", "count it up, don't look up", "phone buzzing, money calling", "heavy drums, light words", "stack it quiet, spend it loud"],
-    drill: ["slide first, talk later", "cold block, colder delivery", "clipped words, sharp edges", "no wasted motion, ever", "frost on the windowsill talk"],
-    rnb: ["sing it soft, mean it all", "slow wine under low lights", "your name in a high note", "velvet over a hard year", "hold the note, hold me down"],
-    experimental: ["sideways clocks, still on time", "the glitch said it better", "left field, home team", "static blooming into signal", "upside-down anthem, sing along"]
+    trap: ["perc talking, river walking", "count it up, let it flow", "phone buzzing, tide rising", "heavy drums, water words", "stack it quiet, stream it loud"],
+    drill: ["slide first, current second", "cold block, colder water", "clipped words, deep end", "no wasted motion, all flow", "frost melts, I don't"],
+    rnb: ["sing it soft, river deep", "slow wine, slower water", "your name in a high note", "velvet over a low tide", "hold the note, hold the shore"],
+    experimental: ["sideways clocks, downstream time", "static in the stream, still flowing", "left field, home river", "the glitch bends, never breaks", "upside-down anthem, water finds a way"]
   };
   var WR_CLASS_KEYS = {
-    trap: ["the trap phone", "perc stacks"],
+    trap: ["the trap phone", "the undercurrent"],
     drill: ["the slide", "cold blocks"],
-    rnb: ["the high note", "slow dance"],
+    rnb: ["the high note", "slow water"],
     experimental: ["the glitch", "sideways clocks"]
   };
+  /* ascending ladders: a verse that climbs instead of wandering —
+     root to fruit, drop to ocean, soil to sky. The boast carries the
+     philosophy at every rung; nothing is ever stated as a lesson. */
+  var WR_LADDERS = [
+    ["planted in the dirt, quiet about it", "rings in the trunk, years on my name", "branches out now, shade for the whole block", "fruit at the top, the whole sky watching"],
+    ["one drop, nobody noticed", "a stream now, running through the block", "a river next, bridges getting built for me", "an ocean last, every shore knows the name"],
+    ["hands in the soil, head in the work", "name on the corner, word traveling", "name in the city, lights bending", "name in the sky, weather reporting to me"],
+    ["sat by the water, learned the level", "stood in the current, never got moved", "walked the bank like I owned the deed", "the whole watershed says my name now"]
+  ];
   function wrBar(key, flavor) {
     var frag = pick(WR_FRAGS);
     try {
@@ -6443,7 +6456,7 @@ render();
     if (flavor === "hook" || style === 0) { return key + ": " + frag; }
     if (style === 1) { return topic + ": " + frag; }
     if (style === 2) { return key + " in my head, " + frag; }
-    return topic + " taught me: " + frag;
+    return "from " + topic + " to the sky, " + frag;
   }
   function wrMakeSet(key, flavor) {
     for (var attempt = 0; attempt < 60; attempt += 1) {
@@ -6451,6 +6464,9 @@ render();
       if (flavor === "hook") {
         var hb = wrBar(key, "hook");
         bars = [hb, hb, hb, hb];
+      } else if (Math.random() < 0.5) {
+        /* half the verses climb a ladder: four rungs, low to high */
+        bars = pick(WR_LADDERS).slice();
       } else {
         bars = [wrBar(key), wrBar(key), wrBar(key), wrBar(key)];
       }
@@ -9464,7 +9480,7 @@ render();
           try {
             if (qt.catches > 0) {
               X.buzz = { track: S.tracks || 0, catches: qt.catches, daysLeft: qt.catches * 7 };
-              tape("the buzz got ridden: " + qt.catches + " of 3 pulses caught. the record's first weeks just grew legs.");
+              tape("the buzz got ridden: the one pulse got caught. the record's first weeks just grew legs.");
             }
           } catch (e) {}
           X.qtBusy = false;
@@ -9484,7 +9500,7 @@ render();
     if (typeof demos[bi] === "number") { demos[bi] = Math.max(1, demos[bi] + adj); }
   }
   /* RELEASE WINDOW: the needle sweeps the week, prime window pays.
-     RIDE THE BUZZ: three decaying pulses, catch them in the green. */
+     RIDE THE BUZZ: one decaying pulse, catch it in the green. */
   function runReleaseQts(done) {
     var stage = $("minigame-stage");
     if (!stage || typeof setMini !== "function") { done({ adj: 0, catches: 0 }); return; }
@@ -9552,12 +9568,12 @@ render();
   function runBuzz(adj, done) {
     var stage = $("minigame-stage");
     if (!stage || typeof setMini !== "function") { done({ adj: adj, catches: 0 }); return; }
-    setMini("Ride the buzz", "release // three pulses", "The record is out and the buzz is already decaying. Three pulses, one needle each: tap CATCH while the needle rides inside the green and the song's first-week legs stretch. Misses are allowed. Partial credit counts.");
+    setMini("Ride the buzz", "release // one pulse", "The record is out and the buzz is already decaying. One pulse, one needle: tap CATCH while the needle rides inside the green and the song's first-week legs stretch. One clean catch is the whole game now.");
     stage = $("minigame-stage");
     var panel = el("div", "aim-panel");
     var head = el("div", "aim-head");
     head.appendChild(el("span", null, "ride the buzz"));
-    var headR = el("b", null, "pulse 1 of 3");
+    var headR = el("b", null, "one pulse");
     head.appendChild(headR);
     panel.appendChild(head);
     var track = el("div", "aim-track rd-buzz");
@@ -9586,9 +9602,9 @@ render();
       raf = requestAnimationFrame(step);
     }
     function startPulse() {
-      if (pulse >= 3) { done({ adj: adj, catches: catches }); return; }
+      if (pulse >= 1) { done({ adj: adj, catches: catches }); return; }
       pulse += 1;
-      headR.textContent = "pulse " + pulse + " of 3 · " + catches + " caught";
+      headR.textContent = "the pulse · " + catches + " caught";
       zc = 0.32 + Math.random() * 0.42;
       zone.style.left = ((zc - 0.09) * 100) + "%";
       zone.style.width = "18%";
@@ -9608,7 +9624,7 @@ render();
       settled = true;
       if (raf) { cancelAnimationFrame(raf); }
       if (hit) { catches += 1; }
-      headR.textContent = (hit ? "caught. " : "missed. ") + catches + " of 3 pulses";
+      headR.textContent = hit ? "caught. the buzz is ridden." : "missed. the buzz fades on its own.";
       setTimeout(startPulse, 550);
     }
     catchBtn.addEventListener("click", function () {
@@ -10479,6 +10495,7 @@ render();
     + ".sky-sling .sky-arm.r{right:6px;transform:rotate(16deg)}"
     + ".sky-sling .sky-grip{position:absolute;left:50%;bottom:0;width:9px;height:20px;margin-left:-4px;background:#8a6b42;border:2px solid #05080c}"
     + ".sky-band{position:absolute;height:3px;background:#f32e68;transform-origin:0 50%}"
+    + ".sky-combo{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;padding:8px 14px;border:2px solid #b5ff20;border-radius:6px;background:rgba(5,11,18,.88);color:#b5ff20;font-family:'Silkscreen',monospace;font-size:13px;letter-spacing:.06em;text-align:center;text-transform:uppercase;box-shadow:0 0 18px rgba(181,255,32,.35)}"
     + ".rd-hold-wrap{margin:10px 0 0}"
     + ".rd-hold-btn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;min-height:58px;padding:10px 12px;border:2px dashed #69bdff;border-radius:8px;background:#050b12;color:#eefbff;font-family:'VT323',monospace;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}"
     + ".rd-hold-btn strong{font-size:19px;letter-spacing:.1em;color:#69bdff}"
@@ -10822,11 +10839,17 @@ render();
 
   /* SKY TAX, restored: the original slingshot from the Oct 14 build —
      boxy drones in mixed sizes crossing both ways, stones / down /
-     score / streak on the status line, points banking as salvage cash
-     and fans — with the caps off: drones keep crossing, stones never
-     run out, and no miss streak ends it. The run ends when the player
-     walks away, and walking away banks the score. The four dedicated
-     sounds ride along: launch, hit, crash, and the scrap sale. */
+     salvage / fans / streak on the status line — with the caps off:
+     drones keep crossing, stones never run out, and no miss streak
+     ends it. The run ends when the player walks away, and walking
+     away banks it: $500 salvage and 10 fans per drone downed, flat,
+     any size. BOUNCE COMBO: a stone that bounces off one drone's lid
+     and then kills another drops EVERY drone on screen, and each one
+     the clear takes pays double — $1,000 and 20 fans. The loop is
+     hardened: one bad frame never kills it, a watchdog restarts it on
+     a stall, and the field geometry is re-measured after layout and
+     on resize instead of once at open. The four dedicated sounds
+     ride along: launch, hit, crash, and the scrap sale. */
   function startSkyTax() {
     if (S.over) { return; }
     var room = gel("minigame-room");
@@ -10836,7 +10859,7 @@ render();
     var myRun = ++skyRun;
     var myState = S;
     try { activeMiniAction = "skytax"; } catch (e) {}
-    setMini("Sky tax", "outside // slingshot vs the machine sky", "Drag back, let go. Drones keep crossing, stones never run out, and no miss streak ends it. The lid on top bounces stones off: land them inside the opening under it. Points bank as salvage and fans when you walk away — backing out banks them too.");
+    setMini("Sky tax", "outside // slingshot vs the machine sky", "Drag back, let go. Drones keep crossing, stones never run out, and no miss streak ends it. The lid on top bounces stones off: land them inside the opening under it. Every drone downed pays $500 salvage and 10 fans, banked when you walk away — backing out banks them too. Bounce a stone off one lid and kill another drone with it, and the whole screen drops: every drone the clear takes pays double, $1,000 and 20 fans.");
     var stage = gel("minigame-stage");
     if (!stage) { return; }
     stage.innerHTML = "";
@@ -10851,12 +10874,26 @@ render();
     stage.appendChild(actions);
     field.appendChild(mkEl("div", "sky-skyline"));
     field.appendChild(mkEl("div", "sky-roof"));
+    var comboFlash = mkEl("div", "sky-combo");
+    comboFlash.style.display = "none";
+    field.appendChild(comboFlash);
+    /* field geometry is measured, not assumed: the width is read after
+       layout settles, re-read on resize, and re-read at every spawn, so
+       a field that was still laying out at open never strands the run. */
     var W = field.clientWidth || 340;
     var H = 320;
     var forkX = Math.round(W / 2), forkY = H - 62;
     var sling = mkEl("div", "sky-sling");
     sling.style.left = (forkX - 23) + "px";
     sling.style.top = (H - 92) + "px";
+    function measure() {
+      var w = field.clientWidth || 0;
+      if (w && w !== W) {
+        W = w;
+        forkX = Math.round(W / 2);
+        sling.style.left = (forkX - 23) + "px";
+      }
+    }
     var armL = mkEl("div", "sky-arm l"); var armR = mkEl("div", "sky-arm r"); var grip = mkEl("div", "sky-grip");
     sling.appendChild(armL); sling.appendChild(armR); sling.appendChild(grip);
     field.appendChild(sling);
@@ -10866,18 +10903,32 @@ render();
     band.style.display = "none";
     field.appendChild(band);
     var GRAV = 620;
-    var spawned = 0, hits = 0, score = 0, streak = 0;
-    var drones = [], stones = [], done = false, startedAt = performance.now(), lastSpawn = 0, lastT = 0, raf = 0;
+    /* the pay table, flat per drone downed: a normal kill pays RATE,
+       a drone dropped by a bounce-combo clear pays double. Size buys
+       nothing — sizes only change the target, never the money. */
+    var RATE_CASH = 500, RATE_FANS = 10;
+    var spawned = 0, hits = 0, cleared = 0, streak = 0;
+    var drones = [], stones = [], done = false, lastSpawn = 0, lastT = 0, raf = 0;
+    var lastStepAt = performance.now(), watchdog = 0;
     var SIZES = [
-      { w: 58, h: 30, pts: 10, v: [55, 90] },
-      { w: 42, h: 24, pts: 20, v: [99, 145] },
-      { w: 30, h: 18, pts: 30, v: [157, 218] }
+      { w: 58, h: 30, v: [55, 90] },
+      { w: 42, h: 24, v: [99, 145] },
+      { w: 30, h: 18, v: [157, 218] }
     ];
+    function totals() {
+      return {
+        down: hits + cleared,
+        cash: RATE_CASH * hits + 2 * RATE_CASH * cleared,
+        fans: RATE_FANS * hits + 2 * RATE_FANS * cleared
+      };
+    }
     function hud() {
       var st = gel("minigame-status");
-      if (st) { st.textContent = "stones ∞ · down " + hits + " · score " + score + " · salvage $" + fmt(score) + " and counting · streak " + streak; }
+      var t = totals();
+      if (st) { st.textContent = "stones ∞ · down " + t.down + " · salvage $" + fmt(t.cash) + " and counting · fans +" + fmt(t.fans) + " · streak " + streak; }
     }
     function spawnDrone(now) {
+      measure();
       var kind = SIZES[Math.floor(Math.random() * SIZES.length)];
       var fromLeft = Math.random() < 0.5;
       var speed = kind.v[0] + Math.random() * (kind.v[1] - kind.v[0]);
@@ -10886,91 +10937,138 @@ render();
       el.style.height = kind.h + "px";
       el.appendChild(mkEl("span", "sky-eye"));
       field.appendChild(el);
-      var d = { el: el, w: kind.w, h: kind.h, pts: kind.pts, x: fromLeft ? -kind.w - 4 : W + 4, y: 18 + Math.random() * 165, vx: (fromLeft ? 1 : -1) * speed, falling: false, vy: 0, dead: false };
+      var d = { el: el, w: kind.w, h: kind.h, x: fromLeft ? -kind.w - 4 : W + 4, y: 18 + Math.random() * 165, vx: (fromLeft ? 1 : -1) * speed, falling: false, vy: 0, dead: false };
       drones.push(d);
       spawned += 1;
       lastSpawn = now;
+    }
+    /* BOUNCE COMBO: the killing stone rode a lid bounce on its way in,
+       so the kill takes the whole screen with it. Every other drone
+       still flying drops, and each one the clear takes pays double.
+       The triggering kill itself already banked at the normal rate. */
+    function screenClear() {
+      var n = 0;
+      drones.forEach(function (d) {
+        if (d.dead || d.falling) { return; }
+        d.falling = true; d.vy = 20;
+        d.el.classList.add("hit");
+        n += 1;
+        if (window.RapDreamCounter) { window.RapDreamCounter.bump("drones"); }
+      });
+      if (!n) { return; }
+      cleared += n;
+      skySfx("crash");
+      comboFlash.textContent = "bounce combo · screen clear · +$" + fmt(2 * RATE_CASH * n) + " · +" + (2 * RATE_FANS * n) + " fans";
+      comboFlash.style.display = "block";
+      setTimeout(function () { comboFlash.style.display = "none"; }, 1600);
+      shout("BOUNCE COMBO: SCREEN CLEAR");
+      hud();
     }
     function finish() {
       if (done) { return; }
       done = true;
       if (window.RapDreamSkyBank === finish) { window.RapDreamSkyBank = null; }
       if (raf) { cancelAnimationFrame(raf); }
+      if (watchdog) { clearInterval(watchdog); watchdog = 0; }
+      try { window.removeEventListener("resize", measure); } catch (e) {}
       try { miniRun += 1; } catch (e) {}
       if (room) { room.classList.add("hidden"); }
       try { activeMiniAction = null; } catch (e) {}
-      var cash = score;
-      var fans = Math.floor(score / 2);
+      /* the session leaves nothing behind: focus held by a control
+         inside the closing room is released back to the page, so no
+         dash hotkey ever lands on a hidden button afterwards. */
+      try {
+        var ae = document.activeElement;
+        if (ae && room && room.contains(ae) && ae.blur) { ae.blur(); }
+      } catch (e) {}
+      var t = totals();
+      var cash = t.cash;
+      var fans = t.fans;
       S.money = (S.money || 0) + cash;
       S.fans = (S.fans || 0) + fans;
       /* the downed drones are the scraps: they autosell with the salvage,
          so the scrapped counter (run + lifetime) bumps here, at the bank. */
-      if (hits > 0 && window.RapDreamCounter) { window.RapDreamCounter.bump("scraps", hits); }
+      if (t.down > 0 && window.RapDreamCounter) { window.RapDreamCounter.bump("scraps", t.down); }
       skySfx("sale");
-      tapeLine("sky tax: " + hits + " down, " + score + " points. +$" + fmt(cash) + " salvage, +" + fmt(fans) + " fans.");
-      shout("SKY TAX: " + score + " POINTS");
-      try { if (typeof playCompletionChime === "function") { playCompletionChime(score >= 150 ? 0.9 : score >= 60 ? 0.6 : 0.35); } } catch (e) {}
+      tapeLine("sky tax: " + t.down + " down. +$" + fmt(cash) + " salvage, +" + fmt(fans) + " fans." + (cleared > 0 ? " the bounce clear took " + cleared + " of them at double." : ""));
+      shout("SKY TAX: $" + fmt(cash) + " SALVAGE");
+      try { if (typeof playCompletionChime === "function") { playCompletionChime(cash >= 8000 ? 0.9 : cash >= 3000 ? 0.6 : 0.35); } } catch (e) {}
       try { if (typeof recordCashPoint === "function") { recordCashPoint(); } } catch (e) {}
       try { render(); } catch (e) {}
     }
+    /* The loop's one law: it re-queues. A bad frame is caught and the
+       next frame is already booked; the loop only stops when the
+       session genuinely finished (banked), was superseded by a newer
+       run, or the run's state was swapped out from under it. A single
+       hidden-room frame skips the work but never kills the session —
+       if the room stays shut, the watchdog settles the run by banking
+       it, so no session state is ever stranded half-open. */
     function step(now) {
       if (done || myRun !== skyRun || myState !== S) { return; }
-      if (!room || room.classList.contains("hidden")) { done = true; return; }
-      var dt = Math.min(0.05, lastT ? (now - lastT) / 1000 : 0.016);
-      lastT = now;
-      if (now - lastSpawn > 1700) { spawnDrone(now); }
-      drones.forEach(function (d) {
-        if (d.dead) { return; }
-        if (d.falling) {
-          d.vy += GRAV * dt;
-          d.y += d.vy * dt;
-          d.el.style.transform = "rotate(24deg)";
-          if (d.y > H + 50) { d.dead = true; d.el.remove(); skySfx("crash"); }
-        } else {
-          d.x += d.vx * dt;
-          if ((d.vx > 0 && d.x > W + 70) || (d.vx < 0 && d.x < -d.w - 70)) {
-            d.dead = true; d.el.remove();
-          }
+      lastStepAt = now;
+      try {
+        if (room && !room.classList.contains("hidden")) {
+          var dt = Math.min(0.05, lastT ? (now - lastT) / 1000 : 0.016);
+          lastT = now;
+          if (now - lastSpawn > 1700) { spawnDrone(now); }
+          drones.forEach(function (d) {
+            if (d.dead) { return; }
+            if (d.falling) {
+              d.vy += GRAV * dt;
+              d.y += d.vy * dt;
+              d.el.style.transform = "rotate(24deg)";
+              if (d.y > H + 50) { d.dead = true; d.el.remove(); skySfx("crash"); }
+            } else {
+              d.x += d.vx * dt;
+              if ((d.vx > 0 && d.x > W + 70) || (d.vx < 0 && d.x < -d.w - 70)) {
+                d.dead = true; d.el.remove();
+              }
+            }
+            if (!d.dead) { d.el.style.left = d.x + "px"; d.el.style.top = d.y + "px"; }
+          });
+          stones = stones.filter(function (st) { return !st.dead; });
+          stones.forEach(function (st) {
+            var py = st.y;
+            st.vy += GRAV * dt;
+            st.x += st.vx * dt;
+            st.y += st.vy * dt;
+            st.el.style.left = st.x + "px";
+            st.el.style.top = st.y + "px";
+            var hitDrone = null;
+            drones.forEach(function (d) {
+              if (hitDrone || d.dead || d.falling) { return; }
+              if (st.x + 11 > d.x && st.x < d.x + d.w && st.y + 11 > d.y && st.y < d.y + d.h) { hitDrone = d; }
+            });
+            if (hitDrone && st.vy > 0 && py + 11 <= hitDrone.y + 2) {
+              /* the top surface line is a lid: a stone dropping straight
+                 onto it bounces off and falls away. The hit only counts
+                 when the stone gets INSIDE the opening beneath the line —
+                 in from underneath or in from the side. A stone that has
+                 bounced is marked: if it goes on to kill, the kill is a
+                 bounce combo and the whole screen drops with it. */
+              st.y = hitDrone.y - 11.5;
+              st.el.style.top = st.y + "px";
+              st.vy = -Math.abs(st.vy) * 0.45;
+              st.vx *= 0.6;
+              st.bounced = true;
+              skySfx("hit");
+              hitDrone = null;
+            }
+            if (hitDrone) {
+              st.dead = true; st.el.remove();
+              hitDrone.falling = true; hitDrone.vy = 20;
+              hitDrone.el.classList.add("hit");
+              hits += 1; streak = 0; skySfx("hit"); if (window.RapDreamCounter) { window.RapDreamCounter.bump("drones"); }
+              hud();
+              if (st.bounced) { screenClear(); }
+            } else if (st.y > H + 46 || st.x < -70 || st.x > W + 70) {
+              st.dead = true; st.el.remove();
+              streak += 1;
+              hud();
+            }
+          });
         }
-        if (!d.dead) { d.el.style.left = d.x + "px"; d.el.style.top = d.y + "px"; }
-      });
-      stones = stones.filter(function (st) { return !st.dead; });
-      stones.forEach(function (st) {
-        var py = st.y;
-        st.vy += GRAV * dt;
-        st.x += st.vx * dt;
-        st.y += st.vy * dt;
-        st.el.style.left = st.x + "px";
-        st.el.style.top = st.y + "px";
-        var hitDrone = null;
-        drones.forEach(function (d) {
-          if (hitDrone || d.dead || d.falling) { return; }
-          if (st.x + 11 > d.x && st.x < d.x + d.w && st.y + 11 > d.y && st.y < d.y + d.h) { hitDrone = d; }
-        });
-        if (hitDrone && st.vy > 0 && py + 11 <= hitDrone.y + 2) {
-          /* the top surface line is a lid: a stone dropping straight
-             onto it bounces off and falls away. The hit only counts
-             when the stone gets INSIDE the opening beneath the line —
-             in from underneath or in from the side. */
-          st.y = hitDrone.y - 11.5;
-          st.el.style.top = st.y + "px";
-          st.vy = -Math.abs(st.vy) * 0.45;
-          st.vx *= 0.6;
-          skySfx("hit");
-          hitDrone = null;
-        }
-        if (hitDrone) {
-          st.dead = true; st.el.remove();
-          hitDrone.falling = true; hitDrone.vy = 20;
-          hitDrone.el.classList.add("hit");
-          hits += 1; score += hitDrone.pts; streak = 0; skySfx("hit"); if (window.RapDreamCounter) { window.RapDreamCounter.bump("drones"); }
-          hud();
-        } else if (st.y > H + 46 || st.x < -70 || st.x > W + 70) {
-          st.dead = true; st.el.remove();
-          streak += 1;
-          hud();
-        }
-      });
+      } catch (e) { /* one bad frame never ends the run */ }
       raf = requestAnimationFrame(step);
     }
     var aiming = false, pullX = 0, pullY = 0;
@@ -11019,7 +11117,7 @@ render();
       if (len < 22) { return; }
       var el = mkEl("div", "sky-stone");
       field.appendChild(el);
-      stones.push({ el: el, x: forkX - 5, y: forkY - 5, vx: -pullX * 5, vy: -pullY * 5, dead: false });
+      stones.push({ el: el, x: forkX - 5, y: forkY - 5, vx: -pullX * 5, vy: -pullY * 5, dead: false, bounced: false });
       skySfx("launch");
       hud();
     }
@@ -11029,6 +11127,32 @@ render();
     spawnDrone(performance.now());
     window.RapDreamSkyBank = finish;
     raf = requestAnimationFrame(step);
+    /* geometry, settled: measure again once layout has had its frame,
+       and keep measuring whenever the window changes shape. */
+    requestAnimationFrame(function () { measure(); });
+    try { window.addEventListener("resize", measure); } catch (e) {}
+    /* the stall watchdog: while the room is open and the session is
+       live, a loop that has not stepped in over a second and a half
+       gets restarted on the spot. If the room has been shut for three
+       ticks running without the session banking, the session is
+       settled here — banked and fully closed out — so a closed room
+       can never leave live session state (or a dead dash hotkey)
+       behind it. */
+    var hiddenTicks = 0;
+    watchdog = setInterval(function () {
+      if (done || myRun !== skyRun || myState !== S) { clearInterval(watchdog); watchdog = 0; return; }
+      if (!room || room.classList.contains("hidden")) {
+        hiddenTicks += 1;
+        if (hiddenTicks >= 3) { finish(); }
+        return;
+      }
+      hiddenTicks = 0;
+      if (performance.now() - lastStepAt > 1600) {
+        if (raf) { cancelAnimationFrame(raf); }
+        lastT = 0;
+        raf = requestAnimationFrame(step);
+      }
+    }, 800);
     try { render(); } catch (e) {}
   }
   window.RapDreamSkyTax = startSkyTax;
@@ -11931,10 +12055,22 @@ render();
        tile leaves the dash; the lifetime pair stays in EVERYTHING. */
     var oldDrones = gel("rd-stat-drones");
     if (oldDrones && oldDrones.parentNode) { oldDrones.parentNode.remove(); }
+    /* the third cell in the row is DEMOS: demos recorded this run,
+       per-run like the counters beside it. It sits right after the
+       SCRAPPED tile so the row reads travelled · scrapped · demos. */
+    if (!gel("rd-stat-demos")) {
+      var t2 = mkEl("div", "stat");
+      t2.appendChild(mkEl("span", "label", "DEMOS"));
+      var v2 = mkEl("span", "val", "0"); v2.id = "rd-stat-demos"; t2.appendChild(v2);
+      var scrapsTile = gel("rd-stat-scraps");
+      if (scrapsTile && scrapsTile.parentNode === stats) { stats.insertBefore(t2, scrapsTile.nextSibling); }
+      else { stats.appendChild(t2); }
+    }
     /* dashboard tiles read the PER-RUN counters; the lifetime totals live
        only in the EVERYTHING panel. Scraps autosell: one number, scrapped. */
     var runNow = window.RapDreamCounter && window.RapDreamCounter.getRun ? window.RapDreamCounter.getRun() : { drones: 0, scraps: 0 };
     var sv = gel("rd-stat-scraps"); if (sv) { sv.textContent = String(runNow.scraps); }
+    var dv = gel("rd-stat-demos"); if (dv) { dv.textContent = String((typeof S !== "undefined" && S) ? (S.rdRunDemos | 0) : 0); }
   }
 
   /* counter hardening: the per-run fields are reset EXPLICITLY on every
@@ -11956,6 +12092,32 @@ render();
         if (S.rdRunScraps === undefined) { S.rdRunScraps = 0; }
         ensureStatTiles();
       }
+    } catch (e) {}
+  }, 400);
+
+  /* demos recorded this run: RECORD grows the vault, RELEASE takes one
+     out of it, so the tile cannot just read the vault's length. Watch
+     the length and bank only the growth into S.rdRunDemos, with the
+     same new-run discipline as the drone/scrap tallies above. */
+  var rdDemoLastS = null, rdDemoBase = 0;
+  setInterval(function () {
+    try {
+      if (typeof S === "undefined" || !S) { return; }
+      var len = (S.demos || []).length;
+      var RD2 = window.RapDreamStart;
+      if (RD2 && RD2.startPending) {
+        if (S.rdRunDemos !== 0) { S.rdRunDemos = 0; }
+        rdDemoLastS = S; rdDemoBase = len;
+        return;
+      }
+      if (S !== rdDemoLastS) {
+        rdDemoLastS = S;
+        if (S.rdRunDemos === undefined) { S.rdRunDemos = 0; }
+        rdDemoBase = len;
+        return;
+      }
+      if (len > rdDemoBase) { S.rdRunDemos = (S.rdRunDemos | 0) + (len - rdDemoBase); }
+      if (len !== rdDemoBase) { rdDemoBase = len; ensureStatTiles(); }
     } catch (e) {}
   }, 400);
 
@@ -12437,8 +12599,8 @@ render();
       var grid = menuRoom.querySelector(".menu-grid");
       if (!grid || gel("rd-park-btn")) { return; }
       var b = document.createElement("button");
-      b.type = "button"; b.className = "menu-btn"; b.id = "rd-park-btn";
-      b.appendChild(mkEl("b", null, "park robot ball"));
+      b.type = "button"; b.className = "opt-btn"; b.id = "rd-park-btn";
+      b.appendChild(mkEl("strong", null, "park robot ball"));
       b.appendChild(mkEl("small", null, "the park league · bet the race · they never miss"));
       b.addEventListener("click", function () { menuRoom.classList.add("hidden"); openPark(); });
       grid.appendChild(b);
@@ -12778,6 +12940,14 @@ render();
         actionsEl.appendChild(writingBtn);
         actionsEl.appendChild(catalogBtn);
       }
+      /* the composed dash grid, final seats: RELEASE under RECORD in the
+         right column, SLEEP in FEATURES' old row-2 seat, FEATURES down
+         in SLEEP's old row-4 seat. Re-appending the live buttons moves
+         them; identity, hotkey, and lock state ride along untouched. */
+      ["job", "cypher", "record", "writing", "sleep", "release", "catalog", "beef", "tournament", "stunt", "features", "computer", "study", "gear", "advance"].forEach(function (a) {
+        var b = actionsEl.querySelector("[data-act=\"" + a + "\"]");
+        if (b && b.parentNode === actionsEl) { actionsEl.appendChild(b); }
+      });
       document.addEventListener("keydown", function (e) {
         if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) { return; }
         var key = String(e.key || "").toLowerCase();
