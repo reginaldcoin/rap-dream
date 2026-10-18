@@ -7945,7 +7945,8 @@ render();
       { id: "sports", name: "robot sports", sub: "betting terminal", open: function () { openSports(); } },
       { id: "travel", name: "travel", sub: "book a trip", open: function () { openTravel("book"); } },
       { id: "shows", name: "shows", sub: "book a stage", deck: "show" },
-      { id: "party", name: "party", sub: "work the room", deck: "stunt" }
+      { id: "party", name: "party", sub: "work the room", deck: "stunt" },
+      { id: "skytax", name: "sky tax", sub: "slingshot vs the machine sky · −15 energy", open: function () { if (window.RapDreamSkyTax) { window.RapDreamSkyTax(); } } }
     ] }
   };
   var MENU_ORDER = ["studio", "office", "phone", "outside"];
@@ -9157,7 +9158,8 @@ render();
       { name: "outside", items: [
         evEntry("shows", "book a stage", clickDeck("show")),
         evEntry("travel", "book a trip", function () { if (window.RapDreamApps) { window.RapDreamApps.travel("book"); } }),
-        evEntry("party", "work the room", clickDeck("stunt"))
+        evEntry("party", "work the room", clickDeck("stunt")),
+        evEntry("sky tax", "slingshot vs the machine sky · −15 energy", function () { if (window.RapDreamSkyTax) { window.RapDreamSkyTax(); } })
       ] },
       { name: "your room", items: [
         evEntry("your room", "the wall, the shelf, the fit", clickId("rd-room-btn")),
@@ -11309,51 +11311,10 @@ render();
     if (room && !room.classList.contains("hidden")) { bank(); }
   }, true);
 
-  /* SKY TAX lives in the outside menu and in EVERYTHING */
+  /* SKY TAX is a first-class entry in the OUTSIDE menu and in the
+     EVERYTHING outside group now (rendered by the menus themselves);
+     the old post-render injection is gone. */
   try {
-    var menuRoomEl = gel("menu-room");
-    if (menuRoomEl) {
-      new MutationObserver(function () {
-        if (menuRoomEl.classList.contains("hidden")) { return; }
-        var h2 = menuRoomEl.querySelector("h2");
-        if (!h2 || h2.textContent !== "OUTSIDE") { return; }
-        var grid = menuRoomEl.querySelector(".menu-grid");
-        if (!grid || gel("rd-skytax-btn")) { return; }
-        var b = mkEl("button", "opt-btn");
-        b.type = "button";
-        b.id = "rd-skytax-btn";
-        b.appendChild(mkEl("strong", null, "sky tax"));
-        b.appendChild(mkEl("small", null, "slingshot vs the machine sky · −15 energy"));
-        b.addEventListener("click", function () {
-          menuRoomEl.classList.add("hidden");
-          startSkyTax();
-        });
-        grid.appendChild(b);
-      }).observe(menuRoomEl, { attributes: true, attributeFilter: ["class"] });
-    }
-    var evEl = gel("rd-everything");
-    if (evEl) {
-      new MutationObserver(function () {
-        if (evEl.classList.contains("hidden") || gel("rd-skytax-ev")) { return; }
-        var groups = evEl.querySelectorAll(".rd-ev-group");
-        for (var i = 0; i < groups.length; i += 1) {
-          var h3 = groups[i].querySelector("h3");
-          if (!h3 || h3.textContent.trim() !== "outside") { continue; }
-          var grid = groups[i].querySelector(".rd-grid");
-          if (!grid) { continue; }
-          var b = mkEl("button", "rd-opt");
-          b.type = "button";
-          b.id = "rd-skytax-ev";
-          b.appendChild(mkEl("strong", null, "sky tax"));
-          b.appendChild(mkEl("small", null, "slingshot vs the machine sky · −15 energy"));
-          b.addEventListener("click", function () {
-            evEl.classList.add("hidden");
-            startSkyTax();
-          });
-          grid.appendChild(b);
-        }
-      }).observe(evEl, { attributes: true, attributeFilter: ["class"] });
-    }
     var phoneEl = gel("rd-phone");
     if (phoneEl) {
       new MutationObserver(function () {
@@ -11591,7 +11552,7 @@ render();
        (chooser, pick, archetype, instructions) standing over the deck. */
     var RDG = window.RapDreamStart;
     if (!RDG || !RDG.picked) { return; }
-    if (!S.legend) { return; }
+    if (!S.rdArchetype) { return; }
     var startSels = ["rd-start", "rd-pick", "rd-archetype", "instructions"];
     for (var gi = 0; gi < startSels.length; gi += 1) {
       var gov = gel(startSels[gi]);
@@ -12288,7 +12249,6 @@ render();
 
   var archState = { forS: null, chosen: false };
   function chooseArchetype(arc) {
-    S.legend = arc.id;
     S.rdArchetype = arc.id;
     archState.chosen = true;
     archOv.classList.add("hidden");
@@ -12298,7 +12258,7 @@ render();
   }
   function archGateTick() {
     var RD = window.RapDreamStart;
-    if (archState.forS !== S) { archState.forS = S; archState.chosen = !!S.legend; }
+    if (archState.forS !== S) { archState.forS = S; archState.chosen = !!S.rdArchetype; }
     if (!RD || !RD.picked || archState.chosen || S.over) { if (!archOv.classList.contains("hidden") && archState.chosen) { archOv.classList.add("hidden"); } return; }
     var startOv = gel("rd-start");
     if (startOv && !startOv.classList.contains("hidden")) { return; }
@@ -12365,8 +12325,8 @@ render();
     if (expectState.forS !== S) { expectState.forS = S; expectState.lastDay = S.day; expectState.fired = {}; return; }
     if (S.day === expectState.lastDay) { return; }
     expectState.lastDay = S.day;
-    if (!S.legend || S.over) { return; }
-    var rules = CONTRACTS[S.legend] || [];
+    if (!S.rdArchetype || S.over) { return; }
+    var rules = CONTRACTS[S.rdArchetype] || [];
     for (var i = 0; i < rules.length; i++) {
       var r = rules[i];
       if (expectState.fired[r.key]) { continue; }
@@ -12743,14 +12703,14 @@ render();
       for (var i = 0; i < btns.length; i++) {
         var st = btns[i].querySelector("strong");
         if (st && st.textContent.trim().toLowerCase() === "legend arc") {
-          var row = mkEl("p", "rd-sub", "archetype: " + (archLabel(S.legend) || "not picked yet") + " · set at spawn · the world holds you to it");
+          var row = mkEl("p", "rd-sub", "archetype: " + (archLabel(S.rdArchetype) || "not picked yet") + " · set at spawn · the world holds you to it");
           row.id = "rd-arch-state";
           btns[i].replaceWith(row);
           break;
         }
       }
       var archRow = gel("rd-arch-state");
-      if (archRow) { archRow.textContent = "archetype: " + (archLabel(S.legend) || "not picked yet") + " · set at spawn · the world holds you to it"; }
+      if (archRow) { archRow.textContent = "archetype: " + (archLabel(S.rdArchetype) || "not picked yet") + " · set at spawn · the world holds you to it"; }
       if (!gel("rd-play-line")) {
         var line = mkEl("p", "rd-sub", "");
         line.id = "rd-play-line";
@@ -12831,6 +12791,13 @@ render();
       var st = d.state;
       if (typeof st.money !== "number" || typeof st.day !== "number" || typeof st.fans !== "number") { return null; }
       if (st.over) { return null; }
+      /* hotfix migration: pre-fix saves carry the archetype pick as a
+         string in legend. Move it to rdArchetype and restore legend as
+         the boolean flag it was always supposed to be. */
+      if (typeof st.legend === "string") {
+        if (!st.rdArchetype) { st.rdArchetype = st.legend; }
+        st.legend = false;
+      }
       return d;
     } catch (e) { return null; }
   }
@@ -12984,7 +12951,7 @@ render();
     var t = ev.target;
     if (!t || (t !== btn && !(btn.contains && btn.contains(t)))) { return; }
     var RD = window.RapDreamStart;
-    var blocked = !RD || !RD.picked || typeof S === "undefined" || !S || !S.legend;
+    var blocked = !RD || !RD.picked || typeof S === "undefined" || !S || !S.rdArchetype;
     if (!blocked) {
       var ids = ["rd-start", "rd-pick", "rd-archetype", "instructions"];
       for (var i = 0; i < ids.length; i += 1) {
@@ -13225,6 +13192,13 @@ render();
   }
   function ssApply(obj) {
     var st = obj.state;
+    /* hotfix migration: pre-fix strings carry the archetype pick as a
+       string in legend. Move it to rdArchetype and restore legend as
+       the boolean flag it was always supposed to be. */
+    if (typeof st.legend === "string") {
+      if (!st.rdArchetype) { st.rdArchetype = st.legend; }
+      st.legend = false;
+    }
     /* defaults for anything this build knows that the string predates;
        fields from features this build no longer has are left behind. */
     var merged = st;
@@ -13233,6 +13207,10 @@ render();
         var tpl = newGame();
         merged = {};
         Object.keys(tpl).forEach(function (k) { merged[k] = (k in st) ? st[k] : tpl[k]; });
+        /* rdArchetype rides outside the core template: carry it over
+           explicitly so the merge can never drop the run's archetype. */
+        if (st.rdArchetype && !merged.rdArchetype) { merged.rdArchetype = st.rdArchetype; }
+        if (typeof merged.legend === "string") { merged.legend = false; }
       }
     } catch (e) { merged = st; }
     var ls = null;
