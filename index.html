@@ -3071,32 +3071,84 @@ startPunchIn = function () {
   });
   btn.focus();
 };
+/* RIDE THE BUZZ, MERGED: the drop, the release window, and the buzz are
+   one game now. One pulse rides the release week; ONE press stops the
+   needle. Where it lands is the day the record drops (the window's pay
+   table rides along), the green is the prime window — Friday into
+   Saturday — and stopping in the green catches the pulse, so the record
+   leaves with legs. Release quality comes off the landing alone: dead
+   center of the prime window is a 5, and no take-quality roll anywhere
+   caps what a clean press can land. The finish carries rdRide so the
+   evening layer applies the window adjustment and the buzz legs in the
+   same single press. */
 startDropTiming = function () {
-  setMini("Drop timing", "release // one vertical drop", "Tap once. Where the blue line lands on the band sets release quality from 1 to 5.");
-  var ts = timingStage("quality band: center is 5");
-  ts.stage.classList.add("vertical-timing");
-  var scale = document.createElement("div");
-  scale.className = "vertical-grade-scale";
-  ["1", "2", "3", "4", "5", "4", "3", "2", "1"].forEach(function (label) {
-    var span = document.createElement("span");
-    span.textContent = label;
-    scale.appendChild(span);
-  });
-  ts.stage.appendChild(scale);
-  var marker = movingVerticalMarker(ts.marker, gearBarMs(2100));
-  var actions = document.createElement("div");
-  actions.className = "mini-actions";
-  var btn = document.createElement("button");
+  setMini("Ride the buzz", "release // one pulse, one press", "One pulse rides the release week and it does not come back. One press stops the needle: where it lands is the day the record drops, and the green is the prime window, Friday into Saturday. Stop it in the green and the buzz is caught — the record leaves with legs, and a clean catch lands good on timing alone.");
+  var stage = $("minigame-stage");
+  var dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  var adjTable = [-5, -3, 0, 3, 6, 6, -3];
+  function mk(tag, cls, text) { var n = document.createElement(tag); if (cls) { n.className = cls; } if (text != null) { n.textContent = text; } return n; }
+  var panel = mk("div", "aim-panel");
+  var head = mk("div", "aim-head");
+  head.appendChild(mk("span", null, "ride the buzz"));
+  var headR = mk("b", null, "one pulse · one press");
+  head.appendChild(headR);
+  panel.appendChild(head);
+  var track = mk("div", "aim-track rd-week rd-buzz");
+  track.style.background = "linear-gradient(to right,#3a0d19 0 14.28%,#72400d 14.28% 28.57%,#81720b 28.57% 42.85%,#3f7711 42.85% 57.14%,#6b9f08 57.14% 71.42%,#6b9f08 71.42% 85.71%,#72400d 85.71% 100%)";
+  track.setAttribute("role", "button");
+  track.setAttribute("aria-label", "stop the needle: one press rides the buzz");
+  var zone = mk("div", "rd-buzz-zone");
+  zone.style.left = (4 / 7 * 100) + "%";
+  zone.style.width = (2 / 7 * 100) + "%";
+  track.appendChild(zone);
+  var marker = mk("div", "aim-marker");
+  track.appendChild(marker);
+  panel.appendChild(track);
+  var days = mk("div", "rd-week-days");
+  dayNames.forEach(function (d) { days.appendChild(mk("span", null, d.slice(0, 3))); });
+  panel.appendChild(days);
+  var btn = mk("button", "aim-stop", "catch the pulse");
   btn.type = "button";
-  btn.className = "mini-main";
-  btn.textContent = "DROP NOW";
-  actions.appendChild(btn);
-  $("minigame-stage").appendChild(actions);
-  btn.addEventListener("click", function () {
-    var d = Math.abs(marker.position - 0.5);
+  btn.style.marginTop = "10px";
+  panel.appendChild(btn);
+  stage.appendChild(panel);
+  var pos = 0, raf = 0, settled = false;
+  var startedAt = performance.now();
+  var sweepMs = gearBarMs(2100);
+  function paintNeedle() {
+    var wob = Math.sin(pos * 22) * 0.018;
+    marker.style.left = (Math.max(0, Math.min(1, pos + wob)) * 100).toFixed(1) + "%";
+  }
+  function step(t) {
+    if (settled) { return; }
+    var room = $("minigame-room");
+    if (!room || room.classList.contains("hidden")) { settled = true; return; }
+    pos = Math.min(1, (t - startedAt) / sweepMs);
+    paintNeedle();
+    if (pos >= 1) { finishRide(1); return; }
+    raf = requestAnimationFrame(step);
+  }
+  function finishRide(at) {
+    if (settled) { return; }
+    settled = true;
+    if (raf) { cancelAnimationFrame(raf); }
+    var idx = Math.max(0, Math.min(6, Math.round(at * 6)));
+    var prime = idx === 4 || idx === 5;
+    var d = Math.abs(at - 4.5 / 7);
     var q = d <= 0.072 ? 5 : d <= 0.162 ? 4 : d <= 0.261 ? 3 : d <= 0.36 ? 2 : 1;
-    miniFinish("release", { score: q / 5, quality: q });
-  });
+    var adj = adjTable[idx];
+    headR.textContent = prime ? "caught. the buzz is ridden." : "lands " + dayNames[idx] + ".";
+    var status = $("minigame-status");
+    if (status) { status.textContent = "lands " + dayNames[idx] + (prime ? " · prime window. the first week hears it, and the buzz rides with it." : idx === 0 || idx === 6 ? " · edge of the week. underplays a little." : " · a working day. lands honest."); }
+    try { log("release window: the record lands " + dayNames[idx] + "."); } catch (e) {}
+    setTimeout(function () {
+      miniFinish("release", { score: q / 5, quality: q, rdRide: { adj: adj, catches: prime ? 1 : 0, day: idx } });
+    }, 500);
+  }
+  btn.addEventListener("click", function () { finishRide(pos); });
+  track.addEventListener("click", function () { finishRide(pos); });
+  paintNeedle();
+  raf = requestAnimationFrame(step);
   btn.focus();
 };
 tournamentReward = function (state, wins, champion) {
@@ -8502,6 +8554,16 @@ render();
       });
       grid.appendChild(fCard);
     }
+    if (shopState && (shopState.pending || (shopState.queue && shopState.queue.length))) {
+      var pqCard = el("div", "rd-card");
+      pqCard.appendChild(el("h3", null, "packages in line"));
+      var pqCount = (shopState.pending ? 1 : 0) + (shopState.queue ? shopState.queue.length : 0);
+      var pqNext = shopState.pending
+        ? (shopState.pending.arriveDay <= (S.day || 1) ? "the next one lands today." : shopState.pending.arriveDay === (S.day || 1) + 1 ? "the next one lands tomorrow." : "the next one lands day " + shopState.pending.arriveDay + ".")
+        : "the next one is in line.";
+      pqCard.appendChild(el("p", null, pqCount + (pqCount === 1 ? " package" : " packages") + " stacked, paid and on the way. one lands per day: " + pqNext));
+      grid.appendChild(pqCard);
+    }
     if (shopState && shopState.ownedGear && shopState.ownedGear.length) {
       var gCard = el("div", "rd-card");
       gCard.appendChild(el("h3", null, "gear you own"));
@@ -8788,7 +8850,7 @@ render();
     wallOpen: -1, playToken: 0, playingKey: null, playTimer: null,
     ambientDay: 0
   };
-  window.RapDreamShop = { pending: null, worn: [], ownedGear: [], shown: [], stored: [] };
+  window.RapDreamShop = { pending: null, queue: [], worn: [], ownedGear: [], shown: [], stored: [] };
   var shop = window.RapDreamShop;
 
   function resetX() {
@@ -8803,7 +8865,7 @@ render();
     X.featSongs = [];
     X.buzz = null;
     X.wallOpen = -1; X.playToken += 1; X.playingKey = null;
-    shop.pending = null; shop.worn = []; shop.ownedGear = []; shop.shown = []; shop.stored = [];
+    shop.pending = null; shop.queue = []; shop.worn = []; shop.ownedGear = []; shop.shown = []; shop.stored = [];
   }
 
   /* ---------- toasts: minor results land soft, no card to dismiss ---------- */
@@ -9061,7 +9123,7 @@ render();
         evEntry("work", "the day job", clickDeck("job")),
         evEntry("cypher", "make it land", clickDeck("cypher")),
         evEntry("record", "aim the mix", clickDeck("record")),
-        evEntry("release", "drop timing, the window, the buzz", clickDeck("release")),
+        evEntry("release", "ride the buzz · one press", clickDeck("release")),
         evEntry("beef ladder", "optional, always", clickDeck("beef")),
         evEntry("tournament", "the bracket", clickId("tournament-button")),
         evEntry("party", "work the room", clickDeck("stunt")),
@@ -9142,14 +9204,44 @@ render();
     return [pick(cw), pick(rw)];
   }
   function shopCost() { return Math.max(5, Math.round((S.money || 0) * 0.10)); }
+  /* PACKAGE QUEUE: a purchase always goes through now. Every buy pays
+     its full price once, at buy time, and the package joins the line:
+     shop.pending is the head of the line and shop.queue holds the rest.
+     One package is delivered per in-game day at the rollover — the head
+     lands tomorrow, and each package behind it lands a day after the
+     one in front, so money spent and packages stacked always agree and
+     a queued pack never reads as lost. Promotion from the line into
+     the pending slot happens in rdqPromote, called on every render. */
+  function rdqLine() {
+    var line = [];
+    if (shop.pending) { line.push(shop.pending); }
+    if (Array.isArray(shop.queue)) { shop.queue.forEach(function (p) { line.push(p); }); }
+    return line;
+  }
+  function rdqPromote() {
+    if (!shop.pending && Array.isArray(shop.queue) && shop.queue.length) {
+      shop.pending = shop.queue.shift();
+    }
+  }
   window.RapDreamShopBuy = function () {
-    if (shop.pending) { toast("package on the way. lands day " + shop.pending.arriveDay + "."); return; }
     var cost = shopCost();
     if ((S.money || 0) < 5 || (S.money || 0) < cost) { shout("NOT ENOUGH CASH: THE PACKAGE RUNS $" + cost); return; }
     S.money -= cost;
-    shop.pending = { arriveDay: (S.day || 1) + 2, cost: cost };
-    tape("ordered a surprise package for $" + fmt(cost) + ". lands in 2 days.");
-    toast("package ordered · $" + fmt(cost) + " · lands in 2 days");
+    if (!Array.isArray(shop.queue)) { shop.queue = []; }
+    var day = S.day || 1;
+    var line = rdqLine();
+    var arrive = line.length ? Math.max(day + 1, line[line.length - 1].arriveDay + 1) : day + 1;
+    var pkg = { arriveDay: arrive, cost: cost };
+    if (!shop.pending) { shop.pending = pkg; }
+    else { shop.queue.push(pkg); }
+    var total = rdqLine().length;
+    if (total <= 1) {
+      tape("ordered a surprise package for $" + fmt(cost) + ". lands " + (arrive === day + 1 ? "tomorrow" : "day " + arrive) + ".");
+      toast("package ordered · $" + fmt(cost) + " · lands " + (arrive === day + 1 ? "tomorrow" : "day " + arrive));
+    } else {
+      tape("stacked a surprise package for $" + fmt(cost) + ": #" + total + " in line. one lands per day — this one lands day " + arrive + ".");
+      toast("package stacked · $" + fmt(cost) + " · #" + total + " in line · lands day " + arrive);
+    }
     try { render(); } catch (e) {}
   };
   window.RapDreamShopWear = function (name) {
@@ -9473,6 +9565,29 @@ render();
         return bout;
       }
       if (action === "release" && !X.qtBusy && (S.demos || []).length) {
+        /* MERGED RIDE: the drop-timing stage already played the whole
+           release in one press and carries the landing in result.rdRide.
+           Apply the window adjustment and the buzz legs right here, then
+           finish — no second or third game stacked on the press. Under
+           a hold the buzz floor still applies: a ride the loop drove
+           catches at the same 80% floor the two-step ride kept. */
+        if (result && result.rdRide) {
+          var ride = { adj: result.rdRide.adj || 0, catches: result.rdRide.catches || 0, day: result.rdRide.day };
+          if (rdHoldActive()) {
+            var bzM = rdQtFloor.buzz; bzM.n += 1;
+            if (ride.catches > 0) { bzM.h += 1; }
+            else if (bzM.h < Math.ceil(0.8 * bzM.n)) { ride.adj = Math.max(ride.adj, 6); ride.catches = 1; bzM.h += 1; }
+          }
+          try { applyWindowAdj(ride.adj); } catch (e) {}
+          var outRide = rdPrevMiniFinish(action, result);
+          try {
+            if (ride.catches > 0) {
+              X.buzz = { track: S.tracks || 0, catches: ride.catches, daysLeft: ride.catches * 7 };
+              tape("the buzz got ridden: one press, caught in the green. the record's first weeks just grew legs.");
+            }
+          } catch (e) {}
+          return outRide;
+        }
         X.qtBusy = true;
         runReleaseQts(function (qt) {
           try { applyWindowAdj(qt.adj); } catch (e) {}
@@ -9915,7 +10030,10 @@ render();
   function paintShopBtn() {
     var b = $("rd-shop-btn-room");
     if (!b) { return; }
-    b.textContent = shop.pending ? "package on the way · lands day " + shop.pending.arriveDay : "shop · surprise package · $" + fmt(shopCost());
+    var stacked = (Array.isArray(shop.queue) ? shop.queue.length : 0);
+    b.textContent = shop.pending
+      ? "package on the way · lands " + (shop.pending.arriveDay === (S.day || 1) + 1 ? "tomorrow" : "day " + shop.pending.arriveDay) + (stacked ? " · +" + stacked + " stacked behind it" : "")
+      : "shop · surprise package · $" + fmt(shopCost());
   }
 
   /* ---------- render hook: resets, legend landing, morning machinery ---------- */
@@ -9941,6 +10059,7 @@ render();
           var songsNow = window.RapDreamSongs || [];
           songsNow.forEach(function (s) { songSymbol(s); });
         } catch (e) {}
+        try { rdqPromote(); } catch (e) {}
         var day = S.day || 1;
         if (day > X.lastDay) { X.lastDay = day; dayHook(); }
         paintFeatChartRows();
@@ -10647,6 +10766,13 @@ render();
         plcLine(rack, "on the rack: " + names.join(", ") + ".");
       }
       plcLine(rack, GEAR[(S.tier || 1) + 1] ? "next up: " + GEAR[(S.tier || 1) + 1].name + ", $" + fmt(GEAR[(S.tier || 1) + 1].cost) + "." : "the rack is full.");
+      try {
+        var shopQ = window.RapDreamShop;
+        if (shopQ && (shopQ.pending || (shopQ.queue && shopQ.queue.length))) {
+          var qn = (shopQ.pending ? 1 : 0) + (shopQ.queue ? shopQ.queue.length : 0);
+          plcLine(rack, "packages in line: " + qn + " stacked. one lands per day" + (shopQ.pending ? (shopQ.pending.arriveDay === (S.day || 1) + 1 ? " — the next one lands tomorrow." : " — the next one lands day " + shopQ.pending.arriveDay + ".") : "."));
+        }
+      } catch (e) {}
       var chain = plcSec(body, "the chain on the wall");
       var q = (S.rep || 0) + (GEAR[S.tier].quality || 0) + 16;
       plcLine(chain, chainWords(q));
@@ -13215,6 +13341,431 @@ render();
       }).observe(startOv2, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true });
     }
   } catch (e) { /* the save string never blocks the game */ }
+})();
+</script>
+
+<script>
+"use strict";
+/* Rap Dream patch: the night stack — beef ladder thought lines, the work
+   thought line, the PARTY text world, and the featured-names surfacing
+   repair. Layered over the shipped engine like every patch here: shared
+   state, call-time overrides, display-only where the pattern calls for it. */
+(function () {
+  if (typeof S === "undefined" || !S) { return; }
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) { n.className = cls; } if (text != null) { n.textContent = text; } return n; }
+  function tape(text) { try { if (typeof log === "function") { log(text); } } catch (e) {} }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length) % arr.length]; }
+  function hashStr(str) { var h = 2166136261; for (var i = 0; i < str.length; i += 1) { h = Math.imul(h ^ str.charCodeAt(i), 16777619); } return h >>> 0; }
+  function ladderDefs() { return (typeof RIVAL_LADDER !== "undefined" && Array.isArray(RIVAL_LADDER)) ? RIVAL_LADDER : []; }
+  function rivalState(name) { return (S.rivals || []).filter(function (r) { return r && r.name === name; })[0] || null; }
+  function featuredRoll(key) { try { return typeof rdFeaturedRoll === "function" ? rdFeaturedRoll(key) : null; } catch (e) { return null; } }
+
+  var css = document.createElement("style");
+  css.textContent = ".rdn-beef-thought{display:block;margin-top:3px;color:var(--muted);font-size:12px;line-height:1.45;text-transform:none;letter-spacing:0}"
+    + ".rdn-work-thought{display:block;margin-top:3px;color:var(--muted);font-size:11px;line-height:1.4;text-transform:none;letter-spacing:0}"
+    + ".rdn-party-map{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0}"
+    + ".rdn-party-cell{border:2px solid var(--line-soft);border-radius:8px;padding:8px 6px;text-align:center;font-size:12px;color:var(--muted);background:var(--surface)}"
+    + ".rdn-party-cell.here{border-color:var(--signal);color:var(--ink);font-weight:700}"
+    + ".rdn-party-pad{display:flex;gap:8px;justify-content:center;margin:10px 0}"
+    + ".rdn-party-pad button{min-width:52px;min-height:44px;font-size:18px;border:2px outset #d9efff;border-radius:8px;background:var(--signal);color:var(--signal-ink);cursor:pointer}"
+    + ".rdn-party-pad button:active{border-style:inset}"
+    + ".rdn-party-where{font-family:'VT323',monospace;font-size:22px;color:var(--signal);margin:4px 0}";
+  document.head.appendChild(css);
+
+  var myS = null;
+  function syncRun() {
+    if (myS === S) { return; }
+    myS = S;
+    beefActivePrev = {};
+    beefReturned = {};
+    lastShifts = -1;
+  }
+  function holdOn() { try { return !!window.__rdHoldActive; } catch (e) { return false; } }
+
+  /* ================= ITEM 3: beef ladder thought lines =================
+     One living line under every rival's name on the ladder: a temperature
+     read, not a bio. It moves with their tension, their disses, the bout
+     record between you, grudges, radar returns, and how loud you have
+     gotten since they last had a reason to care. */
+  var beefActivePrev = {};
+  var beefReturned = {};
+  function beefThought(def, idx) {
+    var st = rivalState(def.name);
+    var day = S.day || 1;
+    if (st && st.dissPending) { return "a diss with your name on it just landed. the pen is still warm."; }
+    if (beefReturned[def.name] && day - beefReturned[def.name] <= 1) { return "back on your radar after going quiet. the quiet did not cool anything."; }
+    var dissed = false;
+    try { dissed = Boolean(window.RapDreamDissLog && window.RapDreamDissLog[def.name]); } catch (e) {}
+    if (dissed) { return "you marked them in public. they keep the receipt framed."; }
+    var w = st ? (st.wins || 0) : 0, l = st ? (st.losses || 0) : 0;
+    if (l >= 2 && l > w) { return "you have got them more than once. your name alone tightens their jaw now."; }
+    if (w >= 2 && w > l) { return "they have got you more than once and they dine out on it. your name tastes good to them."; }
+    if (l === 1 && w === 0) { return "you got them once. once was enough to make it personal."; }
+    if (w === 1 && l === 0) { return "they got you once and have not shut up about it since."; }
+    var t = st ? (st.tension || 0) : 0;
+    if (t >= 70) { return "smoke thick enough to read by. your name comes out of their mouth like a warning."; }
+    if (t >= 40) { return "warm and climbing. your name shows up in their interviews uninvited."; }
+    if (t >= 20) { return "a low simmer. they watch your moves closer than their own."; }
+    if (t > 0) { return "barely warm. a look across the room, nothing more. yet."; }
+    var power = (st && typeof st.scale === "number") ? st.scale : Math.min(10, idx + 1);
+    if ((S.rep || 0) >= 60 && power <= 4) { return "watching your climb from a few floors down. the view is instructive."; }
+    if ((S.fans || 0) >= 50000) { return "you are too loud to ignore now. even their quiet is about you."; }
+    if (!st) { return "a name on the ladder and nothing between you yet. the ladder is long and everybody climbs."; }
+    var quiet = [
+      "no smoke at all. your name has not reached their group chat yet.",
+      "quiet radar. they know the name; they are waiting to see if it lasts.",
+      "nothing lit between you. they clock your releases the way weather clocks a coast."
+    ];
+    return quiet[hashStr("beefthought|" + def.name) % quiet.length];
+  }
+  function paintBeefThoughts() {
+    var wrap = $("beef-room-rivals");
+    if (!wrap) { return; }
+    var targets = wrap.querySelectorAll(".rival-target");
+    ladderDefs().forEach(function (def, i) {
+      var target = targets[i];
+      if (!target) { return; }
+      /* featured alias fallback: the same day-keyed roll the radar uses,
+         applied if the name is still raw (display only — the target,
+         and every click on it, stays exactly who it was). */
+      var strong = target.querySelector("strong");
+      if (strong && strong.textContent.indexOf(def.name) === 0) {
+        var f = featuredRoll("rival:" + (S.day || 1) + ":" + def.name);
+        if (f) { strong.textContent = f + (strong.textContent.indexOf("NEW DISS") >= 0 ? " // NEW DISS" : ""); }
+      }
+      var line = target.querySelector(".rdn-beef-thought");
+      if (!line) {
+        line = el("small", "rdn-beef-thought");
+        target.appendChild(line);
+      }
+      line.textContent = beefThought(def, i);
+    });
+  }
+  if (typeof renderBeefRoom === "function") {
+    var prevBeefRoom = renderBeefRoom;
+    renderBeefRoom = function () {
+      var out = prevBeefRoom();
+      try { syncRun(); paintBeefThoughts(); } catch (e) { /* thought lines never block the beef room */ }
+      return out;
+    };
+  }
+  function trackRadarReturns() {
+    (S.rivals || []).forEach(function (r) {
+      if (!r || !r.name) { return; }
+      var active = r.active !== false;
+      if (active && beefActivePrev[r.name] === false && (S.day || 1) > 2) { beefReturned[r.name] = S.day || 1; }
+      beefActivePrev[r.name] = active;
+    });
+  }
+
+  /* ================= ITEM 4: the work thought line =================
+     One small human line on the work button: a coworker remark, a small
+     indignity, a small kindness. It rotates as shifts accumulate and the
+     bank itself changes as the grind seasons. */
+  var WORK_TIERS = [
+    [
+      "day one of many. the break room fridge has rules older than the manager.",
+      "a coworker showed you where the good mop is. that is the whole orientation.",
+      "your name tag is spelled almost right. you let it ride.",
+      "the shift lead does a headcount like the place might escape.",
+      "somebody asked what you do outside of here. you said music, and left it there."
+    ],
+    [
+      "marisol saved you the last of the coffee and acted like it was nothing. it was not nothing.",
+      "the schedule went up wrong again. everybody pretended not to see the extra shift with your name on it.",
+      "a customer asked for the manager. you are, spiritually, also waiting for the manager.",
+      "your coworker clocked your shoes and said studio money. if only.",
+      "the radio played a song you almost sampled. the chorus followed you to the bus stop.",
+      "somebody's birthday. grocery store cake in the break room. you took the corner piece and thought about choruses."
+    ],
+    [
+      "you train the new ones now. you show them the good mop first. that is the whole orientation.",
+      "the shift lead asked if you are still doing the music thing. the charts were up on your phone. you just nodded.",
+      "a coworker retired today. cake, a card, forty years. you did the math on your own road home.",
+      "they stopped asking what you do outside of here. the numbers answer now.",
+      "your name tag is spelled right these days. somebody fixed it without being asked."
+    ]
+  ];
+  var lastShifts = -1;
+  function workLine(shifts) {
+    var tier = shifts >= 20 ? WORK_TIERS[2] : shifts >= 5 ? WORK_TIERS[1] : WORK_TIERS[0];
+    return tier[shifts % tier.length];
+  }
+  function paintWorkLine() {
+    var btn = document.querySelector("[data-act='job']");
+    if (!btn) { return; }
+    var shifts = (S.actionCounts && S.actionCounts.job) || 0;
+    var line = btn.querySelector(".rdn-work-thought");
+    if (!line) {
+      line = el("small", "rdn-work-thought");
+      btn.appendChild(line);
+    }
+    var text = workLine(shifts);
+    if (line.textContent !== text) { line.textContent = text; }
+    if (lastShifts >= 0 && shifts > lastShifts) { tape(text); }
+    lastShifts = shifts;
+  }
+
+  /* ================= ITEM 6: featured names surfacing repair =================
+     Audit result, per surface (rate = featured sightings per name
+     opportunity; the registry's designed rarity is 1% and stays 1%):
+     — wire headlines: two day-keyed rolls a day, measured at design.
+     — rival radar + beef ladder: day-keyed roll per rival, at design;
+       a fallback pass below re-applies it if a name ever paints raw.
+     — timeline authors: a true 1% roll per post, posts drip every 20s;
+       the Oct 15 cooldowns govern post TEXT only and never touch the
+       author roll — measured at design, no fault found.
+     — signing offers: day-keyed roll per offered name, at design.
+     — feature offers: a true 1% roll per offer, at design.
+     — features market: NO roll existed — every row always painted the
+       raw ladder name, a hard zero. Repaired below with the same
+       display-only alias the beef room uses.
+     — the weekly interview: NO roll existed — the biggest rival was
+       always named raw, a hard zero. Repaired below, display only.
+     — story beats: the beats narrate the player's own climb and carry
+       no rapper-name slot at all; there is nothing to substitute into.
+     The two repairs use the registry's own day-keyed roll, so a rival
+     wears the same mask on every surface on the same day. */
+  var featBusy = false;
+  function aliasFeatList() {
+    if (featBusy) { return; }
+    var list = $("features-list");
+    if (!list) { return; }
+    featBusy = true;
+    try {
+      var day = S.day || 1;
+      Array.prototype.forEach.call(list.querySelectorAll(".coin-pick"), function (row) {
+        var strong = row.querySelector("strong");
+        if (!strong) { return; }
+        var m = /^(.+?) · /.exec(strong.textContent || "");
+        if (!m) { return; }
+        var name = m[1];
+        var isLadder = ladderDefs().some(function (d) { return d.name === name; });
+        if (!isLadder) { return; }
+        var f = featuredRoll("rival:" + day + ":" + name);
+        if (!f) { return; }
+        strong.textContent = strong.textContent.split(name).join(f);
+        var small = row.querySelector("small");
+        if (small && small.textContent.indexOf(name) >= 0) { small.textContent = small.textContent.split(name).join(f); }
+      });
+    } catch (e) {}
+    featBusy = false;
+  }
+  var featListEl = $("features-list");
+  if (featListEl && typeof MutationObserver === "function") {
+    new MutationObserver(function () { aliasFeatList(); }).observe(featListEl, { childList: true, subtree: true, characterData: true });
+  }
+  var ivBusy = false;
+  function aliasInterview() {
+    if (ivBusy) { return; }
+    var room = $("nw-interview");
+    if (!room || room.classList.contains("hidden")) { return; }
+    var rival = null;
+    (S.rivals || []).forEach(function (r) {
+      if (r && r.active !== false && (!rival || (r.tension || 0) > (rival.tension || 0))) { rival = r; }
+    });
+    if (!rival) { return; }
+    var f = featuredRoll("rival:" + (S.day || 1) + ":" + rival.name);
+    if (!f) { return; }
+    ivBusy = true;
+    try {
+      ["nw-q", "nw-cmt"].forEach(function (id) {
+        var node = $(id);
+        if (node && node.textContent.indexOf(rival.name) >= 0) {
+          node.innerHTML = node.innerHTML.split(rival.name).join(f);
+        }
+      });
+    } catch (e) {}
+    ivBusy = false;
+  }
+  var ivRoomEl = $("nw-interview");
+  if (ivRoomEl && typeof MutationObserver === "function") {
+    new MutationObserver(function () { aliasInterview(); }).observe(ivRoomEl, { childList: true, subtree: true, characterData: true });
+  }
+  function aliasRadarFallback() {
+    var board = $("rivalry-board");
+    if (!board) { return; }
+    var strongs = board.querySelectorAll(".rival-chip strong");
+    if (!strongs.length) { strongs = board.querySelectorAll("strong"); }
+    var rivals = (S.rivals || []).filter(function (r) { return r && r.active !== false; })
+      .sort(function (a, b) { return (b.tension || 0) - (a.tension || 0); }).slice(0, 10);
+    Array.prototype.forEach.call(strongs, function (strong, i) {
+      var r = rivals[i];
+      if (!r || strong.textContent.indexOf(r.name) !== 0) { return; }
+      var f = featuredRoll("rival:" + (S.day || 1) + ":" + r.name);
+      if (f) { strong.textContent = f + (r.dissPending ? " // NEW DISS" : ""); }
+    });
+  }
+
+  /* ================= ITEM 5: PARTY, a text world =================
+     The party is a 3x3 grid of places now: the door, the kitchen, the
+     porch, the circle, the couch, the bathroom line, the music corner,
+     the yard, and the center of it all. You walk it with the arrow keys
+     or the on-screen pad. The party's economy is untouched: working the
+     room from the center fires the real party action, once, with its
+     own costs and outcomes. Walking is free; the night is yours. */
+  var PARTY_CELLS = [
+    { name: "the porch", desc: "the porch. two smokers running a parliament of exactly two, motions carried. the street out front is quiet enough to hear the bass through the wall.", act: { label: "get some air", sub: "a minute of quiet with the bass through the wall", lines: ["you take the porch air in like medicine. somebody nods at you like you passed a test.", "the parliament of two lets you sit in. you say nothing worth minutes. it is perfect."] } },
+    { name: "the door", desc: "the door. music leaks out every time it opens, which is constantly. there is no list — there is a guy, and the guy has decided you are fine." },
+    { name: "the yard", desc: "the yard. string lights doing their best over a patch of grass somebody loves. a cooler sweats by the fence. the party sounds smaller from out here, and better.", act: { label: "step out back", sub: "grass, string lights, one cold drink", lines: ["the yard gives you the party at a distance. from here it looks like something you could miss someday.", "a stranger hands you the coldest can in the cooler without a word. the yard runs on honor."] } },
+    { name: "the kitchen", desc: "the kitchen. the real headquarters: everybody passes through, nobody stays, everything gets said. a pot nobody admits to bringing sits on the stove like evidence.", act: { label: "fix a plate", sub: "whatever the pot turns out to be", lines: ["the pot turns out to be somebody's grandmother's work, by way of three phone calls. you eat standing up, like headquarters staff.", "you fix a plate and get the whole week's news with it. kitchens charge in gossip and pay in the same."] } },
+    { name: "the center of it all", desc: "the center of it all. the floor where the party actually happens — bodies, volume, somebody's cousin holding court. if this place has weather, it is made here." },
+    { name: "the music corner", desc: "the music corner. one speaker doing the work of four, a laptop balanced on a crate, and a line of people waiting to say play mine next. the rotation is law and the law is ignored.", act: { label: "check the rotation", sub: "see what the room is moving to", lines: null } },
+    { name: "the bathroom line", desc: "the bathroom line. three deep and moving like legislation. everything true about this party gets said in this line, quietly, to the person in front of you.", act: { label: "wait it out", sub: "the line is where the truth is", lines: ["the line delivers: somebody here is about to get signed, somebody is about to get left, and the DJ is somebody's cousin. all three check out.", "you hear your own name in the line, said kindly, by a stranger. the floor tilts a degree toward you."] } },
+    { name: "the couch", desc: "the couch. it has absorbed a decade of parties and gives the comfort back with interest. two people are asleep on it in a way that counts as attending.", act: { label: "sit a minute", sub: "the couch gives the comfort back", lines: ["the couch takes your weight like it has been waiting all night to do exactly that. a minute here is a battery.", "you sit. the party orbits past: drinks, arguments, one perfect song. the couch has seen all of it before."] } },
+    { name: "the circle", desc: "the circle. a ring of heads around whoever has the floor, a beatbox keeping time like a second heart. step in wrong and it closes; step in right and it opens like water.", act: { label: "stand in the circle", sub: "listen first. the circle rewards it", lines: ["you stand in the circle and listen. somebody's sixteen is all hunger and one impossible rhyme. the ring nods like one animal.", "the circle opens a half-step when you arrive and closes behind you. no verdict. just room, made."] } }
+  ];
+  var partyOv = document.createElement("div");
+  partyOv.id = "rdn-party";
+  partyOv.className = "rd-overlay hidden";
+  partyOv.setAttribute("role", "dialog");
+  partyOv.setAttribute("aria-modal", "true");
+  partyOv.setAttribute("aria-labelledby", "rdn-party-title");
+  partyOv.innerHTML = "<div class=\"rd-panel\"><h2 id=\"rdn-party-title\">Party</h2><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(partyOv);
+  var partyPos = 1;
+  var partyWorked = false;
+  var partyBump = 0;
+  function partyNeighbors(pos) {
+    var r = Math.floor(pos / 3), c = pos % 3, out = [];
+    if (r > 0) { out.push({ dir: "north", pos: pos - 3 }); }
+    if (r < 2) { out.push({ dir: "south", pos: pos + 3 }); }
+    if (c > 0) { out.push({ dir: "west", pos: pos - 1 }); }
+    if (c < 2) { out.push({ dir: "east", pos: pos + 1 }); }
+    return out;
+  }
+  function paintParty(note) {
+    var body = partyOv.querySelector(".rd-panel-body");
+    body.innerHTML = "";
+    var cell = PARTY_CELLS[partyPos];
+    body.appendChild(el("p", "rdn-party-where", cell.name));
+    body.appendChild(el("p", "rd-sub", cell.desc));
+    if (note) { body.appendChild(el("p", "rd-sub", note)); }
+    var exits = partyNeighbors(partyPos).map(function (n) { return n.dir + ": " + PARTY_CELLS[n.pos].name; }).join(" · ");
+    body.appendChild(el("p", "rd-sub", "ways out — " + exits));
+    var map = el("div", "rdn-party-map");
+    PARTY_CELLS.forEach(function (c, i) {
+      var t = el("div", "rdn-party-cell" + (i === partyPos ? " here" : ""), c.name + (i === partyPos ? " · you" : ""));
+      t.setAttribute("role", "button");
+      t.setAttribute("aria-label", "walk to " + c.name);
+      t.addEventListener("click", function () {
+        var nb = partyNeighbors(partyPos).filter(function (n) { return n.pos === i; })[0];
+        if (nb) { partyPos = i; paintParty(); }
+        else if (i !== partyPos) { paintParty("one step at a time. the party is walked, not teleported."); }
+      });
+      map.appendChild(t);
+    });
+    body.appendChild(map);
+    var pad = el("div", "rdn-party-pad");
+    [["◀", "west"], ["▲", "north"], ["▼", "south"], ["▶", "east"]].forEach(function (pair) {
+      var b = el("button", null, pair[0]);
+      b.type = "button";
+      b.setAttribute("aria-label", "walk " + pair[1]);
+      b.addEventListener("click", function () { partyMove(pair[1]); });
+      pad.appendChild(b);
+    });
+    body.appendChild(pad);
+    var grid = el("div", "rd-grid");
+    if (partyPos === 4) {
+      grid.appendChild(partyBtn(partyWorked ? "worked" : "work the room", partyWorked ? "you already gave this room your best tonight" : "the party's whole economy, one go: connections, stakes, the night", function () {
+        if (partyWorked) { paintParty("you already worked this room tonight. the rest of the night is just the night."); return; }
+        partyWorked = true;
+        partyOv.classList.add("hidden");
+        var b = document.querySelector("[data-act='stunt']");
+        if (b) { b.click(); }
+      }));
+    }
+    if (cell.act) {
+      grid.appendChild(partyBtn(cell.act.label, cell.act.sub, function () {
+        var lines = cell.act.lines;
+        if (!lines) {
+          var top = "";
+          try {
+            var feed = $("nw-chart-feed");
+            if (feed) { var rows = feed.querySelectorAll(".entry"); if (rows.length) { top = (rows[0].textContent || "").replace("▶ play", "").replace(/\s+/g, " ").trim(); } }
+          } catch (e) {}
+          lines = top ? ["the rotation, right now: " + top + ". the corner approves of itself."] : ["the rotation is somebody's little brother's playlist and it is, against all odds, perfect."];
+        }
+        paintParty(pick(lines));
+      }));
+    }
+    if (partyPos === 1) {
+      grid.appendChild(partyBtn("head out", "the night keeps what it earned", function () { partyOv.classList.add("hidden"); }));
+    }
+    grid.appendChild(partyBtn("put it away", "step back to the dash", function () { partyOv.classList.add("hidden"); }));
+    body.appendChild(grid);
+  }
+  function partyBtn(label, sub, fn) {
+    var b = el("button", "rd-opt");
+    b.type = "button";
+    b.appendChild(el("strong", null, label));
+    b.appendChild(el("small", null, sub));
+    b.addEventListener("click", fn);
+    return b;
+  }
+  var BUMPS = ["a wall. the party is generous, but it has edges.", "you bump into the furniture of the night. no way through there.", "that way is a conversation you would have to join. you pass."];
+  function partyMove(dir) {
+    var nb = partyNeighbors(partyPos).filter(function (n) { return n.dir === dir; })[0];
+    if (!nb) { partyBump += 1; paintParty(BUMPS[partyBump % BUMPS.length]); return; }
+    partyPos = nb.pos;
+    paintParty();
+  }
+  function openParty() {
+    partyPos = 1;
+    partyWorked = false;
+    paintParty();
+    partyOv.classList.remove("hidden");
+  }
+  partyOv.addEventListener("click", function (e) { if (e.target === partyOv) { partyOv.classList.add("hidden"); } });
+  document.addEventListener("keydown", function (e) {
+    if (partyOv.classList.contains("hidden")) { return; }
+    var tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") { return; }
+    var dir = { ArrowUp: "north", ArrowDown: "south", ArrowLeft: "west", ArrowRight: "east" }[e.key];
+    if (!dir) { return; }
+    e.preventDefault();
+    e.stopPropagation();
+    partyMove(dir);
+  }, true);
+  document.addEventListener("click", function (e) {
+    if (!e.isTrusted || holdOn()) { return; }
+    var t = e.target;
+    if (!t || !t.closest) { return; }
+    if (t.closest("[data-act='stunt']")) {
+      e.preventDefault();
+      e.stopPropagation();
+      openParty();
+      return;
+    }
+    var ev = t.closest("#rd-everything");
+    if (ev) {
+      var btn = t.closest("button");
+      var strong = btn ? btn.querySelector("strong") : null;
+      if (strong && strong.textContent.trim().toLowerCase() === "party") {
+        e.preventDefault();
+        e.stopPropagation();
+        ev.classList.add("hidden");
+        openParty();
+      }
+    }
+  }, true);
+
+  /* ---------- render hook: work line, radar returns, alias fallback ---------- */
+  if (typeof render === "function") {
+    var prevRenderN = render;
+    render = function () {
+      var out = prevRenderN();
+      try {
+        syncRun();
+        trackRadarReturns();
+        paintWorkLine();
+        aliasRadarFallback();
+      } catch (e) { /* the night stack never blocks the game */ }
+      return out;
+    };
+  }
+  try { syncRun(); paintWorkLine(); } catch (e) {}
 })();
 </script>
 
