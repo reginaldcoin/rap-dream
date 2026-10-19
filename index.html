@@ -5829,6 +5829,23 @@ render();
     if (patron && patronPower > power && wasDissed(patron.name)) {
       return { power: power, status: "refuse", reason: "camp", line: "that's " + patron.name + "'s camp: you dissed their top name, so the whole orbit is closed to you." };
     }
+    /* The bond moves this price. When a registry name is wearing this
+       row today (the same day-keyed roll every surface uses), the
+       player's bond with that name reprices the verse: liked you is
+       cheaper, a broken bond runs it up, and the row says so. Beef
+       above still locks the door outright — a bond never buys past it. */
+    var alias = null;
+    try { alias = typeof rdFeaturedRoll === "function" ? rdFeaturedRoll("rival:" + (S.day || 1) + ":" + def.name) : null; } catch (e) {}
+    var bond = alias && S.bonds && typeof S.bonds[alias] === "number" ? S.bonds[alias] : 0;
+    if (alias && bond) {
+      var list = price;
+      var mult = bond > 0 ? 1 - Math.min(0.4, bond * 0.005) : 1 + Math.min(0.6, -bond * 0.0075);
+      price = Math.max(25, Math.round(price * mult));
+      var bondNote = bond > 0
+        ? " · " + alias + " bond " + "+" + bond + ": they rate you — cut from $" + formatNumber(list)
+        : " · " + alias + " bond " + bond + ": bad blood — run up from $" + formatNumber(list);
+      return { power: power, status: "open", price: price, line: "feature verse · $" + formatNumber(price) + " · pays out on release" + bondNote };
+    }
     return { power: power, status: "open", price: price, line: "feature verse · $" + formatNumber(price) + " · pays out on release" };
   }
   var featRoom = document.createElement("div");
@@ -13210,6 +13227,10 @@ render();
         /* rdArchetype rides outside the core template: carry it over
            explicitly so the merge can never drop the run's archetype. */
         if (st.rdArchetype && !merged.rdArchetype) { merged.rdArchetype = st.rdArchetype; }
+        /* bonds ride outside the core template too: the party's whole
+           relationship ledger, carried explicitly like the archetype,
+           and absent (clean slate) in strings from before the bonds. */
+        if (st.bonds && typeof st.bonds === "object" && !merged.bonds) { merged.bonds = st.bonds; }
         if (typeof merged.legend === "string") { merged.legend = false; }
       }
     } catch (e) { merged = st; }
@@ -13348,7 +13369,14 @@ render();
     + ".rdn-party-pad{display:flex;gap:8px;justify-content:center;margin:10px 0}"
     + ".rdn-party-pad button{min-width:52px;min-height:44px;font-size:18px;border:2px outset #d9efff;border-radius:8px;background:var(--signal);color:var(--signal-ink);cursor:pointer}"
     + ".rdn-party-pad button:active{border-style:inset}"
-    + ".rdn-party-where{font-family:'VT323',monospace;font-size:22px;color:var(--signal);margin:4px 0}";
+    + ".rdn-party-where{font-family:'VT323',monospace;font-size:22px;color:var(--signal);margin:4px 0}"
+    + ".rdn-party-person{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;margin:6px 0;border:2px solid var(--line-soft);border-radius:8px;background:var(--surface)}"
+    + ".rdn-party-who strong{display:block;color:var(--ink);font-size:14px}"
+    + ".rdn-party-who small{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:2px}"
+    + ".rdn-party-who small.rdn-party-bond{color:var(--signal)}"
+    + ".rdn-party-talk{min-width:64px;min-height:40px;padding:6px 12px;border:2px outset #d9efff;border-radius:8px;background:var(--signal);color:var(--signal-ink);font-weight:700;cursor:pointer;flex:none}"
+    + ".rdn-party-talk:active{border-style:inset}"
+    + ".rdn-sign-bond{display:block;margin-top:3px;color:#69bdff;font-size:12px;line-height:1.4}";
   document.head.appendChild(css);
 
   var myS = null;
@@ -13624,7 +13652,8 @@ render();
     body.appendChild(el("p", "rd-sub", "ways out — " + exits));
     var map = el("div", "rdn-party-map");
     PARTY_CELLS.forEach(function (c, i) {
-      var t = el("div", "rdn-party-cell" + (i === partyPos ? " here" : ""), c.name + (i === partyPos ? " · you" : ""));
+      var deep = crowdCount(i);
+      var t = el("div", "rdn-party-cell" + (i === partyPos ? " here" : ""), c.name + (i === partyPos ? " · you" : "") + (deep ? " · " + deep + " deep" : ""));
       t.setAttribute("role", "button");
       t.setAttribute("aria-label", "walk to " + c.name);
       t.addEventListener("click", function () {
@@ -13649,6 +13678,9 @@ render();
       grid.appendChild(partyBtn(partyWorked ? "worked" : "work the room", partyWorked ? "you already gave this room your best tonight" : "the party's whole economy, one go: connections, stakes, the night", function () {
         if (partyWorked) { paintParty("you already worked this room tonight. the rest of the night is just the night."); return; }
         partyWorked = true;
+        partyStakesDay = S.day || 1;
+        partyBuzzRoom = partyPos;
+        partyActs += 1;
         partyOv.classList.add("hidden");
         var b = document.querySelector("[data-act='stunt']");
         if (b) { b.click(); }
@@ -13656,6 +13688,8 @@ render();
     }
     if (cell.act) {
       grid.appendChild(partyBtn(cell.act.label, cell.act.sub, function () {
+        partyBuzzRoom = partyPos;
+        partyActs += 1;
         var lines = cell.act.lines;
         if (!lines) {
           var top = "";
@@ -13672,6 +13706,7 @@ render();
       grid.appendChild(partyBtn("head out", "the night keeps what it earned", function () { partyOv.classList.add("hidden"); }));
     }
     grid.appendChild(partyBtn("put it away", "step back to the dash", function () { partyOv.classList.add("hidden"); }));
+    paintCrowd(body);
     body.appendChild(grid);
   }
   function partyBtn(label, sub, fn) {
@@ -13682,22 +13717,377 @@ render();
     b.addEventListener("click", fn);
     return b;
   }
+  /* ================= the living party: the registry, in the rooms ====
+     All 22 featured names are at this party, scattered a few to a room,
+     drifting between rooms as the night goes on. What each of them is
+     doing is written from two inputs: the room they are standing in,
+     and the weather of the night — whether the room stakes have fired,
+     which room just had a moment, how late it has gotten, how loud your
+     name is running. Anybody in your room can be talked to. Talk is
+     priced in words: one response, ten energy; when the tank cannot
+     pay, the talk ends the way talks end. Every exchange moves a bond
+     that lives in the save across days, and the bond reprices three
+     doors — feature verses (the features market), signing tables (the
+     roster deals), and promotion (family puts your name up). */
+  var REGISTRY = (typeof RD_FEATURED_NAMES !== "undefined" && Array.isArray(RD_FEATURED_NAMES)) ? RD_FEATURED_NAMES
+    : (window.RapDreamFeaturedNames && Array.isArray(window.RapDreamFeaturedNames.names)) ? window.RapDreamFeaturedNames.names : [];
+  var partyCrowd = {};
+  var partyActs = 0;
+  var partyBuzzRoom = -1;
+  var partyStakesDay = 0;
+  var talkName = null;
+  var talkTurn = 0;
+  var talkLast = "";
+  var promoDaySeen = 0;
+
+  function bondMap() {
+    if (!S.bonds || typeof S.bonds !== "object") { S.bonds = {}; }
+    return S.bonds;
+  }
+  function bondOf(name) { var b = bondMap()[name]; return typeof b === "number" ? b : 0; }
+  function setBond(name, v) { bondMap()[name] = Math.max(-100, Math.min(100, Math.round(v))); return bondMap()[name]; }
+  function bondTier(b) {
+    if (b >= 75) { return "family"; }
+    if (b >= 50) { return "day ones"; }
+    if (b >= 25) { return "real ones"; }
+    if (b >= 5) { return "a nod"; }
+    if (b > -5) { return "strangers"; }
+    if (b > -25) { return "cool"; }
+    if (b > -60) { return "bad blood"; }
+    return "ice cold";
+  }
+  function bondText(name) { var b = bondOf(name); return "bond " + (b > 0 ? "+" : "") + b + " · " + bondTier(b); }
+  function isRegistry(name) { return REGISTRY.indexOf(name) >= 0; }
+  function playerDisplay() {
+    try { if (typeof buildIdentity === "function") { var idn = buildIdentity(S); if (idn && idn.name) { return idn.name; } } } catch (e) {}
+    return "you";
+  }
+  function shoutTag(txt) { try { if (typeof banner === "function") { banner(txt); } } catch (e) {} }
+
+  function scatterParty() {
+    partyCrowd = {};
+    partyBuzzRoom = -1;
+    var names = REGISTRY.slice();
+    for (var i = names.length - 1; i > 0; i -= 1) { var j = Math.floor(Math.random() * (i + 1)); var t = names[i]; names[i] = names[j]; names[j] = t; }
+    var order = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    for (var k = order.length - 1; k > 0; k -= 1) { var m = Math.floor(Math.random() * (k + 1)); var u = order[k]; order[k] = order[m]; order[m] = u; }
+    names.forEach(function (n, idx) { partyCrowd[n] = order[idx % 9]; });
+  }
+  function crowdCount(room) {
+    var n = 0;
+    REGISTRY.forEach(function (name) { if (partyCrowd[name] === room) { n += 1; } });
+    return n;
+  }
+  function partyDrift() {
+    REGISTRY.forEach(function (name) {
+      if (name === talkName) { return; }
+      if (Math.random() >= 0.3) { return; }
+      var cur = partyCrowd[name];
+      if (typeof cur !== "number") { return; }
+      var nbs = partyNeighbors(cur);
+      if (!nbs.length) { return; }
+      var dest = nbs[Math.floor(Math.random() * nbs.length)].pos;
+      if (crowdCount(dest) < 5) { partyCrowd[name] = dest; }
+    });
+  }
+  function partyWeather() {
+    return {
+      stakes: partyStakesDay === (S.day || 1),
+      late: partyActs >= 14,
+      hot: (S.hype || 0) >= 25 || (S.fans || 0) >= 10000,
+      buzz: partyBuzzRoom
+    };
+  }
+  var ROOM_DOINGS = [
+    ["holding porch court with a cup going warm", "out here pricing the night air like it owes rent", "on the porch steps, telling the same story better the second time"],
+    ["working the door like a shift they volunteered for", "at the door, greeting everybody like a mayor with no city", "hovering by the door, first to hear every arrival"],
+    ["in the yard, deep in a two-person summit by the cooler", "out back under the string lights, holding a plate and a grudge", "in the yard, teaching somebody's cousin a card game for money"],
+    ["in the kitchen, eating over the sink like headquarters staff", "holding kitchen court, where all the real news breaks first", "by the stove, guarding the pot and the list of who has eaten"],
+    ["dead center of the floor, exactly where the weather is made", "in the middle of it all, conducting without a baton", "center floor, in the thick of the loudest conversation here"],
+    ["at the music corner, arguing the rotation like case law", "by the speaker, waiting to say play mine next", "in the music corner, blessing the laptop with one more request"],
+    ["in the bathroom line, hearing everything true about this party", "holding a spot in the line and the whole night's gossip with it", "in the line, quietly learning who is about to get signed"],
+    ["on the couch, holding down a corner like a lease", "deep in the couch, letting the party orbit past", "couch-posted, awake in a way that counts as attending"],
+    ["in the circle, listening first — the circle rewards it", "at the circle's edge, nodding like one animal with the rest", "in the circle, waiting on the floor to open"]
+  ];
+  function behaviorLine(name, room) {
+    var w = partyWeather();
+    var wkey = (w.stakes ? 1 : 0) + (w.late ? 2 : 0) + (w.hot ? 4 : 0) + (w.buzz === room ? 8 : 0);
+    var pool = ROOM_DOINGS[room] || ROOM_DOINGS[4];
+    var line = name + " is " + pool[hashStr("doing|" + name + "|" + room + "|" + (S.day || 1) + "|" + wkey) % pool.length] + ".";
+    var b = bondOf(name);
+    if (b >= 50) { line += " family — your chair is saved before you reach it."; }
+    else if (b >= 25) { line += " they clock you early and make room."; }
+    else if (b <= -50) { line += " the temperature around them drops when you get close."; }
+    else if (b <= -25) { line += " they keep one eye on you, and not the kind one."; }
+    else if (w.buzz === room) { line += " this room just had a moment and it is still in the air here."; }
+    else if (w.stakes) { line += " the stakes went off tonight and everybody is still spending it."; }
+    else if (w.late) { line += " it is late enough that the truth costs less."; }
+    else if (w.hot) { line += " your name has been moving through this party all night."; }
+    return line;
+  }
+  function paintCrowd(body) {
+    if (!REGISTRY.length) { return; }
+    if (!Object.keys(partyCrowd).length) { scatterParty(); }
+    var here = REGISTRY.filter(function (n) { return partyCrowd[n] === partyPos; });
+    body.appendChild(el("p", "rd-sub", here.length
+      ? "in the room — " + here.length + " of the 22, drifting like everybody:"
+      : "none of the 22 in this room right now. the party moves; they will."));
+    here.forEach(function (name) {
+      var row = el("div", "rdn-party-person");
+      var who = el("div", "rdn-party-who");
+      who.appendChild(el("strong", null, name));
+      who.appendChild(el("small", null, behaviorLine(name, partyPos)));
+      who.appendChild(el("small", "rdn-party-bond", bondText(name)));
+      row.appendChild(who);
+      var b = el("button", "rdn-party-talk", "talk");
+      b.type = "button";
+      b.setAttribute("aria-label", "talk to " + name);
+      b.addEventListener("click", function () { startTalk(name); });
+      row.appendChild(b);
+      body.appendChild(row);
+    });
+  }
+
+  /* ---------- dialogue: one response, ten energy, the bond moves ---------- */
+  var TALK_OPEN = {
+    warm: [
+      "look who the night carried in. sit in — your name was just up in here like it pays rent.",
+      "family. we saved you the good side of every conversation tonight.",
+      "there's the co-sign i actually wait on. talk to me."
+    ],
+    open: [
+      "you're the one everybody keeps almost introducing me to. so. introduce yourself.",
+      "i know the name. names travel faster than the people carrying them. sit.",
+      "loud night to make a friend. respect for trying. let's see what you're carrying."
+    ],
+    cold: [
+      "oh. it's you. say it fast, whatever it is.",
+      "we're doing this? fine. the floor is yours. it has been warmer.",
+      "i remember every word between us. choose yours like they cost something. they do."
+    ]
+  };
+  var TALK_PROMPT = [
+    "“so. what else is true?”",
+    "“keep going. the night is young and so is this.”",
+    "“talk. i'm listening like it costs me.”",
+    "“and? don't stop where it gets good.”"
+  ];
+  var REPLY_WARM = [
+    "a grin they don't bother hiding. “say less. i heard all of it.”",
+    "“that's real.” a nod that weighs something. “we're good, you and me.”",
+    "they laugh once, short. “you talk like you've been here before. stay that way.”",
+    "“heard.” they tap the table twice, punctuation. “we're locked in.”"
+  ];
+  var REPLY_COLD = [
+    "the smile reaches nowhere. “noted.” the word lands like a door.",
+    "“mm.” they look past you, to the room they would rather be in.",
+    "a pause with weather in it. “you rehearsed that? run it again, quieter.”",
+    "“bold.” one word, priced like a warning. “anything else?”"
+  ];
+  var TALK_MOVES = [
+    { id: "flowers", label: "give them their flowers", say: "“your run is real. i say it where people can hear it.”" },
+    { id: "craft", label: "ask about the work", say: "“how did the last record actually get made?”" },
+    { id: "talk", label: "talk your talk", say: "“remember my name. you'll be saying it with respect.”" },
+    { id: "joke", label: "crack wise at their expense", say: "a joke with their name in the middle of it" },
+    { id: "real", label: "keep it all the way real", say: "“your last move? since it's us — it wasn't it.”" }
+  ];
+  function between(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function rollDelta(mv, bond) {
+    var r = Math.random();
+    var luck = bond >= 50 ? 0.1 : bond <= -50 ? -0.1 : 0;
+    if (mv.id === "flowers") { return r < 0.85 + luck ? between(4, 8) : between(1, 3); }
+    if (mv.id === "craft") { return r < 0.9 + luck ? between(2, 6) : between(0, 1); }
+    if (mv.id === "talk") { return r < 0.55 + luck ? between(6, 12) : -between(4, 9); }
+    if (mv.id === "joke") { return r < 0.5 + luck ? between(5, 10) : -between(5, 11); }
+    return r < 0.5 + luck ? between(5, 9) : -between(5, 10);
+  }
+  function currentMoves() {
+    var start = hashStr("moves|" + talkName + "|" + talkTurn + "|" + (S.day || 1)) % TALK_MOVES.length;
+    var out = [];
+    for (var i = 0; i < 3; i += 1) { out.push(TALK_MOVES[(start + i) % TALK_MOVES.length]); }
+    return out;
+  }
+  function startTalk(name) {
+    talkName = name;
+    talkTurn = 0;
+    var b = bondOf(name);
+    var pool = b >= 25 ? TALK_OPEN.warm : b <= -25 ? TALK_OPEN.cold : TALK_OPEN.open;
+    talkLast = name + ": “" + pick(pool) + "”";
+    tape("you and " + name + ", talking in " + PARTY_CELLS[partyPos].name + ". " + bondText(name) + ".");
+    paintTalk();
+  }
+  function paintTalk(note) {
+    var body = partyOv.querySelector(".rd-panel-body");
+    body.innerHTML = "";
+    var name = talkName;
+    body.appendChild(el("p", "rdn-party-where", name));
+    body.appendChild(el("p", "rd-sub", PARTY_CELLS[partyPos].name + " · " + bondText(name) + " · energy " + (S.energy || 0)));
+    if (talkLast) { body.appendChild(el("p", "rd-sub", talkLast)); }
+    if (note) { body.appendChild(el("p", "rd-sub", note)); }
+    var grid = el("div", "rd-grid");
+    if ((S.energy || 0) >= 10) {
+      currentMoves().forEach(function (mv) {
+        grid.appendChild(partyBtn(mv.label, mv.say + " · one response · −10 energy", function () { talkRespond(mv); }));
+      });
+    } else {
+      body.appendChild(el("p", "rd-sub", "the words are gone — energy's spent, and the talk ends the way talks end. the bond keeps what it earned tonight."));
+    }
+    grid.appendChild(partyBtn("step back", "back to the room", function () { talkName = null; paintParty(); }));
+    body.appendChild(grid);
+  }
+  function talkRespond(mv) {
+    if (!talkName) { return; }
+    if ((S.energy || 0) < 10) { paintTalk("you reach for the words and the tank is empty."); return; }
+    S.energy -= 10;
+    partyActs += 1;
+    var name = talkName;
+    var before = bondOf(name);
+    var d = rollDelta(mv, before);
+    var after = setBond(name, before + d);
+    talkTurn += 1;
+    talkLast = name + ": " + pick(d >= 0 ? REPLY_WARM : REPLY_COLD) + ((S.energy || 0) >= 10 ? " " + pick(TALK_PROMPT) : "");
+    partyDrift();
+    var note = "−10 energy (" + (S.energy || 0) + " left) · bond " + (d >= 0 ? "+" : "") + d + " — " + name + " now " + (after > 0 ? "+" : "") + after + " · " + bondTier(after)
+      + (bondTier(before) !== bondTier(after) ? " (was: " + bondTier(before) + ")" : "");
+    if (after >= 50 && before < 50) { note += " family now — and family promotes family. watch the feed on a coming day."; }
+    if ((S.energy || 0) < 10) { note += " — that's the tank: the talk closes itself."; }
+    try { render(); } catch (e) {}
+    paintTalk(note);
+  }
+
+  /* ---------- bond at the signing table ----------
+     The offers already wear registry names when the roll puts them
+     there. A bond with that name moves the signing three ways, all of
+     them said out loud: the room annotates the offer, a broken bond
+     may not sit down at all, and a signed split shifts by the bond. */
+  if (typeof openSigningRoom === "function") {
+    var prevSignRoom = openSigningRoom;
+    openSigningRoom = function () {
+      var out = prevSignRoom.apply(this, arguments);
+      try {
+        var picks = document.querySelectorAll("#artist-options .artist-pick");
+        (S.currentOffers || []).forEach(function (name, i) {
+          if (!isRegistry(name) || !picks[i]) { return; }
+          var b = bondOf(name);
+          if (!b) { return; }
+          var s = el("small", "rdn-sign-bond", b >= 25
+            ? "bond " + "+" + b + " · " + bondTier(b) + " — they rate you: they want to sign, and the paper comes out friendly"
+            : b <= -25
+              ? "bond " + b + " · " + bondTier(b) + " — bad blood: they may not sit down, and the paper runs hard"
+              : "bond " + (b > 0 ? "+" : "") + b + " · " + bondTier(b) + " — the table can feel it");
+          picks[i].appendChild(s);
+        });
+      } catch (e) { /* annotation never blocks a signing */ }
+      return out;
+    };
+  }
+  if (typeof signArtist === "function") {
+    var prevSignArtist = signArtist;
+    signArtist = function (name) {
+      try {
+        if (isRegistry(name)) {
+          var b = bondOf(name);
+          var wouldProceed = (S.currentOffers || []).indexOf(name) >= 0 && (S.artists || []).length < 3
+            && (typeof signingCost !== "function" || (S.money || 0) >= signingCost(S));
+          if (wouldProceed && b <= -25 && Math.random() < (b <= -60 ? 0.75 : 0.5)) {
+            tape(name + " wouldn't sit down. bond " + b + " — bad blood doesn't sign, it waits.");
+            shoutTag("NO SIGNING: " + name.toUpperCase() + " WOULDN'T SIT DOWN");
+            return;
+          }
+        }
+      } catch (e) { /* refusal never blocks the table */ }
+      return prevSignArtist.apply(this, arguments);
+    };
+  }
+  if (typeof finalizeSign === "function") {
+    var prevFinalizeSign = finalizeSign;
+    finalizeSign = function (name, t) {
+      var before = (S.artists || []).length;
+      var out = prevFinalizeSign.apply(this, arguments);
+      try {
+        if (isRegistry(name) && (S.artists || []).length > before) {
+          var b = bondOf(name);
+          if (b) {
+            var art = S.artists[S.artists.length - 1];
+            if (art && art.name === name && typeof art.labelShare === "number") {
+              var ns = Math.max(0.05, Math.min(0.95, art.labelShare + Math.round(b / 5) / 100));
+              if (ns !== art.labelShare) {
+                art.labelShare = ns;
+                tape(b > 0
+                  ? "then the bond spoke: " + name + " waved the split friendlier — the label keeps " + Math.round(ns * 100) + "% now. family pricing."
+                  : "the bond sat at the table: " + name + " squeezed the split — the label keeps " + Math.round(ns * 100) + "% now. bad blood is expensive.");
+              }
+            }
+          }
+        }
+      } catch (e) { /* the bond's word at the table never blocks a signing */ }
+      return out;
+    };
+  }
+
+  /* ---------- promotion: family puts your name up ----------
+     Once a day, a rapper whose bond runs deep may spend their own
+     reach on you: a post on the timeline in their name, a wire line,
+     and the fans and hype that come with being co-signed in public.
+     The tape says the bond did it, every time. */
+  var PROMO_POSTS = [
+    "say {name} one more time for the ones who weren't listening. family. run the records up.",
+    "i don't co-sign for decoration. {name} is the realest climb i've watched up close. watch with me.",
+    "they asked me who's next. i said {name} before the question finished.",
+    "me and {name} are locked in. their next drop is your next drop. act accordingly."
+  ];
+  function promoTick() {
+    var day = S.day || 1;
+    if (promoDaySeen === day) { return; }
+    var first = promoDaySeen === 0;
+    promoDaySeen = day;
+    if (first || S.over || !REGISTRY.length) { return; }
+    var fired = 0;
+    var who = null;
+    REGISTRY.forEach(function (name) {
+      if (fired >= 2) { return; }
+      var b = bondOf(name);
+      if (b < 50) { return; }
+      if (hashStr("promo|" + day + "|" + name) % 100 >= 45) { return; }
+      fired += 1;
+      if (!who) { who = playerDisplay(); }
+      var fansGain = Math.round(30 + (S.fans || 0) * 0.004 + b * 1.5);
+      var hypeGain = 2 + (hashStr("promoh|" + day + "|" + name) % 3);
+      S.fans = (S.fans || 0) + fansGain;
+      S.hype = (S.hype || 0) + hypeGain;
+      var post = pick(PROMO_POSTS).split("{name}").join(who);
+      try {
+        var tlApi = window.RapDreamTl;
+        if (tlApi && typeof tlApi.posts === "function") {
+          tlApi.posts().unshift({ id: 700000 + (hashStr("promo|" + day + "|" + name) % 200000), author: name, text: post, day: day, mine: false, waiting: false, stamp: day * 1440 + 640 });
+        }
+      } catch (e) {}
+      tape(name + " put your name up today — the bond, working out loud: +" + fansGain + " fans, +" + hypeGain + " hype.");
+      try { if (typeof queueWire === "function") { queueWire(S, name + " co-signed " + who + " in public today. Family promotes family: the bond is doing promo now."); } } catch (e) {}
+    });
+  }
+
   var BUMPS = ["a wall. the party is generous, but it has edges.", "you bump into the furniture of the night. no way through there.", "that way is a conversation you would have to join. you pass."];
   function partyMove(dir) {
     var nb = partyNeighbors(partyPos).filter(function (n) { return n.dir === dir; })[0];
     if (!nb) { partyBump += 1; paintParty(BUMPS[partyBump % BUMPS.length]); return; }
     partyPos = nb.pos;
+    partyActs += 1;
+    partyDrift();
     paintParty();
   }
   function openParty() {
     partyPos = 1;
     partyWorked = false;
+    talkName = null;
+    scatterParty();
     paintParty();
     partyOv.classList.remove("hidden");
   }
   partyOv.addEventListener("click", function (e) { if (e.target === partyOv) { partyOv.classList.add("hidden"); } });
   document.addEventListener("keydown", function (e) {
     if (partyOv.classList.contains("hidden")) { return; }
+    if (talkName) { return; }
     var tag = e.target && e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") { return; }
     var dir = { ArrowUp: "north", ArrowDown: "south", ArrowLeft: "west", ArrowRight: "east" }[e.key];
@@ -13739,6 +14129,7 @@ render();
         trackRadarReturns();
         paintWorkLine();
         aliasRadarFallback();
+        promoTick();
       } catch (e) { /* the night stack never blocks the game */ }
       return out;
     };
