@@ -13318,14 +13318,52 @@ render();
     if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(s).then(done, function () { ssOut.select(); ssNote("copy it by hand — the whole string, start to finish.", ""); }); }
     else { ssOut.select(); ssNote("copy it by hand — the whole string, start to finish.", ""); }
   });
-  ssLoad.addEventListener("click", function () {
-    var res = ssDecode(ssIn.value);
-    if (res.err) { ssNote(res.err, "err"); return; }
+  function ssRunLoad(raw, note, close) {
+    var res = ssDecode(raw);
+    if (res.err) { note(res.err, "err"); return; }
     var problem = ssApply(res.obj);
-    if (problem) { ssNote(problem, "err"); return; }
-    ssNote("string checks out. picking the run up…", "ok");
-    ssOv.classList.add("hidden");
+    if (problem) { note(problem, "err"); return; }
+    note("string checks out. picking the run up…", "ok");
+    if (close) { close(); }
     shoutNow("SAVE STRING LOADED");
+  }
+  ssLoad.addEventListener("click", function () {
+    ssRunLoad(ssIn.value, ssNote, function () { ssOv.classList.add("hidden"); });
+  });
+
+  /* ---------- load run: the load side, one tap off the dash ---------- */
+  var lrOv = mkEl("section", "rd-overlay hidden");
+  lrOv.id = "rd-load-run";
+  lrOv.setAttribute("aria-label", "Load run");
+  lrOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>load run</h3><p>paste a save string and the run picks up here. loading replaces the run in this browser — the autosave follows the loaded run from there.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  var lrBody = lrOv.querySelector(".rd-panel-body");
+  var lrSec = mkEl("div", "rd-ss-sec");
+  lrSec.appendChild(mkEl("h4", null, "pick a run up"));
+  var lrIn = mkEl("textarea", "rd-ss-area");
+  lrIn.id = "rd-lr-in";
+  lrIn.setAttribute("aria-label", "Paste a save string");
+  lrIn.setAttribute("placeholder", "paste the numbers here");
+  lrSec.appendChild(lrIn);
+  var lrLoad = mkEl("button", "rd-opt");
+  lrLoad.type = "button";
+  lrLoad.appendChild(mkEl("strong", null, "load this string"));
+  lrLoad.appendChild(mkEl("small", null, "it replaces the run in this browser — the autosave follows it from there"));
+  lrSec.appendChild(lrLoad);
+  lrBody.appendChild(lrSec);
+  var lrMsg = mkEl("p", "rd-ss-msg", "");
+  lrMsg.id = "rd-lr-msg";
+  lrBody.appendChild(lrMsg);
+  document.body.appendChild(lrOv);
+  function lrNote(txt, cls) { lrMsg.textContent = txt || ""; lrMsg.className = "rd-ss-msg" + (cls ? " " + cls : ""); }
+  function openLoadRun() {
+    lrNote("");
+    lrOv.classList.remove("hidden");
+    try { lrIn.focus(); } catch (e) {}
+  }
+  lrOv.querySelector(".rd-close").addEventListener("click", function () { lrOv.classList.add("hidden"); });
+  lrOv.addEventListener("click", function (e) { if (e.target === lrOv) { lrOv.classList.add("hidden"); } });
+  lrLoad.addEventListener("click", function () {
+    ssRunLoad(lrIn.value, lrNote, function () { lrOv.classList.add("hidden"); });
   });
   try {
     var controls = document.querySelector(".run-file-controls");
@@ -13335,6 +13373,11 @@ render();
       ssBtn.id = "rd-ss-open";
       ssBtn.addEventListener("click", openSaveString);
       controls.appendChild(ssBtn);
+      var lrBtn = mkEl("button", "run-file-button", "load run");
+      lrBtn.type = "button";
+      lrBtn.id = "rd-lr-open";
+      lrBtn.addEventListener("click", openLoadRun);
+      controls.appendChild(lrBtn);
     }
     var startOv2 = gel("rd-start");
     if (startOv2 && typeof MutationObserver === "function") {
