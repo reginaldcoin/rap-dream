@@ -9986,6 +9986,19 @@ render();
     }
     /* feature offers expire at the next sleep, silently */
     if (X.offer.pending && X.offer.pending.day < day) { X.offer.pending = null; }
+    /* a strong talk at last night's party can turn into this morning's call */
+    try {
+      var po = window.__rdPartyOffer;
+      if (po && po.day <= day && !S.over) {
+        window.__rdPartyOffer = null;
+        if (!X.offer.pending) {
+          X.offer.lastDay = day;
+          X.offer.pending = { artist: po.artist, price: offerPrice(), day: day };
+          queueMorning("offer");
+          tape("last night's talk turned into a call: " + po.artist + " wants a verse. it is on the table this morning.");
+        }
+      }
+    } catch (e) {}
     if (day > 7 && (day - X.offer.lastDay) >= 14 && !X.offer.pending && !S.over) {
       X.offer.lastDay = day;
       X.offer.pending = { artist: offerArtist(day), price: offerPrice(), day: day };
@@ -13376,7 +13389,18 @@ render();
     + ".rdn-party-who small.rdn-party-bond{color:var(--signal)}"
     + ".rdn-party-talk{min-width:64px;min-height:40px;padding:6px 12px;border:2px outset #d9efff;border-radius:8px;background:var(--signal);color:var(--signal-ink);font-weight:700;cursor:pointer;flex:none}"
     + ".rdn-party-talk:active{border-style:inset}"
-    + ".rdn-sign-bond{display:block;margin-top:3px;color:#69bdff;font-size:12px;line-height:1.4}";
+    + ".rdn-sign-bond{display:block;margin-top:3px;color:#69bdff;font-size:12px;line-height:1.4}"
+    + ".rdn-party-cell.far{opacity:.45}"
+    + ".rdn-note-btn{display:block;width:100%;margin-top:8px;padding:10px 12px;text-align:left;color:var(--ink);background:var(--surface);border:2px solid var(--line-soft);border-radius:8px;cursor:pointer}"
+    + ".rdn-note-btn strong{display:block;color:var(--signal);font-size:14px;text-transform:uppercase;letter-spacing:.05em}"
+    + ".rdn-note-btn small{display:block;color:var(--muted);font-size:12px;margin-top:2px;text-transform:none;letter-spacing:0}"
+    + ".rdn-notes-head{display:flex;align-items:center;gap:10px;color:#e8f4ff;margin:4px 2px 10px}"
+    + ".rdn-notes-head strong{font-family:'VT323',monospace;font-size:20px;text-transform:uppercase;letter-spacing:.06em}"
+    + ".rdn-notes-back{padding:5px 10px;color:var(--signal-ink);background:var(--signal);border:2px outset #d9efff;border-radius:8px;font-weight:700;cursor:pointer;flex:none}"
+    + ".rdn-note-row{display:flex;gap:8px;align-items:baseline;width:100%;margin-top:6px;padding:9px 10px;text-align:left;color:#eefbff;background:#10161d;border:2px solid #2c3644;border-radius:12px;cursor:pointer}"
+    + ".rdn-note-kind{flex:none;color:#69bdff;font-size:10px;text-transform:uppercase;letter-spacing:.07em}"
+    + ".rdn-note-text{flex:1;font-size:12.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+    + ".rdn-notes-empty{color:#d5efff;font-size:12.5px;padding:8px 2px}";
   document.head.appendChild(css);
 
   var myS = null;
@@ -13647,18 +13671,33 @@ render();
     var cell = PARTY_CELLS[partyPos];
     body.appendChild(el("p", "rdn-party-where", cell.name));
     body.appendChild(el("p", "rd-sub", cell.desc));
+    if (partyIntro) {
+      partyIntro = false;
+      if (partyHost) { body.appendChild(el("p", "rd-sub", hostLine())); }
+    }
+    var tierNow = cashTier();
+    var roomLines = (tierNow === "broke" || tierNow === "under") ? ROOM_BROKE
+      : (tierNow === "breaded" || tierNow === "heavy") ? ROOM_BREADED
+      : tierNow === "thin" ? ROOM_THIN : null;
+    if (roomLines) {
+      body.appendChild(el("p", "rd-sub", roomLines[hashStr("roomline|" + (S.day || 1) + "|" + partyPos + "|" + tierNow) % roomLines.length]));
+    }
     if (note) { body.appendChild(el("p", "rd-sub", note)); }
     var exits = partyNeighbors(partyPos).map(function (n) { return n.dir + ": " + PARTY_CELLS[n.pos].name; }).join(" · ");
     body.appendChild(el("p", "rd-sub", "ways out — " + exits));
     var map = el("div", "rdn-party-map");
     PARTY_CELLS.forEach(function (c, i) {
       var deep = crowdCount(i);
-      var t = el("div", "rdn-party-cell" + (i === partyPos ? " here" : ""), c.name + (i === partyPos ? " · you" : "") + (deep ? " · " + deep + " deep" : ""));
+      var shut = ROOM_DEPTH[i] >= 2 && !roomOpen(ROOM_DEPTH[i]);
+      var t = el("div", "rdn-party-cell" + (i === partyPos ? " here" : "") + (shut ? " far" : ""), c.name + (i === partyPos ? " · you" : "") + (ROOM_DEPTH[i] === 3 ? " · the deep end" : "") + (deep ? " · " + deep + " deep" : ""));
       t.setAttribute("role", "button");
       t.setAttribute("aria-label", "walk to " + c.name);
       t.addEventListener("click", function () {
         var nb = partyNeighbors(partyPos).filter(function (n) { return n.pos === i; })[0];
-        if (nb) { partyPos = i; paintParty(); }
+        if (nb) {
+          if (!roomOpen(ROOM_DEPTH[i])) { paintParty(pick(DEEP_BLOCK)); return; }
+          partyPos = i; paintParty();
+        }
         else if (i !== partyPos) { paintParty("one step at a time. the party is walked, not teleported."); }
       });
       map.appendChild(t);
@@ -13767,11 +13806,33 @@ render();
   function scatterParty() {
     partyCrowd = {};
     partyBuzzRoom = -1;
-    var names = REGISTRY.slice();
-    for (var i = names.length - 1; i > 0; i -= 1) { var j = Math.floor(Math.random() * (i + 1)); var t = names[i]; names[i] = names[j]; names[j] = t; }
-    var order = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-    for (var k = order.length - 1; k > 0; k -= 1) { var m = Math.floor(Math.random() * (k + 1)); var u = order[k]; order[k] = order[m]; order[m] = u; }
-    names.forEach(function (n, idx) { partyCrowd[n] = order[idx % 9]; });
+    /* the house has depth now: the deeper rooms draw the higher-standing
+       company, the outer rooms take everybody else. Soft room cap of 4
+       here; the drift cap downstream is untouched. */
+    var names = REGISTRY.slice().sort(function (a, b) { return nameStanding(b) - nameStanding(a); });
+    var counts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    names.forEach(function (n, idx) {
+      var p = names.length > 1 ? idx / (names.length - 1) : 0;
+      var want = p < 0.25 ? 3 : p < 0.5 ? 2 : p < 0.78 ? 1 : 0;
+      var best = -1, bestScore = -1e9;
+      for (var room = 0; room < 9; room += 1) {
+        if (counts[room] >= 4) { continue; }
+        var score = -Math.abs(ROOM_DEPTH[room] - want) * 2 + Math.random() * 1.5 - counts[room] * 0.4;
+        if (score > bestScore) { bestScore = score; best = room; }
+      }
+      if (best < 0) { best = idx % 9; }
+      partyCrowd[n] = best;
+      counts[best] += 1;
+    });
+    /* the host holds a deep room when the house gives them one */
+    if (partyHost && typeof partyCrowd[partyHost] === "number" && ROOM_DEPTH[partyCrowd[partyHost]] < 2) {
+      var deepRooms = [5, 6, 8, 3].filter(function (r) { return counts[r] < 4; });
+      if (deepRooms.length) {
+        counts[partyCrowd[partyHost]] -= 1;
+        partyCrowd[partyHost] = deepRooms[0];
+        counts[deepRooms[0]] += 1;
+      }
+    }
   }
   function crowdCount(room) {
     var n = 0;
@@ -13823,6 +13884,12 @@ render();
     else if (w.stakes) { line += " the stakes went off tonight and everybody is still spending it."; }
     else if (w.late) { line += " it is late enough that the truth costs less."; }
     else if (w.hot) { line += " your name has been moving through this party all night."; }
+    var tierB = cashTier();
+    var tk = hashStr("tierline|" + name + "|" + (S.day || 1)) % 4;
+    if ((tierB === "broke" || tierB === "under") && tk === 0) { line += " they clock the light pockets early and keep the visit short."; }
+    else if ((tierB === "breaded" || tierB === "heavy") && tk === 0) { line += " your name gets introduced with its chest out in here."; }
+    if (inDebt() && tk === 1) { line += " word travels — the label's paper comes up when your name does."; }
+    if (name === partyHost) { line += " it's their house tonight; every room answers to them a little."; }
     return line;
   }
   function paintCrowd(body) {
@@ -13864,6 +13931,16 @@ render();
       "oh. it's you. say it fast, whatever it is.",
       "we're doing this? fine. the floor is yours. it has been warmer.",
       "i remember every word between us. choose yours like they cost something. they do."
+    ],
+    breaded: [
+      "the name AND the bag. sit down — whatever you're drinking, it's already handled.",
+      "heard the run was real. seeing it in person, the room agrees. talk to me.",
+      "you walk like the rent's paid for the year. respect. what's the word?"
+    ],
+    broke: [
+      "they look up, take the measure, look back at their cup. “yeah. what's up.”",
+      "a nod, priced exact. “make it good. the night's not long.”",
+      "they leave a little room on the couch. not the good side. “sit, i guess.”"
     ]
   };
   var TALK_PROMPT = [
@@ -13894,7 +13971,9 @@ render();
   function between(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
   function rollDelta(mv, bond) {
     var r = Math.random();
-    var luck = bond >= 50 ? 0.1 : bond <= -50 ? -0.1 : 0;
+    var luck = (bond >= 50 ? 0.1 : bond <= -50 ? -0.1 : 0)
+      + (partyHostStand >= 60 ? 0.05 : partyHostStand <= 25 ? -0.03 : 0)
+      + ((cashTier() === "breaded" || cashTier() === "heavy") ? 0.04 : (cashTier() === "broke" || cashTier() === "under") ? -0.03 : 0);
     if (mv.id === "flowers") { return r < 0.85 + luck ? between(4, 8) : between(1, 3); }
     if (mv.id === "craft") { return r < 0.9 + luck ? between(2, 6) : between(0, 1); }
     if (mv.id === "talk") { return r < 0.55 + luck ? between(6, 12) : -between(4, 9); }
@@ -13910,8 +13989,14 @@ render();
   function startTalk(name) {
     talkName = name;
     talkTurn = 0;
+    talkDebtHit = false;
     var b = bondOf(name);
-    var pool = b >= 25 ? TALK_OPEN.warm : b <= -25 ? TALK_OPEN.cold : TALK_OPEN.open;
+    var tierT = cashTier();
+    var pool = b >= 25 ? TALK_OPEN.warm
+      : b <= -25 ? TALK_OPEN.cold
+      : (tierT === "breaded" || tierT === "heavy") ? TALK_OPEN.breaded
+      : (tierT === "broke" || tierT === "under") ? TALK_OPEN.broke
+      : TALK_OPEN.open;
     talkLast = name + ": “" + pick(pool) + "”";
     tape("you and " + name + ", talking in " + PARTY_CELLS[partyPos].name + ". " + bondText(name) + ".");
     paintTalk();
@@ -13945,7 +14030,34 @@ render();
     var d = rollDelta(mv, before);
     var after = setBond(name, before + d);
     talkTurn += 1;
+    /* the night keeps receipts: what happens in these rooms is written
+       down for the morning, and some of it moves real systems tonight */
+    if (bondTier(before) !== bondTier(after)) {
+      nightEvents.push({ type: "bond", who: name, tier: bondTier(after) });
+    }
+    if (after >= 60 && before < 60 && !nightEvents.some(function (e) { return e.type === "offer"; })) {
+      nightEvents.push({ type: "offer", who: name });
+    }
+    var rst = rivalState(name);
+    if (rst) {
+      if (d <= -7 && (rst.tension || 0) < 85 && Math.random() < 0.6) {
+        rst.tension = Math.min(100, (rst.tension || 0) + 22);
+        nightEvents.push({ type: "beef-start", who: name });
+      } else if (d >= 7 && (rst.tension || 0) >= 35 && Math.random() < 0.5) {
+        rst.tension = Math.max(0, (rst.tension || 0) - 28);
+        if ((rst.tension || 0) < 35) { nightEvents.push({ type: "beef-settle", who: name }); }
+      }
+    } else if (d <= -8 && Math.random() < 0.6) {
+      nightEvents.push({ type: "slight", who: name });
+    }
     talkLast = name + ": " + pick(d >= 0 ? REPLY_WARM : REPLY_COLD) + ((S.energy || 0) >= 10 ? " " + pick(TALK_PROMPT) : "");
+    /* debt gets mentioned the way it gets mentioned in real rooms: by a
+       person, mid-conversation, as pressure — never as a warning */
+    if (inDebt() && !talkDebtHit && talkTurn >= 1 && Math.random() < 0.5) {
+      talkDebtHit = true;
+      talkLast = name + ": " + pick(DEBT_LINES);
+      nightEvents.push({ type: "debt", who: name });
+    }
     partyDrift();
     var note = "−10 energy (" + (S.energy || 0) + " left) · bond " + (d >= 0 ? "+" : "") + d + " — " + name + " now " + (after > 0 ? "+" : "") + after + " · " + bondTier(after)
       + (bondTier(before) !== bondTier(after) ? " (was: " + bondTier(before) + ")" : "");
@@ -14071,6 +14183,7 @@ render();
   function partyMove(dir) {
     var nb = partyNeighbors(partyPos).filter(function (n) { return n.dir === dir; })[0];
     if (!nb) { partyBump += 1; paintParty(BUMPS[partyBump % BUMPS.length]); return; }
+    if (!roomOpen(ROOM_DEPTH[nb.pos])) { partyBump += 1; paintParty(pick(DEEP_BLOCK)); return; }
     partyPos = nb.pos;
     partyActs += 1;
     partyDrift();
@@ -14080,6 +14193,11 @@ render();
     partyPos = 1;
     partyWorked = false;
     talkName = null;
+    pickPartyHost();
+    nightDay = S.day || 1;
+    nightVisited = true;
+    nightEvents = [];
+    partyIntro = true;
     scatterParty();
     paintParty();
     partyOv.classList.remove("hidden");
@@ -14119,6 +14237,403 @@ render();
     }
   }, true);
 
+  /* ================= THE NIGHT STACK: the party reads your standing ====
+     One hidden composite runs the whole night: cash tier (debt counts
+     against), fans tier, recent public moments (chart presence, hype,
+     beef record), roster strength, and bond standing. It is computed,
+     never stored, and never shown — no number, no meter, no label on
+     any screen. Its only readout is how the house treats you: which
+     rooms wave you in, how the talk runs, what follows you home. */
+  var ROOM_DEPTH = [1, 0, 1, 2, 1, 2, 3, 2, 3];
+  var partyHost = null;
+  var partyHostStand = 50;
+  var partyIntro = false;
+  var nightDay = 0;
+  var nightVisited = false;
+  var nightEvents = [];
+  var talkDebtHit = false;
+
+  function cashTier() {
+    var m = S.money || 0;
+    if (m < 0) { return "under"; }
+    if (m < 100) { return "broke"; }
+    if (m < 1000) { return "thin"; }
+    if (m < 10000) { return "steady"; }
+    if (m < 100000) { return "breaded"; }
+    return "heavy";
+  }
+  function inDebt() { return (S.dealBalance || 0) > 0 || (S.money || 0) < 0; }
+  function chartGlow() {
+    try {
+      var feed = $("nw-chart-feed");
+      if (feed) {
+        var rows = feed.querySelectorAll(".entry");
+        var me = playerDisplay();
+        for (var i = 0; i < rows.length; i += 1) {
+          if ((rows[i].textContent || "").indexOf(me) >= 0) { return 4; }
+        }
+      }
+    } catch (e) {}
+    return 0;
+  }
+  function houseStanding() {
+    var cashPts = { under: 0, broke: 3, thin: 10, steady: 18, breaded: 26, heavy: 30 }[cashTier()];
+    if (inDebt()) { cashPts = Math.max(0, cashPts - 12); }
+    var fans = S.fans || 0;
+    var fansPts = fans <= 0 ? 0 : Math.min(25, Math.max(0, (Math.log(fans) / Math.LN10 - 1) * 5));
+    var net = 0, smoke = 0;
+    (S.rivals || []).forEach(function (r) {
+      if (!r) { return; }
+      net += (r.wins || 0) - (r.losses || 0);
+      if (r.dissPending) { smoke = 2; }
+    });
+    var momentPts = Math.max(0, Math.min(20, Math.min(10, (S.hype || 0) * 0.2) + Math.max(-6, Math.min(8, net)) + chartGlow() - smoke));
+    var rosterPts = Math.min(15, (S.artists || []).length * 5 + ((S.artists || []).some(function (a) { return a && bondOf(a.name) >= 25; }) ? 3 : 0));
+    var bondSum = 0;
+    REGISTRY.forEach(function (n) { var b = bondOf(n); if (b > 0) { bondSum += b; } });
+    var bondPts = Math.min(10, bondSum / 30);
+    return Math.max(0, Math.min(100, Math.round(cashPts + fansPts + momentPts + rosterPts + bondPts)));
+  }
+  function nameStanding(name) {
+    var base = 15 + (hashStr("stand|" + name) % 55);
+    var st = rivalState(name);
+    if (st && typeof st.scale === "number") { base += st.scale * 2; }
+    base += Math.round(bondOf(name) * 0.25);
+    return Math.max(0, Math.min(100, base));
+  }
+  function pickPartyHost() {
+    if (!REGISTRY.length) { partyHost = null; partyHostStand = 50; return; }
+    var sorted = REGISTRY.slice().sort(function (a, b) { return nameStanding(b) - nameStanding(a); });
+    var topHalf = sorted.slice(0, Math.max(1, Math.ceil(sorted.length / 2)));
+    partyHost = topHalf[Math.floor(Math.random() * topHalf.length)];
+    partyHostStand = nameStanding(partyHost);
+  }
+  function hostLine() {
+    if (partyHostStand >= 60) {
+      return "tonight the house is " + partyHost + "'s — and when " + partyHost + " hosts, the whole registry finds a reason to be in the building. the deep rooms run open and the talk runs generous.";
+    }
+    if (partyHostStand <= 25) {
+      return "tonight the house is " + partyHost + "'s — a working rapper's party. the night will be whatever the room makes of it.";
+    }
+    return "tonight the house is " + partyHost + "'s. word travels ahead of the music here, and the rooms open the way the host's name does.";
+  }
+  function roomOpen(depth) {
+    if (depth <= 1) { return true; }
+    var t2 = 32, t3 = 58;
+    if (partyHostStand >= 60) { t2 -= 10; t3 -= 12; }
+    else if (partyHostStand <= 25) { t2 += 6; t3 += 8; }
+    if (partyHost && bondOf(partyHost) >= 50) { t2 -= 6; t3 -= 8; }
+    return houseStanding() >= (depth === 2 ? Math.max(0, t2) : Math.max(5, t3));
+  }
+
+  var ROOM_BROKE = [
+    "the room is kind the way rooms are kind to light pockets: warm for a minute, then somebody's phone is more interesting.",
+    "nobody mentions money in here. every pause mentions it."
+  ];
+  var ROOM_THIN = [
+    "the room reads you as working-on-it. respect is extended, on credit, in both directions."
+  ];
+  var ROOM_BREADED = [
+    "the room tilts your way before you say a word. drinks arrive already knowing your name.",
+    "people make room like the room itself got told you were coming."
+  ];
+  var DEEP_BLOCK = [
+    "a shoulder turns your way — warm, final. that part of the house runs on a different list tonight.",
+    "you drift toward the deep rooms and the room gently disagrees. not tonight.",
+    "the deep end is right there and entirely elsewhere. the house decides who swims."
+  ];
+  var DEBT_LINES = [
+    "“since it's us — the label's still holding your paper, yeah? the whole room heard. that's a heavy coat to party in.”",
+    "“word is your name's on a balance somewhere. people talk gentler about you than that balance does.”",
+    "“no shade. but owing the label while you're in here shining? the room notices both.”"
+  ];
+
+  /* ---------- the morning after ----------
+     The night writes its receipts into the normal day flow: two or
+     three lines on the tape, the leaks fired into the systems they
+     belong to — a slight surfaces on the timeline, a strong talk
+     becomes a verse request through the features market's own door. */
+  function postSlight(who) {
+    try {
+      var tlApi = window.RapDreamTl;
+      if (tlApi && typeof tlApi.posts === "function") {
+        var day = S.day || 1;
+        tlApi.posts().unshift({ id: 800000 + (hashStr("slight|" + day + "|" + who) % 150000), author: who, text: "some people talk loud in small rooms and call it presence. anyway. good morning.", day: day, mine: false, waiting: false, stamp: day * 1440 + 540 });
+      }
+    } catch (e) {}
+  }
+  function morningAfter() {
+    var lines = [];
+    function ev(t) { return nightEvents.filter(function (e) { return e.type === t; })[0]; }
+    var offer = ev("offer"), slight = ev("slight"), bs = ev("beef-start"), bset = ev("beef-settle"), debt = ev("debt");
+    var bondEv = nightEvents.filter(function (e) { return e.type === "bond"; })[0];
+    if (offer) {
+      try { window.__rdPartyOffer = { artist: offer.who, day: S.day || 1 }; } catch (e) {}
+      lines.push("last night's talk with " + offer.who + " turned into a call — a verse request is on its way to the table.");
+    }
+    if (slight) {
+      postSlight(slight.who);
+      lines.push(slight.who + " posted around last night by morning. the timeline picked the party up and carried it out of the house.");
+    }
+    if (bset) { lines.push("whatever was smoking between you and " + bset.who + " got put out at the party. the air reads cooler this morning."); }
+    else if (bs) { lines.push("the talk with " + bs.who + " went on the record last night. there's smoke this morning where there wasn't."); }
+    if (debt && lines.length < 3) { lines.push(debt.who + " brought up the paper you're carrying, right there in the room. word travels by breakfast."); }
+    if (bondEv && lines.length < 3) { lines.push("you and " + bondEv.who + ": " + bondEv.tier + " now. the night moved that, nobody else did."); }
+    if (lines.length < 2) {
+      var who = (nightEvents[0] && nightEvents[0].who) || partyHost || "the house";
+      lines.push((partyHost ? partyHost + "'s house" : "the party") + " kept your name in rotation — " + who + " mentioned you twice before the music stopped.");
+    }
+    if (lines.length < 2) {
+      lines.push(partyActs > 6 ? "a full night, by any count. the rooms remember who showed up." : "a light one. the house keeps what it earned, and so do you.");
+    }
+    lines.slice(0, 3).forEach(function (l, i) {
+      tape((i === 0 ? "the morning after: " : "") + l);
+      pushNote("recap", "recap|" + (S.day || 1) + "|" + i, "morning after — " + l, "timeline");
+    });
+  }
+
+  /* ---------- notifications: what you missed, on the phone ----------
+     A button on the dash, next to the party door, shows only while
+     something is waiting. The list itself lives on the phone — a
+     sub-menu in the handset, one line a thing, tapped to jump where
+     it happened. Viewed is cleared: opening the list and leaving it
+     empties what you saw. Nothing here carries a game number; it is
+     a memory, not a meter. */
+  var notes = [];
+  var notesViewed = [];
+  var noteSeenPosts = null;
+  var noteBondSnap = null;
+  var noteRivalSnap = null;
+  var noteOfferDay = 0;
+  var noteOfferSeenDay = 0;
+  var NOTE_LABEL = { recap: "morning after", mention: "timeline", offer: "features", beef: "beef", bond: "bonds" };
+  function pushNote(kind, key, text, jump) {
+    if (notes.some(function (n) { return n.key === key; })) { return; }
+    notes.push({ key: key, kind: kind, text: text, jump: jump });
+    syncNoteBtn();
+  }
+  function snapRival(r) { return { t: r.tension || 0, diss: !!r.dissPending, w: r.wins || 0, l: r.losses || 0 }; }
+  function offerLapseCheck(prevDay) {
+    if (noteOfferDay !== prevDay || noteOfferSeenDay === prevDay) { return; }
+    var q = [];
+    try { q = window.__rdMorningWaiting() || []; } catch (e) {}
+    if (q.indexOf("offer") < 0) {
+      pushNote("offer", "lapse|" + prevDay, "yesterday's feature offer lapsed unanswered. the phone stays cold a while.", "features");
+    }
+  }
+  function pollNotes() {
+    try {
+      var day = S.day || 1;
+      var tlApi = window.RapDreamTl;
+      if (tlApi && typeof tlApi.posts === "function") {
+        var posts = tlApi.posts();
+        if (!noteSeenPosts) {
+          noteSeenPosts = {};
+          posts.forEach(function (p) { if (p && p.id != null) { noteSeenPosts[p.id] = 1; } });
+        } else {
+          var me = playerDisplay();
+          posts.slice(0, 25).forEach(function (p) {
+            if (!p || p.id == null || noteSeenPosts[p.id]) { return; }
+            noteSeenPosts[p.id] = 1;
+            if (p.author && p.author !== me && p.text && p.text.indexOf(me) >= 0) {
+              pushNote("mention", "mention|" + p.id, p.author + " mentioned you on the timeline: “" + p.text + "”", "timeline");
+            }
+          });
+        }
+      }
+      try {
+        var q = typeof window.__rdMorningWaiting === "function" ? window.__rdMorningWaiting() : [];
+        if (q.indexOf("offer") >= 0) {
+          if (noteOfferDay !== day) {
+            noteOfferDay = day;
+            pushNote("offer", "offer|" + day, "a feature offer is on the table — it goes quiet at the next sleep.", "offer");
+          }
+          var ov = document.getElementById("rd-offer");
+          if (ov && !ov.classList.contains("hidden")) { noteOfferSeenDay = day; }
+        }
+      } catch (e) {}
+      if (!noteBondSnap) {
+        noteBondSnap = {};
+        REGISTRY.forEach(function (n) { noteBondSnap[n] = bondTier(bondOf(n)); });
+      } else {
+        REGISTRY.forEach(function (n) {
+          var t = bondTier(bondOf(n));
+          if (noteBondSnap[n] !== t) {
+            noteBondSnap[n] = t;
+            pushNote("bond", "bond|" + day + "|" + n + "|" + t, "bond shift: you and " + n + " — " + t + " now.", "party");
+          }
+        });
+      }
+      if (!noteRivalSnap) {
+        noteRivalSnap = {};
+        (S.rivals || []).forEach(function (r) { if (r && r.name) { noteRivalSnap[r.name] = snapRival(r); } });
+      } else {
+        (S.rivals || []).forEach(function (r) {
+          if (!r || !r.name) { return; }
+          var prev = noteRivalSnap[r.name];
+          var cur = snapRival(r);
+          noteRivalSnap[r.name] = cur;
+          if (!prev) { return; }
+          if (cur.diss && !prev.diss) { pushNote("beef", "diss|" + day + "|" + r.name, r.name + " just sent a diss your way. it's on the radar.", "beef"); }
+          else if (prev.t < 70 && cur.t >= 70) { pushNote("beef", "smoke|" + day + "|" + r.name, "the thing with " + r.name + " is past warm — it's smoke now.", "beef"); }
+          else if (cur.w !== prev.w || cur.l !== prev.l) { pushNote("beef", "bout|" + day + "|" + r.name + "|" + cur.w + "-" + cur.l, "the record between you and " + r.name + " moved. the radar updated.", "beef"); }
+        });
+      }
+    } catch (e) { /* the missed-things list never blocks the game */ }
+    syncNoteBtn();
+  }
+
+  var noteOv = document.createElement("div");
+  noteOv.id = "rdn-notes";
+  noteOv.className = "rd-overlay hidden";
+  noteOv.setAttribute("role", "dialog");
+  noteOv.setAttribute("aria-modal", "true");
+  noteOv.setAttribute("aria-label", "notifications");
+  noteOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(noteOv);
+  try {
+    var np = noteOv.querySelector(".rd-panel");
+    np.style.background = "transparent";
+    np.style.border = "none";
+    np.style.boxShadow = "none";
+  } catch (e) {}
+  function paintNotes() {
+    var body = noteOv.querySelector(".rd-panel-body");
+    body.innerHTML = "";
+    var set = el("div", "rd-handset");
+    var bar = el("div", "rd-statusbar");
+    bar.appendChild(el("span", null, "day " + (S.day || 1)));
+    bar.appendChild(el("span", "rd-notch", ""));
+    bar.appendChild(el("span", null, "▂▄▆ " + Math.max(0, Math.min(100, Math.round(S.energy || 0))) + "%"));
+    set.appendChild(bar);
+    var head = el("div", "rdn-notes-head");
+    var back = el("button", "rdn-notes-back", "‹ apps");
+    back.type = "button";
+    back.addEventListener("click", function () {
+      closeNotes();
+      var pb = document.querySelector("[data-door='phone']");
+      if (pb) { pb.click(); }
+    });
+    head.appendChild(back);
+    head.appendChild(el("strong", null, "notifications"));
+    set.appendChild(head);
+    if (!notes.length) {
+      set.appendChild(el("p", "rdn-notes-empty", "you're caught up. nothing missed."));
+    }
+    notes.slice().forEach(function (n) {
+      var row = el("button", "rdn-note-row");
+      row.type = "button";
+      row.appendChild(el("span", "rdn-note-kind", NOTE_LABEL[n.kind] || n.kind));
+      var tx = el("span", "rdn-note-text", n.text);
+      tx.title = n.text;
+      row.appendChild(tx);
+      row.addEventListener("click", function () {
+        notes = notes.filter(function (x) { return x.key !== n.key; });
+        noteJump(n);
+      });
+      set.appendChild(row);
+    });
+    var away = el("button", "rd-close", "put the phone away");
+    away.type = "button";
+    away.style.marginTop = "12px";
+    away.addEventListener("click", closeNotes);
+    set.appendChild(away);
+    body.appendChild(set);
+  }
+  function openNotes() {
+    notesViewed = notes.slice();
+    paintNotes();
+    noteOv.classList.remove("hidden");
+  }
+  function closeNotes() {
+    noteOv.classList.add("hidden");
+    if (notesViewed.length) {
+      notes = notes.filter(function (n) { return notesViewed.indexOf(n) < 0; });
+      notesViewed = [];
+    }
+    syncNoteBtn();
+  }
+  function noteJump(n) {
+    closeNotes();
+    try {
+      if (n.jump === "timeline") { if (window.RapDreamTl) { window.RapDreamTl.open(); } }
+      else if (n.jump === "offer") { if (window.__rdFlushMorning) { window.__rdFlushMorning(); } }
+      else if (n.jump === "beef") { clickDash("beef", "beef"); }
+      else if (n.jump === "features") { clickDash("features", "features market"); }
+      else if (n.jump === "party") { openParty(); }
+    } catch (e) {}
+  }
+  function clickDash(act, text) {
+    var b = document.querySelector("#actions [data-act='" + act + "']");
+    if (!b) {
+      var btns = document.querySelectorAll("#actions button");
+      for (var i = 0; i < btns.length; i += 1) {
+        var s = btns[i].querySelector("strong");
+        if (s && s.textContent.trim().toLowerCase().indexOf(text) === 0) { b = btns[i]; break; }
+      }
+    }
+    if (b) { b.click(); }
+  }
+  noteOv.addEventListener("click", function (e) { if (e.target === noteOv) { closeNotes(); } });
+  function syncNoteBtn() {
+    var acts = document.getElementById("actions");
+    if (!acts) { return; }
+    var btn = document.getElementById("rdn-note-btn");
+    if (!notes.length) {
+      if (btn && btn.parentNode) { btn.parentNode.removeChild(btn); }
+      return;
+    }
+    if (!btn) {
+      btn = el("button", "rdn-note-btn");
+      btn.id = "rdn-note-btn";
+      btn.type = "button";
+      btn.setAttribute("aria-label", "notifications: things you missed, on the phone");
+      btn.addEventListener("click", function () { openNotes(); });
+      var stunt = acts.querySelector("[data-act='stunt']");
+      if (stunt) { acts.insertBefore(btn, stunt.nextSibling); } else { acts.appendChild(btn); }
+    }
+    btn.innerHTML = "";
+    btn.appendChild(el("strong", null, "notifications"));
+    btn.appendChild(el("small", null, notes.length + (notes.length === 1 ? " thing" : " things") + " you missed — straight to the phone"));
+  }
+  /* the phone grows a notifications app; tapping it drills straight in */
+  try {
+    var phoneEl = document.getElementById("rd-phone");
+    if (phoneEl && typeof MutationObserver === "function") {
+      new MutationObserver(function () {
+        var apps = phoneEl.querySelector(".rd-apps");
+        if (!apps || apps.querySelector(".rdn-note-app")) { return; }
+        var b = el("button", "rd-app rdn-note-app");
+        b.type = "button";
+        b.appendChild(el("span", null, "●"));
+        b.appendChild(document.createTextNode("Notifications"));
+        b.addEventListener("click", function () {
+          phoneEl.classList.add("hidden");
+          openNotes();
+        });
+        apps.appendChild(b);
+      }).observe(phoneEl, { childList: true, subtree: true });
+    }
+  } catch (e) { /* the phone tile never blocks the game */ }
+
+  /* ---------- day rollover for the night stack ---------- */
+  var lastDaySeenN = 0;
+  function nightTick() {
+    var day = S.day || 1;
+    if (!lastDaySeenN) { lastDaySeenN = day; pollNotes(); return; }
+    if (day !== lastDaySeenN) {
+      var prev = lastDaySeenN;
+      lastDaySeenN = day;
+      if (nightVisited && nightDay === prev && !S.over) {
+        try { morningAfter(); } catch (e) {}
+      }
+      nightVisited = false;
+      nightEvents = [];
+      try { offerLapseCheck(prev); } catch (e) {}
+    }
+    pollNotes();
+  }
+
   /* ---------- render hook: work line, radar returns, alias fallback ---------- */
   if (typeof render === "function") {
     var prevRenderN = render;
@@ -14130,11 +14645,13 @@ render();
         paintWorkLine();
         aliasRadarFallback();
         promoTick();
+        nightTick();
+        syncNoteBtn();
       } catch (e) { /* the night stack never blocks the game */ }
       return out;
     };
   }
-  try { syncRun(); paintWorkLine(); } catch (e) {}
+  try { syncRun(); paintWorkLine(); nightTick(); } catch (e) {}
 })();
 </script>
 
