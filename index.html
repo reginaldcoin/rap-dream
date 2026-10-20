@@ -13433,6 +13433,12 @@ render();
     + ".rdn-party-talk{min-width:64px;min-height:40px;padding:6px 12px;border:2px outset #d9efff;border-radius:8px;background:var(--signal);color:var(--signal-ink);font-weight:700;cursor:pointer;flex:none}"
     + ".rdn-party-talk:active{border-style:inset}"
     + ".rdn-sign-bond{display:block;margin-top:3px;color:#69bdff;font-size:12px;line-height:1.4}"
+    + ".rdn-party-talkhead{display:flex;gap:12px;align-items:center;margin:4px 0 6px}"
+    + ".rdn-party-headtext{min-width:0}"
+    + ".rdn-party-headtext .rd-sub{margin:2px 0 0}"
+    + ".rdn-party-face{flex:none;width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:42px;line-height:1;border:2px solid var(--line-soft);border-radius:10px;background:var(--surface);animation:rdn-face-pop .25s ease-out}"
+    + "@keyframes rdn-face-pop{from{transform:scale(.86)}to{transform:scale(1)}}"
+    + "@media (prefers-reduced-motion: reduce){.rdn-party-face{animation:none}}"
     + ".rdn-party-cell.far{opacity:.45}"
     + ".rdn-note-btn{min-width:0;cursor:pointer}"
     + "#actions .rdn-note-btn{grid-template-columns:minmax(0,1fr);width:auto;margin-top:0}"
@@ -13820,6 +13826,8 @@ render();
   var talkName = null;
   var talkTurn = 0;
   var talkLast = "";
+  var talkDelta = null;
+  var talkShock = false;
   var promoDaySeen = 0;
 
   function bondMap() {
@@ -14029,9 +14037,35 @@ render();
     for (var i = 0; i < 3; i += 1) { out.push(TALK_MOVES[(start + i) % TALK_MOVES.length]); }
     return out;
   }
+  /* ---------- party faces: the expression layer ----------
+     One clean mapping, bond state + the last exchange's outcome in,
+     an expression name out. FACE_ART is the v1 art for each
+     expression (emoji faces); swapping in drawn faces later means
+     changing FACE_ART only — the logic below never touches art. */
+  var FACE_ART = { neutral: "😐", pleased: "😊", upset: "😠", surprised: "😲" };
+  function faceExpr(name) {
+    if (talkShock) { return "surprised"; }
+    if (typeof talkDelta === "number" && Math.abs(talkDelta) >= 8) { return "surprised"; }
+    if (typeof talkDelta === "number" && talkDelta > 0) { return "pleased"; }
+    if (typeof talkDelta === "number" && talkDelta < 0) { return "upset"; }
+    if (talkTurn === 0 && partyHost && name === partyHost) { return "surprised"; }
+    var b = bondOf(name);
+    if (b >= 25) { return "pleased"; }
+    if (b <= -25) { return "upset"; }
+    return "neutral";
+  }
+  function faceEl(name) {
+    var expr = faceExpr(name);
+    var f = el("div", "rdn-party-face rdn-face-" + expr, FACE_ART[expr]);
+    f.setAttribute("role", "img");
+    f.setAttribute("aria-label", name + " looks " + expr);
+    return f;
+  }
   function startTalk(name) {
     talkName = name;
     talkTurn = 0;
+    talkDelta = null;
+    talkShock = false;
     talkDebtHit = false;
     var b = bondOf(name);
     var tierT = cashTier();
@@ -14048,8 +14082,13 @@ render();
     var body = partyOv.querySelector(".rd-panel-body");
     body.innerHTML = "";
     var name = talkName;
-    body.appendChild(el("p", "rdn-party-where", name));
-    body.appendChild(el("p", "rd-sub", PARTY_CELLS[partyPos].name + " · " + bondText(name) + " · energy " + (S.energy || 0)));
+    var head = el("div", "rdn-party-talkhead");
+    head.appendChild(faceEl(name));
+    var headText = el("div", "rdn-party-headtext");
+    headText.appendChild(el("p", "rdn-party-where", name));
+    headText.appendChild(el("p", "rd-sub", PARTY_CELLS[partyPos].name + " · " + bondText(name) + " · energy " + (S.energy || 0)));
+    head.appendChild(headText);
+    body.appendChild(head);
     if (talkLast) { body.appendChild(el("p", "rd-sub", talkLast)); }
     if (note) { body.appendChild(el("p", "rd-sub", note)); }
     var grid = el("div", "rd-grid");
@@ -14069,6 +14108,7 @@ render();
     S.energy -= 10;
     partyActs += 1;
     var name = talkName;
+    var evBefore = nightEvents.length;
     var before = bondOf(name);
     var d = rollDelta(mv, before);
     var after = setBond(name, before + d);
@@ -14101,6 +14141,10 @@ render();
       talkLast = name + ": " + pick(DEBT_LINES);
       nightEvents.push({ type: "debt", who: name });
     }
+    /* the face reads this exchange: the delta, and whether a leak,
+       beef, or debt moment surfaced in the talk just now */
+    talkDelta = d;
+    talkShock = nightEvents.slice(evBefore).some(function (e) { return e.type === "beef-start" || e.type === "slight" || e.type === "debt"; });
     partyDrift();
     var note = "−10 energy (" + (S.energy || 0) + " left) · bond " + (d >= 0 ? "+" : "") + d + " — " + name + " now " + (after > 0 ? "+" : "") + after + " · " + bondTier(after)
       + (bondTier(before) !== bondTier(after) ? " (was: " + bondTier(before) + ")" : "");
