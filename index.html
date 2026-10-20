@@ -13440,6 +13440,12 @@ render();
     + "@keyframes rdn-face-pop{from{transform:scale(.86)}to{transform:scale(1)}}"
     + "@media (prefers-reduced-motion: reduce){.rdn-party-face{animation:none}}"
     + ".rdn-party-cell.far{opacity:.45}"
+    + ".rdn-party-cell .rdn-party-listtag{display:block;margin-top:3px;color:var(--signal);font-size:10px;text-transform:uppercase;letter-spacing:.06em}"
+    + ".rdn-party-block{border:2px solid var(--signal);border-radius:8px;background:var(--surface);padding:10px 12px;margin:0 0 12px}"
+    + ".rdn-party-block h3{font-family:'VT323',monospace;font-size:20px;color:var(--signal);margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em}"
+    + ".rdn-party-block p{margin:4px 0;color:var(--ink);font-size:13px;line-height:1.5}"
+    + ".rdn-party-block p.rdn-party-earns{color:var(--muted)}"
+    + ".rdn-party-pad button.locked{background:var(--surface);color:var(--muted);border:2px solid var(--line-soft);opacity:.55}"
     + ".rdn-note-btn{min-width:0;cursor:pointer}"
     + "#actions .rdn-note-btn{grid-template-columns:minmax(0,1fr);width:auto;margin-top:0}"
     + "#actions .rdn-note-btn b,#actions .rdn-note-btn small{min-width:0;overflow-wrap:anywhere;white-space:normal}"
@@ -13706,6 +13712,7 @@ render();
   var partyPos = 1;
   var partyWorked = false;
   var partyBump = 0;
+  var partyCentered = false;
   function partyNeighbors(pos) {
     var r = Math.floor(pos / 3), c = pos % 3, out = [];
     if (r > 0) { out.push({ dir: "north", pos: pos - 3 }); }
@@ -13714,9 +13721,19 @@ render();
     if (c < 2) { out.push({ dir: "east", pos: pos + 1 }); }
     return out;
   }
-  function paintParty(note) {
+  function paintParty(note, blocked) {
     var body = partyOv.querySelector(".rd-panel-body");
     body.innerHTML = "";
+    if (partyPos === 4) { partyCentered = true; }
+    if (blocked) {
+      var banner = el("div", "rdn-party-block");
+      banner.setAttribute("role", "note");
+      banner.appendChild(el("h3", null, "not tonight — a different list"));
+      banner.appendChild(el("p", null, note || pick(DEEP_BLOCK)));
+      banner.appendChild(el("p", "rdn-party-earns", "what opens that part of the house is standing, and standing is earned where the house can see it: money right, a name with weight, moments the room repeats, bonds with the people in it, the host's good word. work the rooms that are open to you — the house notices, and the list changes."));
+      body.appendChild(banner);
+      note = null;
+    }
     var cell = PARTY_CELLS[partyPos];
     body.appendChild(el("p", "rdn-party-where", cell.name));
     body.appendChild(el("p", "rd-sub", cell.desc));
@@ -13739,12 +13756,13 @@ render();
       var deep = crowdCount(i);
       var shut = ROOM_DEPTH[i] >= 2 && !roomOpen(ROOM_DEPTH[i]);
       var t = el("div", "rdn-party-cell" + (i === partyPos ? " here" : "") + (shut ? " far" : ""), c.name + (i === partyPos ? " · you" : "") + (ROOM_DEPTH[i] === 3 ? " · the deep end" : "") + (deep ? " · " + deep + " deep" : ""));
+      if (shut) { t.appendChild(el("span", "rdn-party-listtag", "a different list tonight")); }
       t.setAttribute("role", "button");
-      t.setAttribute("aria-label", "walk to " + c.name);
+      t.setAttribute("aria-label", "walk to " + c.name + (shut ? " — a different list tonight" : ""));
       t.addEventListener("click", function () {
         var nb = partyNeighbors(partyPos).filter(function (n) { return n.pos === i; })[0];
         if (nb) {
-          if (!roomOpen(ROOM_DEPTH[i])) { paintParty(pick(DEEP_BLOCK)); return; }
+          if (!roomOpen(ROOM_DEPTH[i])) { paintParty(pick(DEEP_BLOCK), true); return; }
           partyPos = i; paintParty();
         }
         else if (i !== partyPos) { paintParty("one step at a time. the party is walked, not teleported."); }
@@ -13756,7 +13774,10 @@ render();
     [["◀", "west"], ["▲", "north"], ["▼", "south"], ["▶", "east"]].forEach(function (pair) {
       var b = el("button", null, pair[0]);
       b.type = "button";
-      b.setAttribute("aria-label", "walk " + pair[1]);
+      var dirNb = partyNeighbors(partyPos).filter(function (n) { return n.dir === pair[1]; })[0];
+      var gated = dirNb && !roomOpen(ROOM_DEPTH[dirNb.pos]);
+      if (gated) { b.className = "locked"; }
+      b.setAttribute("aria-label", "walk " + pair[1] + (gated ? " — that part of the house runs on a different list tonight" : ""));
       b.addEventListener("click", function () { partyMove(pair[1]); });
       pad.appendChild(b);
     });
@@ -13796,6 +13817,7 @@ render();
     grid.appendChild(partyBtn("put it away", "step back to the dash", function () { partyOv.classList.add("hidden"); }));
     paintCrowd(body);
     body.appendChild(grid);
+    if (blocked) { var panel = partyOv.querySelector(".rd-panel"); if (panel) { panel.scrollTop = 0; } }
   }
   function partyBtn(label, sub, fn) {
     var b = el("button", "rd-opt");
@@ -14270,7 +14292,7 @@ render();
   function partyMove(dir) {
     var nb = partyNeighbors(partyPos).filter(function (n) { return n.dir === dir; })[0];
     if (!nb) { partyBump += 1; paintParty(BUMPS[partyBump % BUMPS.length]); return; }
-    if (!roomOpen(ROOM_DEPTH[nb.pos])) { partyBump += 1; paintParty(pick(DEEP_BLOCK)); return; }
+    if (!roomOpen(ROOM_DEPTH[nb.pos])) { partyBump += 1; paintParty(pick(DEEP_BLOCK), true); return; }
     partyPos = nb.pos;
     partyActs += 1;
     partyDrift();
@@ -14406,6 +14428,10 @@ render();
   }
   function roomOpen(depth) {
     if (depth <= 1) { return true; }
+    /* reaching the center of it all opens the middle layer for the rest
+       of the run: a fresh face is never boxed into the center with every
+       way forward shut. the deep end stays earned on standing alone. */
+    if (depth === 2 && partyCentered) { return true; }
     var t2 = 32, t3 = 58;
     if (partyHostStand >= 60) { t2 -= 10; t3 -= 12; }
     else if (partyHostStand <= 25) { t2 += 6; t3 += 8; }
