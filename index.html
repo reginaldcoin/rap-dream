@@ -13391,9 +13391,9 @@ render();
     + ".rdn-party-talk:active{border-style:inset}"
     + ".rdn-sign-bond{display:block;margin-top:3px;color:#69bdff;font-size:12px;line-height:1.4}"
     + ".rdn-party-cell.far{opacity:.45}"
-    + ".rdn-note-btn{display:block;width:100%;margin-top:8px;padding:10px 12px;text-align:left;color:var(--ink);background:var(--surface);border:2px solid var(--line-soft);border-radius:8px;cursor:pointer}"
-    + ".rdn-note-btn strong{display:block;color:var(--signal);font-size:14px;text-transform:uppercase;letter-spacing:.05em}"
-    + ".rdn-note-btn small{display:block;color:var(--muted);font-size:12px;margin-top:2px;text-transform:none;letter-spacing:0}"
+    + ".rdn-note-btn{min-width:0;cursor:pointer}"
+    + "#actions .rdn-note-btn{grid-template-columns:minmax(0,1fr);width:auto;margin-top:0}"
+    + "#actions .rdn-note-btn b,#actions .rdn-note-btn small{min-width:0;overflow-wrap:anywhere;white-space:normal}"
     + ".rdn-notes-head{display:flex;align-items:center;gap:10px;color:#e8f4ff;margin:4px 2px 10px}"
     + ".rdn-notes-head strong{font-family:'VT323',monospace;font-size:20px;text-transform:uppercase;letter-spacing:.06em}"
     + ".rdn-notes-back{padding:5px 10px;color:var(--signal-ink);background:var(--signal);border:2px outset #d9efff;border-radius:8px;font-weight:700;cursor:pointer;flex:none}"
@@ -14593,7 +14593,7 @@ render();
       if (stunt) { acts.insertBefore(btn, stunt.nextSibling); } else { acts.appendChild(btn); }
     }
     btn.innerHTML = "";
-    btn.appendChild(el("strong", null, "notifications"));
+    btn.appendChild(el("b", null, "notifications"));
     btn.appendChild(el("small", null, notes.length + (notes.length === 1 ? " thing" : " things") + " you missed — straight to the phone"));
   }
   /* the phone grows a notifications app; tapping it drills straight in */
