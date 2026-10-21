@@ -4331,7 +4331,7 @@ syncDoll();
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -11017,7 +11017,7 @@ render();
     var myRun = ++skyRun;
     var myState = S;
     try { activeMiniAction = "skytax"; } catch (e) {}
-    setMini("Sky tax", "outside // slingshot vs the machine sky", "Drag back, let go. Drones keep crossing, stones never run out, and no miss streak ends it. The lid on top bounces stones off: land them inside the opening under it. Every drone downed pays $500 salvage and 10 fans, banked when you walk away — backing out banks them too. Bounce a stone off one lid and kill another drone with it, and the whole screen drops: every drone the clear takes pays double, $1,000 and 20 fans.");
+    setMini("Sky tax", "outside // slingshot vs the machine sky", "Drag back, let go. Get the drones down — every one pays $500 and 10 fans, banked when you walk away. Stones never run out. The lids on top don't open; they're for bouncing, and the bounce pops. Bounce a stone off a lid into another drone and the whole screen drops: every drone the clear takes pays double, $1,000 and 20 fans.");
     var stage = gel("minigame-stage");
     if (!stage) { return; }
     stage.innerHTML = "";
@@ -11198,15 +11198,17 @@ render();
               if (st.x + 11 > d.x && st.x < d.x + d.w && st.y + 11 > d.y && st.y < d.y + d.h) { hitDrone = d; }
             });
             if (hitDrone && st.vy > 0 && py + 11 <= hitDrone.y + 2) {
-              /* the top surface line is a lid: a stone dropping straight
-                 onto it bounces off and falls away. The hit only counts
-                 when the stone gets INSIDE the opening beneath the line —
-                 in from underneath or in from the side. A stone that has
-                 bounced is marked: if it goes on to kill, the kill is a
-                 bounce combo and the whole screen drops with it. */
+              /* the top surface line is a lid, and lids never open: a
+                 stone dropping straight onto one pops back up off it —
+                 the rebound keeps 0.60 of the fall speed, tuned up so
+                 the bounce reads as a pop — and falls away. Kills come
+                 from the body: in from underneath or in from the side.
+                 A stone that has bounced is marked: if it goes on to
+                 kill, the kill is a bounce combo and the whole screen
+                 drops with it. */
               st.y = hitDrone.y - 11.5;
               st.el.style.top = st.y + "px";
-              st.vy = -Math.abs(st.vy) * 0.45;
+              st.vy = -Math.abs(st.vy) * 0.60;
               st.vx *= 0.6;
               st.bounced = true;
               skySfx("hit");
@@ -13828,7 +13830,7 @@ render();
     return b;
   }
   /* ================= the living party: the registry, in the rooms ====
-     All 22 featured names are at this party, scattered a few to a room,
+     All the featured names are at this party, scattered a few to a room,
      drifting between rooms as the night goes on. What each of them is
      doing is written from two inputs: the room they are standing in,
      and the weather of the night — whether the room stakes have fired,
@@ -13970,8 +13972,8 @@ render();
     if (!Object.keys(partyCrowd).length) { scatterParty(); }
     var here = REGISTRY.filter(function (n) { return partyCrowd[n] === partyPos; });
     body.appendChild(el("p", "rd-sub", here.length
-      ? "in the room — " + here.length + " of the 22, drifting like everybody:"
-      : "none of the 22 in this room right now. the party moves; they will."));
+      ? "in the room — " + here.length + " of the " + REGISTRY.length + ", drifting like everybody:"
+      : "none of the " + REGISTRY.length + " in this room right now. the party moves; they will."));
     here.forEach(function (name) {
       var row = el("div", "rdn-party-person");
       var who = el("div", "rdn-party-who");
