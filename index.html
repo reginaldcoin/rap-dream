@@ -10633,10 +10633,12 @@ render();
     + ".sky-field{position:relative;height:320px;overflow:hidden;border:2px ridge #d9efff;border-radius:8px;background:linear-gradient(to bottom,#08131f 0%,#0e2237 58%,#131a24 58.2%,#05080c 100%);touch-action:none;user-select:none;-webkit-user-select:none}"
     + ".sky-skyline{position:absolute;left:0;right:0;bottom:34px;height:52px;background:repeating-linear-gradient(to right,#0a0f16 0 26px,#101823 26px 30px,#0a0f16 30px 58px,#0d141f 58px 64px)}"
     + ".sky-roof{position:absolute;left:0;right:0;bottom:0;height:34px;background:#05080c;border-top:3px solid #2c3644}"
-    + ".sky-drone{position:absolute;background:#1b2735;border:2px solid #69bdff;border-top:3px solid #e8f6ff;border-radius:4px;box-shadow:0 0 0 2px #05080c}"
-    + ".sky-drone:before,.sky-drone:after{content:'';position:absolute;top:-6px;width:12px;height:4px;background:#69bdff}"
-    + ".sky-drone:before{left:-4px}.sky-drone:after{right:-4px}"
-    + ".sky-drone .sky-eye{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#f32e68;border-radius:50%}"
+    + ".sky-drone{position:absolute;background:#1b2735;border:2px solid #69bdff;border-top:3px solid #e8f6ff;border-radius:4px;box-shadow:0 0 0 2px #05080c,0 14px 7px -3px rgba(0,0,0,.45)}"
+    + ".sky-drone:before,.sky-drone:after{content:'';position:absolute;top:-7px;width:17px;height:5px;border-radius:50%;background:repeating-linear-gradient(to right,rgba(217,239,255,.9) 0 2px,rgba(105,189,255,.15) 2px 5px);filter:blur(.5px);animation:skyRotor .24s linear infinite alternate}"
+    + ".sky-drone:before{left:-5px}.sky-drone:after{right:-5px}"
+    + "@keyframes skyRotor{from{transform:scaleX(.78) rotate(-2deg);opacity:.55}to{transform:scaleX(1) rotate(2deg);opacity:.95}}"
+    + "@media (prefers-reduced-motion:reduce){.sky-drone:before,.sky-drone:after{animation:none}}"
+    + ".sky-drone .sky-eye{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#f32e68;border-radius:50%;box-shadow:0 0 0 2px #0a141f,0 0 0 3px #69bdff,0 0 6px rgba(243,46,104,.55)}"
     + ".sky-drone.hit{background:#ffcf3f;border-color:#ffcf3f}"
     + ".sky-stone{position:absolute;width:11px;height:11px;border-radius:50%;background:#3a4656;border:2px solid #d9efff}"
     + ".sky-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(217,239,255,.55)}"
@@ -10647,6 +10649,7 @@ render();
     + ".sky-sling .sky-grip{position:absolute;left:50%;bottom:0;width:9px;height:20px;margin-left:-4px;background:#8a6b42;border:2px solid #05080c}"
     + ".sky-band{position:absolute;height:3px;background:#f32e68;transform-origin:0 50%}"
     + ".sky-combo{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;padding:8px 14px;border:2px solid #b5ff20;border-radius:6px;background:rgba(5,11,18,.88);color:#b5ff20;font-family:'Silkscreen',monospace;font-size:13px;letter-spacing:.06em;text-align:center;text-transform:uppercase;box-shadow:0 0 18px rgba(181,255,32,.35)}"
+    + ".sky-double{position:absolute;left:50%;top:15%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;padding:6px 12px;border:2px solid #ffcf3f;border-radius:6px;background:rgba(5,11,18,.85);color:#ffcf3f;font-family:'Silkscreen',monospace;font-size:13px;letter-spacing:.08em;text-align:center;text-transform:uppercase;box-shadow:0 0 16px rgba(255,207,63,.35)}"
     + ".rd-hold-wrap{margin:10px 0 0}"
     + ".rd-hold-btn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;min-height:58px;padding:10px 12px;border:2px dashed #69bdff;border-radius:8px;background:#050b12;color:#eefbff;font-family:'VT323',monospace;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}"
     + ".rd-hold-btn strong{font-size:19px;letter-spacing:.1em;color:#69bdff}"
@@ -11001,7 +11004,7 @@ render();
      drones keep crossing, stones never run out, and no miss streak
      ends it. The run ends when the player walks away, and walking
      away banks it: $500 salvage and 10 fans per drone downed, flat,
-     any size. BOUNCE COMBO: a stone that bounces off one drone's lid
+     any size. BOUNCE COMBO: a stone that bounces off one drone's top
      and then kills another drops EVERY drone on screen, and each one
      the clear takes pays double — $1,000 and 20 fans. The loop is
      hardened: one bad frame never kills it, a watchdog restarts it on
@@ -11017,7 +11020,8 @@ render();
     var myRun = ++skyRun;
     var myState = S;
     try { activeMiniAction = "skytax"; } catch (e) {}
-    setMini("Sky tax", "outside // slingshot vs the machine sky", "Drag back, let go. Get the drones down — every one pays $500 and 10 fans, banked when you walk away. Stones never run out. The lids on top don't open; they're for bouncing, and the bounce pops. Bounce a stone off a lid into another drone and the whole screen drops: every drone the clear takes pays double, $1,000 and 20 fans.");
+    setMini("Sky tax", "outside // slingshot vs the machine sky", "Drag back. Let go.\nDrones pay $500 and 10 fans.\nBounce off a top into another drone: the clear pays double.");
+    var skyPrompt = gel("minigame-prompt"); if (skyPrompt) { skyPrompt.style.whiteSpace = "pre-line"; }
     var stage = gel("minigame-stage");
     if (!stage) { return; }
     stage.innerHTML = "";
@@ -11035,6 +11039,16 @@ render();
     var comboFlash = mkEl("div", "sky-combo");
     comboFlash.style.display = "none";
     field.appendChild(comboFlash);
+    var doubleFlash = mkEl("div", "sky-double");
+    doubleFlash.textContent = "DOUBLE LIVE";
+    doubleFlash.style.display = "none";
+    field.appendChild(doubleFlash);
+    var doubleTimer = 0;
+    function flashDouble() {
+      doubleFlash.style.display = "block";
+      if (doubleTimer) { clearTimeout(doubleTimer); }
+      doubleTimer = setTimeout(function () { doubleFlash.style.display = "none"; }, 900);
+    }
     /* field geometry is measured, not assumed: the width is read after
        layout settles, re-read on resize, and re-read at every spawn, so
        a field that was still laying out at open never strands the run. */
@@ -11100,7 +11114,7 @@ render();
       spawned += 1;
       lastSpawn = now;
     }
-    /* BOUNCE COMBO: the killing stone rode a lid bounce on its way in,
+    /* BOUNCE COMBO: the killing stone rode a top bounce on its way in,
        so the kill takes the whole screen with it. Every other drone
        still flying drops, and each one the clear takes pays double.
        The triggering kill itself already banked at the normal rate. */
@@ -11125,6 +11139,8 @@ render();
     function finish() {
       if (done) { return; }
       done = true;
+      if (doubleTimer) { clearTimeout(doubleTimer); doubleTimer = 0; }
+      var mpDone = gel("minigame-prompt"); if (mpDone) { mpDone.style.whiteSpace = ""; }
       if (window.RapDreamSkyBank === finish) { window.RapDreamSkyBank = null; }
       if (raf) { cancelAnimationFrame(raf); }
       if (watchdog) { clearInterval(watchdog); watchdog = 0; }
@@ -11198,7 +11214,7 @@ render();
               if (st.x + 11 > d.x && st.x < d.x + d.w && st.y + 11 > d.y && st.y < d.y + d.h) { hitDrone = d; }
             });
             if (hitDrone && st.vy > 0 && py + 11 <= hitDrone.y + 2) {
-              /* the top surface line is a lid, and lids never open: a
+              /* the top surface is bounce-only, and it never opens: a
                  stone dropping straight onto one pops back up off it —
                  the rebound keeps 0.60 of the fall speed, tuned up so
                  the bounce reads as a pop — and falls away. Kills come
@@ -11211,6 +11227,7 @@ render();
               st.vy = -Math.abs(st.vy) * 0.60;
               st.vx *= 0.6;
               st.bounced = true;
+              flashDouble();
               skySfx("hit");
               hitDrone = null;
             }
@@ -14767,6 +14784,262 @@ render();
     };
   }
   try { syncRun(); paintWorkLine(); nightTick(); } catch (e) {}
+})();
+</script>
+
+<script>
+"use strict";
+/* Rap Dream QoL pass: the fresh-run starter line, locked tiles that say
+   why, energy prices that stay on the tiles, the save flash, and the
+   mute switch. Display and feedback only: no costs, gates, odds, or
+   numbers change anywhere in this layer. */
+(function () {
+  if (typeof S === "undefined") { return; }
+  function gel(id) { return document.getElementById(id); }
+  function fmtN(n) { try { return formatNumber(n); } catch (e) { return String(n); } }
+  function store() { try { return window.localStorage || null; } catch (e) { return null; } }
+
+  var css = document.createElement("style");
+  css.textContent = ""
+    + ".rd-starter-line{margin:10px 0 2px;color:var(--ink,#12263a);font-family:'VT323',monospace;font-size:19px;line-height:1.3}"
+    + ".rd-saved-flash{position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:300;padding:9px 18px;border:2px solid #b5ff20;border-radius:8px;background:rgba(5,11,18,.92);color:#b5ff20;font-family:'Silkscreen',monospace;font-size:15px;letter-spacing:.08em;pointer-events:none;box-shadow:0 0 18px rgba(181,255,32,.4)}"
+    + ".rd-saved-flash.rd-saved-go{animation:rdSavedPulse 1.5s ease-out}"
+    + "@keyframes rdSavedPulse{0%{transform:translateX(-50%) scale(.86)}18%{transform:translateX(-50%) scale(1.06)}38%{transform:translateX(-50%) scale(1)}100%{transform:translateX(-50%) scale(1)}}"
+    + "@media (prefers-reduced-motion:reduce){.rd-saved-flash.rd-saved-go{animation:none}}"
+    + ".rd-mute{display:inline-flex;align-items:center;gap:5px;border-radius:6px}"
+    + ".rd-mute svg{display:block}"
+    + ".rd-mute .rd-mute-slash{display:none}"
+    + ".rd-mute[aria-pressed='true'] .rd-mute-slash{display:block}"
+    + ".rd-mute[aria-pressed='true'] .rd-mute-waves{display:none}"
+    + ".rd-mute[aria-pressed='true']{color:#ff5d7a;border-color:#ff5d7a}";
+  document.head.appendChild(css);
+
+  /* ================= the mute switch =================
+     One master gain per audio context: every connection headed for a
+     context's destination is routed through it, so the one switch
+     quiets every synth voice the game has, whichever layer made it.
+     The choice persists on the device like the game's other state. */
+  var MUTE_KEY = "rapdream.muted.v1";
+  var rdMuted = false;
+  var ls0 = store();
+  if (ls0) { try { rdMuted = ls0.getItem(MUTE_KEY) === "1"; } catch (e) {} }
+  var rdMasters = [];
+  var rdRawConnect = null;
+  function rdMasterFor(ctx) {
+    var i;
+    for (i = 0; i < rdMasters.length; i += 1) { if (rdMasters[i].ctx === ctx) { return rdMasters[i].gain; } }
+    try {
+      var g = ctx.createGain();
+      g.gain.value = rdMuted ? 0 : 1;
+      rdRawConnect.call(g, ctx.destination);
+      rdMasters.push({ ctx: ctx, gain: g });
+      return g;
+    } catch (e) { return null; }
+  }
+  try {
+    if (window.AudioNode && AudioNode.prototype && AudioNode.prototype.connect) {
+      rdRawConnect = AudioNode.prototype.connect;
+      AudioNode.prototype.connect = function (dest, outIdx, inIdx) {
+        try {
+          if (dest && window.AudioDestinationNode && dest instanceof AudioDestinationNode
+            && !(window.OfflineAudioContext && dest.context instanceof OfflineAudioContext)) {
+            var g = rdMasterFor(dest.context);
+            if (g) { return rdRawConnect.call(this, g, outIdx, inIdx); }
+          }
+        } catch (e) {}
+        return rdRawConnect.apply(this, arguments);
+      };
+    }
+  } catch (e) { /* sound routing never blocks the game */ }
+  function rdApplyMute() {
+    rdMasters.forEach(function (m) { try { m.gain.gain.value = rdMuted ? 0 : 1; } catch (e) {} });
+  }
+  var muteBtn = document.createElement("button");
+  muteBtn.type = "button";
+  muteBtn.id = "rd-mute-btn";
+  muteBtn.className = "run-file-button rd-mute";
+  muteBtn.setAttribute("aria-pressed", rdMuted ? "true" : "false");
+  muteBtn.setAttribute("aria-label", rdMuted ? "sound is off — tap to unmute" : "sound is on — tap to mute");
+  muteBtn.innerHTML = "<svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M4 9v6h4l5 4V5L8 9H4z\" fill=\"currentColor\"></path><g class=\"rd-mute-waves\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M16.5 9.5c1 1 1 4 0 5\"></path><path d=\"M19 7c1.8 2 1.8 8 0 10\"></path></g><g class=\"rd-mute-slash\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M16.5 9.5l5 5\"></path><path d=\"M21.5 9.5l-5 5\"></path></g></svg><span>sound</span>";
+  muteBtn.addEventListener("click", function () {
+    rdMuted = !rdMuted;
+    var ls = store();
+    if (ls) { try { ls.setItem(MUTE_KEY, rdMuted ? "1" : "0"); } catch (e) {} }
+    rdApplyMute();
+    muteBtn.setAttribute("aria-pressed", rdMuted ? "true" : "false");
+    muteBtn.setAttribute("aria-label", rdMuted ? "sound is off — tap to unmute" : "sound is on — tap to mute");
+  });
+  var rfc = document.querySelector(".run-file-controls");
+  if (rfc) { rfc.appendChild(muteBtn); }
+
+  /* ================= the fresh-run starter line =================
+     One plain line the first time a brand-new run opens the dash, and
+     never on a continued run: a waiting autosave at load means the run
+     on deck was picked back up, not born here. A fresh start flow
+     (startPending rising) re-arms it for the next new run. */
+  var starterEl = document.createElement("p");
+  starterEl.className = "rd-starter-line";
+  starterEl.id = "rd-starter-line";
+  starterEl.textContent = "Start in the STUDIO. Everything else opens as you move.";
+  starterEl.style.display = "none";
+  var actionsEl = gel("actions");
+  if (actionsEl && actionsEl.parentNode) { actionsEl.parentNode.insertBefore(starterEl, actionsEl); }
+  function saveWaiting() {
+    var ls = store(); if (!ls) { return false; }
+    try {
+      var raw = ls.getItem("rapdream.save.v1");
+      if (!raw) { return false; }
+      var d = JSON.parse(raw);
+      if (!d || d.v !== 1 || !d.state || typeof d.state !== "object") { return false; }
+      var st = d.state;
+      if (typeof st.money !== "number" || typeof st.day !== "number" || typeof st.fans !== "number") { return false; }
+      return !st.over;
+    } catch (e) { return false; }
+  }
+  var starterArmed = !saveWaiting();
+  var starterShown = false;
+  var starterUp = false;
+  var lastPending = null;
+  function dashOpen() {
+    var ids = ["rd-start", "rd-pick", "rd-archetype"];
+    for (var i = 0; i < ids.length; i += 1) {
+      var o = gel(ids[i]);
+      if (o && !o.classList.contains("hidden")) { return false; }
+    }
+    return true;
+  }
+  function starterTick() {
+    try {
+      var RD = window.RapDreamStart;
+      var pending = !!(RD && RD.startPending);
+      if (lastPending === false && pending) { starterArmed = true; starterShown = false; }
+      lastPending = pending;
+      if (starterUp) {
+        if ((S.day || 1) > 1 || S.over || pending) { starterEl.style.display = "none"; starterUp = false; }
+        return;
+      }
+      if (!starterArmed || starterShown) { return; }
+      if (!RD || !RD.picked || S.over) { return; }
+      if ((S.day || 1) !== 1 || (S.tracks || 0) > 0 || (S.demos && S.demos.length)) { return; }
+      if (!dashOpen()) { return; }
+      starterEl.style.display = "";
+      starterUp = true;
+      starterShown = true;
+      starterArmed = false;
+    } catch (e) { /* the starter line never blocks the game */ }
+  }
+  setInterval(starterTick, 350);
+  starterTick();
+  /* entering the spawn flow from the chooser is a fresh start even when
+     a save was waiting at load: arm on the path pick. Picking CONTINUE
+     instead disarms — that run was picked back up, not born here. */
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) { return; }
+    if (t.closest("#rd-continue-btn")) { starterArmed = false; return; }
+    var startBtn = t.closest("#rd-start .rd-opt");
+    if (startBtn && startBtn.id !== "rd-ss-start-btn") {
+      var RD2 = window.RapDreamStart;
+      if (!RD2 || (!RD2.picked && !RD2.startDone)) { starterArmed = true; starterShown = false; }
+    }
+  }, true);
+  document.addEventListener("click", function (e) {
+    if (!starterUp) { return; }
+    var t = e.target;
+    if (t && t.closest && t.closest("#actions, [data-door], .rd-deckbar")) {
+      starterEl.style.display = "none";
+      starterUp = false;
+    }
+  }, true);
+
+  /* ================= locked tiles say why; energy stays priced =================
+     The gates themselves are untouched: this pass only makes sure the
+     tile a locked gate sits on carries its condition in its own small
+     text, and that the merch tile keeps its energy price in view in
+     every state its line cycles through. */
+  function paintTiles() {
+    try {
+      if (S.over) { return; }
+      var relSmall = gel("release-cost");
+      if (relSmall && !(S.demos && S.demos.length)) {
+        var relTxt = "locked · opens with a demo in the vault";
+        if (relSmall.textContent !== relTxt) { relSmall.textContent = relTxt; }
+      }
+      var promoSmall = gel("promo-cost");
+      if (promoSmall && S.tracks && typeof promoCost === "function") {
+        var pc = 0;
+        try { pc = promoCost(S) || 0; } catch (e) { pc = 0; }
+        if (pc > 0 && (S.money || 0) < pc) {
+          var promoTxt = "locked · opens with $" + fmtN(pc) + " for the campaign · −10 energy";
+          if (promoSmall.textContent !== promoTxt) { promoSmall.textContent = promoTxt; }
+        }
+      }
+      var gearSmall = gel("gear-cost");
+      if (gearSmall && typeof GEAR !== "undefined" && GEAR && GEAR[S.tier + 1]) {
+        var M = GEAR[S.tier + 1];
+        if (M && (S.money || 0) < M.cost) {
+          var gearTxt = M.name + " · locked · requires $" + fmtN(M.cost);
+          if (gearSmall.textContent !== gearTxt) { gearSmall.textContent = gearTxt; }
+        }
+      }
+      var merchSmall = gel("merch-next");
+      if (merchSmall && merchSmall.textContent && merchSmall.textContent.indexOf("energy") === -1) {
+        merchSmall.textContent = merchSmall.textContent + " · −15 energy";
+      }
+    } catch (e) { /* tile paint never blocks the game */ }
+  }
+  if (typeof render === "function") {
+    var prevRenderQ = render;
+    render = function () {
+      var out = prevRenderQ.apply(this, arguments);
+      paintTiles();
+      return out;
+    };
+  }
+  paintTiles();
+
+  /* ================= the save flash =================
+     Using SAVE STRING builds the string the moment the panel opens,
+     and copying it lands it: both earn the same brief confirmation. */
+  var savedFlash = document.createElement("div");
+  savedFlash.className = "rd-saved-flash";
+  savedFlash.textContent = "SAVED ✓";
+  savedFlash.setAttribute("role", "status");
+  savedFlash.style.display = "none";
+  document.body.appendChild(savedFlash);
+  var savedTimer = 0;
+  function pulseSaved() {
+    savedFlash.style.display = "block";
+    savedFlash.classList.remove("rd-saved-go");
+    try { void savedFlash.offsetWidth; } catch (e) {}
+    savedFlash.classList.add("rd-saved-go");
+    if (savedTimer) { clearTimeout(savedTimer); }
+    savedTimer = setTimeout(function () { savedFlash.style.display = "none"; }, 1550);
+  }
+  var ssWasOpen = false;
+  function saveWatch() {
+    try {
+      var ov = gel("rd-save-string");
+      var open = !!(ov && !ov.classList.contains("hidden"));
+      if (open && !ssWasOpen) {
+        var out = gel("rd-ss-out");
+        if (out && out.value) { pulseSaved(); }
+      }
+      ssWasOpen = open;
+    } catch (e) {}
+  }
+  setInterval(saveWatch, 300);
+  var ssOvEl = gel("rd-save-string");
+  if (ssOvEl && typeof MutationObserver === "function") {
+    new MutationObserver(function () { saveWatch(); }).observe(ssOvEl, { attributes: true, attributeFilter: ["class"] });
+  }
+  var ssMsg = gel("rd-ss-msg");
+  if (ssMsg && typeof MutationObserver === "function") {
+    new MutationObserver(function () {
+      var note = ssMsg.textContent || "";
+      if (note.indexOf("copied") === 0 || note.indexOf("copy it by hand") === 0) { pulseSaved(); }
+    }).observe(ssMsg, { childList: true, characterData: true, subtree: true });
+  }
 })();
 </script>
 
