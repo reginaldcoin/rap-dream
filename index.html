@@ -5479,10 +5479,10 @@ render();
   function diarySay(text) {
     try {
       var d = window.RapDreamDiary;
-      if (d && Array.isArray(d.entries)) {
-        d.entries.push({ day: S.day, speaker: "you", text: text, thread: -1, theme: "northwest takeover", set: 1, session: 0 });
+      if (d && Array.isArray(d.entries) && text) {
+        d.entries.push({ day: S.day, speaker: "you", text: String(text), theme: "", thread: 0, set: 0, session: 0 });
       }
-    } catch (e) {}
+    } catch (e) { /* the diary's intake never blocks the interview */ }
   }
   function closeInterview() {
     nwInterviewOpen = false;
@@ -6428,12 +6428,13 @@ render();
   }
 
   /* ---------- SONG WRITING ENGINE ---------- */
-  /* the voice: swaggy Dao — the philosophy arrives as nature images
-     and boasts, never as stated lessons. Battle energy up front,
-     stillness underneath. Every fragment is built to be quoted
+  /* the voice: the street, first person. Concrete nouns, direct
+     address, topic then comment in short hard fragments, hooks built
+     as chants meant to repeat. The diary well is quarantined to the
+     COMPUTER deck: nothing flows from it into the song engine. Every fragment is built to be quoted
      outside the game: one compressed line, portable as it stands. */
-  var WR_FRAGS = ["river low, pockets deep", "water never lost a fight", "rooted down, shining up", "the oak don't chase the wind", "rain falls, I rise", "empty cup, full table", "soft step, heavy landing", "the valley stays fed", "moved like weather, quiet like snow", "the tide works for me", "deep roots, loud fruit", "the moon don't beg the night", "current carries the crown", "I flow, they freeze", "low ground, high water", "the stream outlasts the dam", "wind talks, the mountain stands", "ice melts, I don't", "the root never brags, the fruit does", "downhill all the way to the bag", "unmoved, unbothered, upstream", "the river gets paid in oceans", "stand like pine, spend like spring", "they dam, I delta", "shore money, deep water name", "still pond, deep end", "grew through the crack, bloomed loud", "no dam on this river", "the rain don't ask permission", "bend low, rise paid", "quiet water, loud echo", "seasons turn, I collect", "the well don't chase the bucket", "stone face, water heart", "all current, no anchor", "front line first, philosophy after"];
-  var WR_TOPICS = ["the block", "the booth", "mama's porch", "the river", "the ledger", "the tide", "the dream", "the city", "the valley", "the root", "the night bus", "first rain", "the front step", "the kitchen table", "the mountain", "the long way home"];
+  var WR_FRAGS = ["rent paid, chain heavy", "name on the check, name on the flyer", "counted it twice, came up the same", "mama's porch light still on for me", "new money, same hunger", "they post it, I live it", "booth at midnight, bag by morning", "pulled up quiet, left loud", "phone buzzing, deals calling", "cash in the mattress, name in the streets", "no cosign, all mine", "first of the month, I'm the landlord now", "rival watching, tell him take notes", "gold on my neck, work in my hands", "started with quarters, talking in thousands", "the block know my name, the bank learning", "ate off paper plates, now it's reservations", "say it to my face, not the timeline", "every verse a receipt", "I don't chase, I replace", "studio rent paid in full", "cousins at the table, everybody eating", "watch me, don't touch the dial", "last name heavy, carry it right", "from the corner store to the cover", "hands dirty, money clean", "they counted me out, bad math", "one take, no apology", "chain swinging like a metronome", "kicks fresh, record fresher", "pay me in full, no exposure", "grandma praying, I'm providing", "whole team fitted, nobody borrowing", "talk cheap, my verse cost", "broke with a plan, now the plan paying", "front page, my face, no feature"];
+  var WR_TOPICS = ["the block", "the booth", "mama's porch", "the corner store", "the ledger", "the rent due", "the city", "the group chat", "the kitchen table", "the night bus", "the front step", "the barbershop", "the check", "the flyer", "the landlord", "the long way home"];
   var WR_ARCH_KEYS = {
     performer: ["spotlight", "encore", "the crowd", "center stage"],
     catalog: ["the vault", "royalties", "the archive", "old tapes"],
@@ -6452,7 +6453,7 @@ render();
     gear: ["the setup", "new mic"], beef: ["the radar", "tension"], advance: ["the office", "the check"],
     legend: ["the myth", "the story"], sleep: ["the dream", "rest"], tournament: ["the bracket", "the final"]
   };
-  var WR_GENERIC_KEYS = ["the river", "the root", "low water", "the valley", "first rain", "the tide", "the still pond", "the pine", "the delta", "the undercurrent"];
+  var WR_GENERIC_KEYS = ["the come up", "the bag", "payday", "the front page", "my name in lights", "the whole block", "the late shift", "the first check"];
   var wr = { songs: [], used: {}, current: null, view: "home" };
   function wrOptionPool() {
     var pool = [];
@@ -6470,17 +6471,6 @@ render();
     Object.keys(counts).forEach(function (t) { if (t !== "sleep" && counts[t] > dn) { dn = counts[t]; dom = t; } });
     if (dom && WR_MOVE_KEYS[dom]) { shuffle(WR_MOVE_KEYS[dom]).forEach(function (k) { add(k, "from your pattern: the career keeps circling this", "move:" + dom); }); }
     try {
-      var d = window.RapDreamDiary;
-      var entries = d && Array.isArray(d.entries) ? d.entries : [];
-      if (entries.length) {
-        var q = typeof rdDiaryQuote === "function" ? rdDiaryQuote() : null;
-        if (q && q.phrase) { add(q.phrase, "from the diary: your own words, handed back", "diary"); }
-        var themes = {};
-        entries.forEach(function (e2) { if (e2.theme) { themes[e2.theme] = 1; } });
-        Object.keys(themes).slice(0, 2).forEach(function (t) { add(t, "from the diary: a thread you keep returning to", "diary"); });
-      }
-    } catch (e) {}
-    try {
       var crw2 = window.RapDreamClassRegion;
       if (crw2 && WR_CLASS_KEYS[crw2.cls]) { shuffle(WR_CLASS_KEYS[crw2.cls]).forEach(function (k) { add(k, "from your class: " + crw2.cls, "class:" + crw2.cls); }); }
     } catch (e) {}
@@ -6494,10 +6484,10 @@ render();
     return [first, second || { key: "the come up", why: "off the top: the engine dealing wild", src: "wild" }];
   }
   var WR_CLASS_FRAGS = {
-    trap: ["perc talking, river walking", "count it up, let it flow", "phone buzzing, tide rising", "heavy drums, water words", "stack it quiet, stream it loud"],
-    drill: ["slide first, current second", "cold block, colder water", "clipped words, deep end", "no wasted motion, all flow", "frost melts, I don't"],
-    rnb: ["sing it soft, river deep", "slow wine, slower water", "your name in a high note", "velvet over a low tide", "hold the note, hold the shore"],
-    experimental: ["sideways clocks, downstream time", "static in the stream, still flowing", "left field, home river", "the glitch bends, never breaks", "upside-down anthem, water finds a way"]
+    trap: ["perc talking, money walking", "count it up, stack it straight", "phone buzzing, buyers calling", "heavy drums, heavier pockets", "trap phone ringing off the hook"],
+    drill: ["slide first, talk later", "cold block, colder stare", "clipped words, sharp aim", "no wasted motion, all business", "mask off, name up"],
+    rnb: ["sing it soft, mean every word", "slow song, fast money", "your name in a high note", "velvet voice, iron terms", "hold the note, hold the bag"],
+    experimental: ["off-grid and on the money", "static talking, I answer in cash", "left field, home plate money", "bent the beat, never bent once", "upside-down anthem, right-side-up checks"]
   };
   var WR_CLASS_KEYS = {
     trap: ["the trap phone", "the undercurrent"],
@@ -6509,10 +6499,10 @@ render();
      root to fruit, drop to ocean, soil to sky. The boast carries the
      philosophy at every rung; nothing is ever stated as a lesson. */
   var WR_LADDERS = [
-    ["planted in the dirt, quiet about it", "rings in the trunk, years on my name", "branches out now, shade for the whole block", "fruit at the top, the whole sky watching"],
-    ["one drop, nobody noticed", "a stream now, running through the block", "a river next, bridges getting built for me", "an ocean last, every shore knows the name"],
-    ["hands in the soil, head in the work", "name on the corner, word traveling", "name in the city, lights bending", "name in the sky, weather reporting to me"],
-    ["sat by the water, learned the level", "stood in the current, never got moved", "walked the bank like I owned the deed", "the whole watershed says my name now"]
+    ["quarters in a sock drawer, counted nightly", "rent money early, landlord smiling", "name on a flyer downtown", "whole city saying it back"],
+    ["paper plates, big dreams", "reservations, name on the list", "a table for everybody who stayed", "the owner knows my order and my name"],
+    ["voice notes on a cracked phone", "a booth that knows my voice", "a studio with my name on the door", "a building with my name on the deed"],
+    ["hand to hand on the corner", "a line around the block", "sold out before the doors even open", "arena lights spelling the name"]
   ];
   function wrBar(key, flavor) {
     var frag = pick(WR_FRAGS);
@@ -6576,7 +6566,7 @@ render();
         return;
       }
       S.energy -= 60;
-      wr.current = { stage: 0, options: wrDealOptions(), hook: null, v1: null, v2: null, picks: [], titles: null, style: null, sequelTitle: null, sequelBase: null };
+      wr.current = { stage: 0, options: wrDealOptions(), hook: null, v1: null, v2: null, picks: [], titles: null, style: null, sequelTitle: null, sequelBase: null, takes: 1, revised: false };
       tape("sat down with the writing engine. −60 energy: a song is underway.");
       render();
       paintWriting();
@@ -6591,11 +6581,13 @@ render();
   function paintWritingStage(body) {
     var cur = wr.current;
     body.appendChild(el("p", "room-note", "step " + (cur.stage + 1) + " of 3: writing " + wrStageName(cur.stage) + ". pick the door and the engine writes four bars through it."));
+    body.appendChild(el("p", "room-line", "take " + (cur.takes || 1) + " · a session, not a form: the hook gets sketched first, and you can run it back before the verse locks."));
     if (cur.hook) { body.appendChild(wrLyricBlock("hook", cur.hook)); }
     if (cur.v1) { body.appendChild(wrLyricBlock("verse part 1", cur.v1)); }
     var grid = el("div", "opt-grid");
     cur.options.forEach(function (opt) {
       grid.appendChild(optBtn("“" + opt.key + "”", opt.why, function () {
+        cur.takes = (cur.takes || 1) + 1;
         cur.picks.push(opt);
         var bars = wrMakeSet(opt.key, cur.stage === 0 ? "hook" : "verse");
         if (cur.stage === 0) { cur.hook = bars; }
@@ -6607,6 +6599,24 @@ render();
         paintWriting();
       }));
     });
+    if (cur.stage === 1 && cur.hook && !cur.revised) {
+      var rb = el("button", "ghost-btn", "run it back: revise the hook");
+      rb.type = "button";
+      rb.appendChild(el("small", null, "\u221210 energy \u00b7 fresh doors for the hook \u00b7 the take resets, the session remembers"));
+      rb.addEventListener("click", function () {
+        if ((S.energy || 0) < 10) { shout("NOT ENOUGH ENERGY: A REVISION TAKES 10"); return; }
+        S.energy -= 10;
+        cur.revised = true;
+        cur.hook = null;
+        cur.stage = 0;
+        cur.takes = (cur.takes || 1) + 1;
+        cur.options = wrDealOptions();
+        tape("ran the hook back. a fresh sketch, same session.");
+        render();
+        paintWriting();
+      });
+      body.appendChild(rb);
+    }
     body.appendChild(grid);
   }
   /* The song's dominant style: the flavor the player kept picking: the
@@ -6702,6 +6712,7 @@ render();
     }
     wr.songs.push({ name: name, hook: cur.hook, v1: cur.v1, v2: cur.v2, day: S.day, style: cur.style || null });
     window.RapDreamSongs = wr.songs;
+    try { if (typeof window.__rdStackSongBorn === "function") { window.__rdStackSongBorn(name, cur); } } catch (e) {}
     if (!quiet) { tape("“" + name + "” is written and in the book: hook, two verse parts, hook to close."); }
     wr.current = null;
     wr.view = "home";
@@ -15041,6 +15052,1120 @@ render();
     }).observe(ssMsg, { childList: true, characterData: true, subtree: true });
   }
 })();
+</script>
+
+<script>
+"use strict";
+/* RAP DREAM patch layer 10: THE STACK (2026-10-23).
+   Two-pole modularity (emphasis dial + fast/deep lanes), the intro
+   animation and clean start screen, and the 19 visual-pole items:
+   milestone spectacles, career weather, Sky Tax juice, live show,
+   rival VS splash, hit loop visual, cover wall, lit region map, fit
+   progression, recording visualized, the filling studio, crowd panel,
+   beef face-off, magazine covers, wheat-paste wall, chart race,
+   robot-ball mini match, travel arcs, ending mural.
+   Loads last: wrappers installed here see the final state of every
+   earlier layer. Nothing here retunes pay tables, gates, or the
+   featured-name roll. Beef stays optional; the player still places
+   every robot-ball bet. */
+(function () {
+  function gel(id) { return document.getElementById(id); }
+  function mkEl(tag, cls, text) { var el = document.createElement(tag); if (cls) { el.className = cls; } if (text != null) { el.textContent = text; } return el; }
+  function fmtN(n) { try { return formatNumber(Math.round(n || 0)); } catch (e) { return String(Math.round(n || 0)); } }
+  function money(n) { return (n < 0 ? "-$" : "$") + fmtN(Math.abs(n)); }
+  function tape(t) { try { if (typeof log === "function") { log(t); } } catch (e) {} }
+  function shoutT(t) { try { if (typeof shout === "function") { shout(t); } } catch (e) {} }
+  function artistName() {
+    try { if (typeof buildIdentity === "function") { var idn = buildIdentity(S); if (idn && idn.name) { return idn.name; } } } catch (e) {}
+    return "YOU";
+  }
+  function songs() { try { return Array.isArray(window.RapDreamSongs) ? window.RapDreamSongs : []; } catch (e) { return []; } }
+  function homeRegion() {
+    try { if (S.rdRegion) { return S.rdRegion; } } catch (e) {}
+    try { var cr = window.RapDreamClassRegion; if (cr && cr.region) { return cr.region; } } catch (e) {}
+    return "the south";
+  }
+  function hashStr(s) { var h = 2166136261; s = String(s || ""); for (var i = 0; i < s.length; i += 1) { h = Math.imul(h ^ s.charCodeAt(i), 16777619); } return h >>> 0; }
+  var REGIONS6 = ["west coast", "east coast", "the south", "midwest", "the islands", "overseas"];
+  var REGION_POS = { "west coast": [8, 34], "east coast": [86, 30], "the south": [58, 74], "midwest": [52, 32], "the islands": [30, 88], "overseas": [90, 82] };
+  var PALETTES = [
+    ["#12202c", "#ffcf3f"], ["#1d1030", "#b5ff20"], ["#0d2b26", "#69bdff"],
+    ["#2b0d18", "#ff7d9c"], ["#101d33", "#f1fbff"], ["#241a08", "#ff9d3f"]
+  ];
+
+  var ST = {
+    mode: "balanced",
+    lanes: { studio: "deep", promo: "deep", release: "deep" },
+    seen: { fans100: false, firstChart: false, first10k: false },
+    magSeen: {},
+    prev: null, prevDaySnap: null, lastS: null,
+    causes: [], pending: null, lastCatchDay: -9, muralFor: null,
+    beefSplashKey: "", chartSig: "", fitTier: -1
+  };
+  window.RapDreamStack = ST;
+
+  function resetRunState() {
+    ST.seen = { fans100: false, firstChart: false, first10k: false };
+    ST.magSeen = {}; ST.causes = []; ST.prev = null; ST.prevDaySnap = null;
+    ST.lastCatchDay = -9; ST.muralFor = null; ST.beefSplashKey = ""; ST.chartSig = ""; ST.fitTier = -1;
+  }
+
+  var CSS = `
+#rd-intro{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;background:linear-gradient(to bottom,#04070c 0%,#08131f 55%,#0e2237 78%,#05080c 100%);overflow:hidden;cursor:pointer}
+#rd-intro.hidden{display:none}
+#rd-intro .rd-sky{position:absolute;inset:0}
+#rd-intro .rd-lightdot{position:absolute;width:4px;height:4px;border-radius:50%;background:#ffd97a;opacity:0;animation:rdFlicker .5s ease forwards}
+@keyframes rdFlicker{0%{opacity:0}30%{opacity:1}55%{opacity:.15}80%{opacity:.95}100%{opacity:.85}}
+#rd-intro .rd-drone{position:absolute;top:16%;left:-70px;width:44px;height:20px;background:#1b2735;border:2px solid #69bdff;border-radius:6px;animation:rdDroneFly 2.6s linear forwards}
+#rd-intro .rd-drone i{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#f32e68;border-radius:50%}
+#rd-intro .rd-drone:before,#rd-intro .rd-drone:after{content:'';position:absolute;top:-7px;width:16px;height:5px;border-radius:50%;background:rgba(217,239,255,.85)}
+#rd-intro .rd-drone:before{left:-6px}#rd-intro .rd-drone:after{right:-6px}
+@keyframes rdDroneFly{to{transform:translateX(115vw)}}
+#rd-intro .rd-skyline{position:absolute;left:0;right:0;bottom:0;height:120px;background:repeating-linear-gradient(to right,#05090f 0 34px,#0a1119 34px 40px,#05090f 40px 74px,#0c1420 74px 82px);opacity:.95}
+#rd-intro .rd-intro-core{position:relative;text-align:center;padding:20px;max-width:640px;width:100%}
+#rd-intro .rd-big-title{font:900 clamp(44px,11vw,96px)/1 'Archivo Black',sans-serif;color:#eefbff;letter-spacing:.02em;text-transform:uppercase}
+#rd-intro .rd-big-title span{display:inline-block;opacity:0;transform:translateY(-46px) scale(1.6)}
+#rd-intro .rd-big-title span.land{animation:rdSlam .38s cubic-bezier(.2,1.6,.4,1) forwards}
+#rd-intro .rd-big-title span.gold{color:#ffcf3f}
+@keyframes rdSlam{to{opacity:1;transform:translateY(0) scale(1)}}
+#rd-intro .rd-intro-sub{font:600 13px 'Space Grotesk',sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#9fc6de;margin-top:10px;opacity:0;transition:opacity .5s}
+#rd-intro .rd-intro-sub.on{opacity:1}
+#rd-intro .rd-mapdots{display:flex;gap:10px;justify-content:center;margin:20px 0 4px}
+#rd-intro .rd-mapdots i{width:11px;height:11px;border-radius:50%;background:#22364a;transition:background .3s,box-shadow .3s}
+#rd-intro .rd-mapdots i.on{background:#ffcf3f;box-shadow:0 0 12px rgba(255,207,63,.8)}
+#rd-intro .rd-start-panel{opacity:1;transform:none;pointer-events:auto;margin-top:14px;animation:rdPanelIn .5s ease}
+@keyframes rdPanelIn{from{transform:translateY(10px)}to{transform:none}}
+#rd-start:not(.hidden){opacity:0;pointer-events:none}
+#rd-intro .rd-start-panel.on{opacity:1;transform:none;pointer-events:auto}
+#rd-intro .rd-start-btn{display:block;width:min(320px,86vw);margin:10px auto;padding:14px 18px;background:#0b1620;color:#eefbff;border:2px solid #3d6076;border-radius:14px;font:800 15px 'Space Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+#rd-intro .rd-start-btn small{display:block;margin-top:4px;font:500 11.5px 'Space Grotesk',sans-serif;letter-spacing:.02em;text-transform:none;color:#9fc6de}
+#rd-intro .rd-start-btn.primary{background:#ffcf3f;color:#12202c;border-color:#ffcf3f}
+#rd-intro .rd-start-btn.primary small{color:#5b4a10}
+#rd-intro .rd-start-btn:disabled{opacity:.45;cursor:not-allowed}
+#rd-intro .rd-skip{position:absolute;bottom:14px;right:18px;font:600 11px 'Space Grotesk',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7f95a8}
+.rd-dial{display:inline-flex;gap:4px;background:#0b1620;border:2px solid #3d6076;border-radius:12px;padding:3px;vertical-align:middle}
+.rd-dial button{padding:5px 10px;background:transparent;color:#9fc6de;border:none;border-radius:9px;font:800 10.5px 'Space Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.rd-dial button.on{background:#ffcf3f;color:#12202c}
+.rd-dial-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.rd-dial-lab{font:800 10px 'Space Grotesk',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#7f95a8}
+#rd-moment-btn{position:fixed;right:14px;bottom:14px;z-index:320;display:none;padding:11px 16px;background:#ffcf3f;color:#12202c;border:none;border-radius:14px;font:800 12.5px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#rd-moment-btn.on{display:block;animation:rdMomentPulse 1.6s ease-in-out infinite alternate}
+@keyframes rdMomentPulse{from{transform:scale(1)}to{transform:scale(1.05)}}
+.rd-stage-ov{position:fixed;inset:0;z-index:340;display:flex;align-items:center;justify-content:center;background:rgba(3,6,10,.86);padding:16px;cursor:pointer}
+.rd-stage-ov.hidden{display:none}
+.rd-stage-card{max-width:640px;width:100%;text-align:center;background:#0b1017;border:2px solid #2b4258;border-radius:16px;padding:28px 22px 24px;box-shadow:0 24px 80px rgba(0,0,0,.55);position:relative;overflow:hidden}
+.rd-stage-kick{font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.32em;text-transform:uppercase;color:#7f95a8}
+.rd-stage-word{font:900 clamp(38px,9vw,64px)/1.02 'Archivo Black',sans-serif;text-transform:uppercase;color:#eefbff;margin:10px 0 6px}
+.rd-stage-word.gold{color:#ffcf3f}
+.rd-stage-sub{font:500 14.5px/1.55 'Space Grotesk',sans-serif;color:#d5efff}
+.rd-stage-small{font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin-top:8px}
+.rd-slam-num{font:900 clamp(52px,13vw,92px)/1 'Archivo Black',sans-serif;color:#ffcf3f;animation:rdNumSlam .5s cubic-bezier(.2,1.7,.4,1)}
+@keyframes rdNumSlam{0%{transform:scale(2.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.rd-phones{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:16px auto 2px;max-width:420px}
+.rd-phones i{width:7px;height:11px;border-radius:3px;background:#d9efff;opacity:.25;animation:rdPhoneTw 1s ease-in-out infinite alternate}
+@keyframes rdPhoneTw{from{opacity:.2}to{opacity:1}}
+.rd-wave{display:flex;gap:3px;align-items:flex-end;justify-content:center;height:74px;margin:14px 0 4px}
+.rd-wave i{flex:1;max-width:12px;background:#69bdff;border-radius:4px 4px 0 0;animation:rdWaveGo 0.9s ease-in-out infinite alternate}
+.rd-wave i.punch{background:#ffcf3f}
+@keyframes rdWaveGo{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
+.rd-crowd{display:flex;gap:5px;justify-content:center;align-items:flex-end;height:86px;margin-top:14px}
+.rd-crowd i{width:13px;height:26px;border-radius:7px 7px 3px 3px;background:#22364a;position:relative;animation:rdBounce .8s ease-in-out infinite alternate}
+.rd-crowd i:before{content:'';position:absolute;left:50%;top:-9px;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:#9fc6de}
+.rd-crowd i.hot{background:#3d6076}.rd-crowd i.hot:before{background:#ffcf3f}
+@keyframes rdBounce{from{transform:translateY(0)}to{transform:translateY(-9px)}}
+.rd-stagelight{height:8px;border-radius:6px;background:linear-gradient(to right,#ffcf3f,#b5ff20,#69bdff,#ff7d9c);margin:0 0 12px}
+.rd-progress{height:5px;border-radius:4px;background:#22364a;margin-top:16px;overflow:hidden}
+.rd-progress i{display:block;height:100%;background:#ffcf3f;width:0}
+.rd-vs-names{font:900 clamp(26px,6.5vw,44px)/1.15 'Archivo Black',sans-serif;text-transform:uppercase;color:#eefbff}
+.rd-vs-names .vs{color:#f32e68;font-size:.55em;vertical-align:middle;margin:0 8px}
+.rd-oohs{display:flex;gap:4px;align-items:flex-end;height:52px;margin:14px 0 2px}
+.rd-oohs i{flex:1;background:#b5ff20;border-radius:4px 4px 0 0;animation:rdWaveGo .7s ease-in-out infinite alternate}
+.rd-race-row{display:flex;align-items:center;gap:10px;margin:8px 0;text-align:left}
+.rd-race-lab{flex:0 0 34%;font:700 12px 'Space Grotesk',sans-serif;color:#d5efff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rd-race-track{flex:1;height:16px;background:#16222e;border-radius:8px;overflow:hidden}
+.rd-race-fill{height:100%;width:0;background:linear-gradient(to right,#3d6076,#ffcf3f);border-radius:8px;transition:width 1.6s cubic-bezier(.2,.8,.3,1)}
+.rd-race-pos{flex:0 0 38px;font:800 13px 'Space Grotesk',sans-serif;color:#ffcf3f}
+.rd-loop-line{font:900 clamp(22px,6vw,40px)/1.25 'Archivo Black',sans-serif;text-transform:uppercase;color:#eefbff;min-height:2.5em;display:flex;align-items:center;justify-content:center;animation:rdLoopIn .45s ease}
+@keyframes rdLoopIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+#rd-weather{position:fixed;inset:0;z-index:60;pointer-events:none;display:none}
+#rd-weather.gold{display:block;background:radial-gradient(ellipse at 50% -10%,rgba(255,207,63,.20),transparent 60%)}
+#rd-weather.gold i{position:absolute;top:-12px;width:5px;height:9px;border-radius:3px;background:#ffcf3f;opacity:.75;animation:rdGoldFall 2.8s linear infinite}
+@keyframes rdGoldFall{to{transform:translateY(105vh)}}
+#rd-weather.haze{display:block;background:radial-gradient(ellipse at 50% 110%,rgba(219,18,72,.20),transparent 62%)}
+.stk-sec{margin:0 0 20px}
+.stk-sec h4{margin:0 0 8px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#ffcf3f}
+.stk-note{font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin:0 0 10px}
+.stk-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:560px){.stk-grid3{grid-template-columns:repeat(3,1fr);gap:7px}}
+.stk-poster{border-radius:12px;padding:12px 10px;min-height:118px;display:flex;flex-direction:column;justify-content:flex-end;border:2px solid rgba(255,255,255,.14);position:relative;overflow:hidden}
+.stk-poster strong{font:900 15px/1.15 'Archivo Black',sans-serif;text-transform:uppercase;color:#fff;word-break:break-word}
+.stk-poster span{font:600 10.5px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;opacity:.85;color:#fff}
+.stk-poster em{font:500 11px/1.35 'Space Grotesk',sans-serif;font-style:normal;color:rgba(255,255,255,.85);margin-top:4px}
+.stk-poster.mag{text-align:center;justify-content:center;align-items:center;background:#101d33}
+.stk-poster.locked{opacity:.42;filter:grayscale(.5)}
+.stk-poster .stk-lock-why{font:600 10px 'Space Grotesk',sans-serif;color:#ffd97a;text-transform:none;letter-spacing:0}
+.stk-map{position:relative;height:230px;background:#0a141f;border:2px solid #2b4258;border-radius:14px;overflow:hidden}
+.stk-map svg{position:absolute;inset:0;width:100%;height:100%}
+.stk-map path.arc{fill:none;stroke:#ffcf3f;stroke-width:2;stroke-dasharray:5 5;opacity:.75;animation:rdArcMove 2.4s linear infinite}
+@keyframes rdArcMove{to{stroke-dashoffset:-20}}
+.stk-region{position:absolute;transform:translate(-50%,-50%);text-align:center;z-index:2}
+.stk-region i{display:block;width:17px;height:17px;margin:0 auto;border-radius:50%;background:#22364a;border:2px solid #0a141f}
+.stk-region span{display:block;margin-top:3px;font:700 9.5px 'Space Grotesk',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#d5efff;text-shadow:0 1px 4px #000}
+.stk-region b{display:block;font:800 10px 'Space Grotesk',sans-serif;color:#ffcf3f;text-shadow:0 1px 4px #000}
+.stk-region.home span{color:#ffcf3f}
+.stk-crowdbox{background:#0a141f;border:2px solid #2b4258;border-radius:14px;padding:14px 12px 10px}
+.stk-fans{display:flex;flex-wrap:wrap;gap:5px;max-height:132px;overflow:hidden}
+.stk-fan{width:11px;height:19px;border-radius:6px 6px 3px 3px;background:#2c4258;position:relative}
+.stk-fan:before{content:'';position:absolute;left:50%;top:-7px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#8fb8d8}
+.stk-fan.hot{background:#46688a}.stk-fan.hot:before{background:#ffcf3f}
+.stk-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.stk-tile{background:#0d1826;border:2px solid #2b4258;border-radius:12px;padding:10px}
+.stk-tile strong{display:block;font:800 12px 'Space Grotesk',sans-serif;color:#d5efff;text-transform:uppercase;letter-spacing:.05em}
+.stk-tile span{font:500 11px/1.4 'Space Grotesk',sans-serif;color:#9fc6de}
+.stk-tile.locked{opacity:.45}
+.stk-tile.locked span{color:#ffd97a}
+.stk-paste-wall{position:relative;min-height:110px;background:#131a24;border:2px solid #2b4258;border-radius:14px;padding:14px;overflow:hidden}
+.stk-paste{position:absolute;width:118px;padding:9px 8px;background:#e8eef2;color:#12202c;border-radius:4px;font:900 12px/1.2 'Archivo Black',sans-serif;text-transform:uppercase;box-shadow:0 6px 16px rgba(0,0,0,.45)}
+.stk-paste small{display:block;font:700 9px 'Space Grotesk',sans-serif;letter-spacing:.1em;margin-top:3px}
+.stk-causes{font:500 12.5px/1.65 'Space Grotesk',sans-serif;color:#d5efff}
+.stk-causes div{border-bottom:1px dashed #2b4258;padding:5px 0}
+.stk-causes b{color:#ffcf3f}
+.stk-lane-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed #2b4258}
+.stk-lane-row span{font:700 12.5px 'Space Grotesk',sans-serif;color:#d5efff}
+.stk-lane-row small{display:block;font:500 11px 'Space Grotesk',sans-serif;color:#9fc6de}
+.rd-match{margin:0 0 14px;background:#0a141f;border:2px solid #2b4258;border-radius:14px;padding:12px}
+.rd-match h4{margin:0 0 6px;font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#ffcf3f}
+.rd-match-court{position:relative;height:110px;background:#12202c;border-radius:10px;overflow:hidden}
+.rd-match-court:before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(159,198,222,.3)}
+.rd-match-bot{position:absolute;width:20px;height:27px;border-radius:5px;background:#5b7d94;transition:left .3s,top .3s}
+.rd-match-bot.away{background:#94655b}
+.rd-match-bot i{position:absolute;left:50%;top:-8px;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:#9fc6de}
+.rd-match-ball{position:absolute;width:11px;height:11px;border-radius:50%;background:#ff9d3f;transition:left .3s,top .3s}
+.rd-match-score{font:800 13px 'Space Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#ffcf3f;text-align:center;margin-top:8px}
+.rd-match-note{font:500 11.5px 'Space Grotesk',sans-serif;color:#9fc6de;text-align:center;margin-top:2px}
+.sky-trail{position:absolute;width:7px;height:7px;border-radius:50%;background:rgba(217,239,255,.55);pointer-events:none;z-index:3}
+.sky-debris{position:absolute;width:6px;height:6px;border-radius:2px;background:#69bdff;pointer-events:none;z-index:4;animation:rdDebris .7s ease-in forwards}
+.sky-debris.gold{background:#ffcf3f}
+@keyframes rdDebris{to{transform:translate(var(--dx,10px),64px) rotate(200deg);opacity:0}}
+.sky-ripple{position:absolute;inset:0;border:3px solid rgba(255,207,63,.65);border-radius:8px;pointer-events:none;z-index:5;animation:rdRipple .55s ease-out forwards}
+@keyframes rdRipple{from{opacity:1;transform:scale(.96)}to{opacity:0;transform:scale(1.03)}}
+.sky-field.rd-shake{animation:rdShake .18s linear}
+@keyframes rdShake{0%{transform:translate(0,0)}30%{transform:translate(-4px,2px)}60%{transform:translate(4px,-2px)}100%{transform:translate(0,0)}}
+#rd-mural{margin:14px auto 4px;max-width:520px;border:2px solid #ffcf3f;border-radius:16px;padding:18px 16px;background:linear-gradient(160deg,#101d33,#0b1017);text-align:center}
+#rd-mural h4{margin:0;font:900 22px 'Archivo Black',sans-serif;text-transform:uppercase;color:#ffcf3f}
+#rd-mural p{font:600 12.5px/1.6 'Space Grotesk',sans-serif;color:#d5efff;margin:6px 0}
+#rd-mural .rd-mural-row{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+#rd-mural .rd-mural-row i{width:30px;height:40px;border-radius:5px;display:block}
+@media(prefers-reduced-motion:reduce){
+ #rd-intro .rd-drone{animation:none;display:none}
+ .rd-phones i,.rd-crowd i,.rd-wave i,.rd-oohs i,.stk-map path.arc,#rd-weather.gold i,.sky-debris{animation:none}
+ #rd-moment-btn.on{animation:none}
+ .rd-race-fill{transition:none}
+}`;
+  var styleEl = document.createElement("style");
+  styleEl.textContent = CSS;
+  document.head.appendChild(styleEl);
+
+  var weatherEl = mkEl("div", null, null);
+  weatherEl.id = "rd-weather";
+  document.body.appendChild(weatherEl);
+  for (var wi = 0; wi < 26; wi += 1) {
+    var drop = mkEl("i", null, null);
+    drop.style.left = (Math.random() * 100) + "%";
+    drop.style.animationDelay = (Math.random() * 2.6) + "s";
+    weatherEl.appendChild(drop);
+  }
+
+  var momentBtn = mkEl("button", null, "▶ the moment");
+  momentBtn.id = "rd-moment-btn";
+  momentBtn.type = "button";
+  document.body.appendChild(momentBtn);
+  momentBtn.addEventListener("click", function () {
+    if (ST.pending) { var p = ST.pending; ST.pending = null; momentBtn.classList.remove("on"); p(); }
+  });
+  function offerSpectacle(fn) {
+    if (ST.mode === "mogul") {
+      ST.pending = fn;
+      momentBtn.classList.add("on");
+      tape("a moment is waiting on the wall: mogul mode keeps the deck clear until you call it.");
+    } else {
+      fn();
+    }
+  }
+
+  /* ---------- generic spectacle overlay ---------- */
+  function stageOverlay(id) {
+    var ov = gel(id);
+    if (ov) { return ov; }
+    ov = mkEl("div", "rd-stage-ov hidden", null);
+    ov.id = id;
+    ov.innerHTML = "<div class=\"rd-stage-card\"></div>";
+    ov.addEventListener("click", function () { ov.classList.add("hidden"); var c = ov.querySelector(".rd-stage-card"); if (c) { c.innerHTML = ""; } });
+    document.body.appendChild(ov);
+    return ov;
+  }
+  function showStage(id, html, autoMs) {
+    var ov = stageOverlay(id);
+    var card = ov.querySelector(".rd-stage-card");
+    card.innerHTML = html;
+    ov.classList.remove("hidden");
+    if (autoMs) {
+      var mine = card;
+      setTimeout(function () { if (ov.querySelector(".rd-stage-card") === mine && !ov.classList.contains("hidden")) { ov.classList.add("hidden"); } }, autoMs);
+    }
+    return card;
+  }
+  function phonesHTML(n) {
+    var s = "<div class=\"rd-phones\">";
+    for (var i = 0; i < (n || 28); i += 1) { s += "<i style=\"animation-delay:" + (Math.random() * 0.9).toFixed(2) + "s\"></i>"; }
+    return s + "</div>";
+  }
+  function crowdHTML(n, hot) {
+    var s = "<div class=\"rd-crowd\">";
+    for (var i = 0; i < (n || 14); i += 1) { s += "<i class=\"" + (i % 3 === 0 ? "hot" : "") + "\" style=\"animation-delay:" + (Math.random() * 0.7).toFixed(2) + "s\"></i>"; }
+    return s + "</div>";
+  }
+
+  /* ================= INTRO ANIMATION + CLEAN START SCREEN ================= */
+  var intro = mkEl("div", null, null);
+  intro.id = "rd-intro";
+  intro.setAttribute("role", "dialog");
+  intro.setAttribute("aria-label", "Rap Dream intro");
+  var introHTML = "<div class=\"rd-sky\"></div><div class=\"rd-drone\"><i></i></div><div class=\"rd-skyline\"></div>"
+    + "<div class=\"rd-intro-core\"><div class=\"rd-big-title\" aria-label=\"Rap Dream\"></div>"
+    + "<div class=\"rd-intro-sub\">the sky up top · the map lights under it</div>"
+    + "<div class=\"rd-mapdots\">" + REGIONS6.map(function () { return "<i></i>"; }).join("") + "</div>"
+    + "<div class=\"rd-start-panel\">"
+    + "<button type=\"button\" class=\"rd-start-btn primary\" id=\"rd-btn-new\">New Career<small>day one, voice notes, a name to build</small></button>"
+    + "<button type=\"button\" class=\"rd-start-btn\" id=\"rd-btn-continue\">Continue<small></small></button>"
+    + "<button type=\"button\" class=\"rd-start-btn\" id=\"rd-btn-how\">How to Play<small>the rules, the goal, the whole board</small></button>"
+    + "</div></div><div class=\"rd-skip\">tap to skip</div>";
+  intro.innerHTML = introHTML;
+  document.body.appendChild(intro);
+  var titleEl = intro.querySelector(".rd-big-title");
+  "RAP DREAM".split("").forEach(function (ch, i) {
+    var sp = mkEl("span", null, ch === " " ? " " : ch);
+    if (i >= 4) { sp.classList.add("gold"); }
+    sp.style.animationDelay = (0.35 + i * 0.07) + "s";
+    titleEl.appendChild(sp);
+  });
+  var skyEl = intro.querySelector(".rd-sky");
+  for (var li = 0; li < 42; li += 1) {
+    var dot = mkEl("i", "rd-lightdot", null);
+    dot.style.left = (Math.random() * 98) + "%";
+    dot.style.top = (52 + Math.random() * 42) + "%";
+    dot.style.animationDelay = (0.4 + Math.random() * 1.9) + "s";
+    skyEl.appendChild(dot);
+  }
+  var introDone = false;
+  function finishIntro() {
+    if (introDone) { return; }
+    introDone = true;
+    intro.querySelectorAll(".rd-big-title span").forEach(function (sp) { sp.classList.add("land"); sp.style.opacity = "1"; });
+    intro.querySelector(".rd-intro-sub").classList.add("on");
+    var dots = intro.querySelectorAll(".rd-mapdots i");
+    dots.forEach(function (d, i) { setTimeout(function () { d.classList.add("on"); }, 120 * i); });
+    var cont = gel("rd-btn-continue");
+    var hasSave = false;
+    try { hasSave = !!(window.localStorage && window.localStorage.getItem("rapdream.save.v1")); } catch (e) {}
+    if (!hasSave) {
+      cont.disabled = true;
+      cont.querySelector("small").textContent = "locked · no saved run in this browser yet";
+    } else {
+      cont.querySelector("small").textContent = "pick the run back up where it left off";
+    }
+    intro.querySelector(".rd-start-panel").classList.add("on");
+    var skip = intro.querySelector(".rd-skip");
+    if (skip) { skip.textContent = ""; }
+  }
+  function closeIntro() { intro.classList.add("hidden"); }
+  var reduced = false;
+  try { reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  if (reduced) { setTimeout(finishIntro, 60); } else { setTimeout(finishIntro, 1900); }
+  intro.addEventListener("click", function (e) {
+    if (!introDone) { finishIntro(); return; }
+    if (e.target === intro || e.target.classList.contains("rd-skyline") || e.target.classList.contains("rd-sky")) { closeIntro(); }
+  });
+  intro.addEventListener("click", function (e) {
+    var t = e.target;
+    while (t && t !== intro && !(t.id && /^rd-btn-/.test(t.id))) { t = t.parentNode; }
+    if (!t || t === intro) { return; }
+    if (t.id === "rd-btn-new") {
+      closeIntro();
+      var nr = gel("new-run");
+      if (nr) { nr.click(); setTimeout(function () { var cf = gel("confirm-new-run"); if (cf) { cf.click(); } }, 350); }
+    } else if (t.id === "rd-btn-continue") {
+      closeIntro();
+    } else if (t.id === "rd-btn-how") {
+      closeIntro();
+      var oi = gel("open-instructions");
+      if (oi) { oi.click(); }
+    }
+  });
+
+  /* ================= TWO-POLE MODULARITY: the dial ================= */
+  function dialHTML() {
+    return "<span class=\"rd-dial-lab\">emphasis</span><span class=\"rd-dial\" role=\"group\" aria-label=\"Play style emphasis\">"
+      + ["vibe", "balanced", "mogul"].map(function (m) {
+        return "<button type=\"button\" data-mode=\"" + m + "\" class=\"" + (ST.mode === m ? "on" : "") + "\">" + m + "</button>";
+      }).join("") + "</span>";
+  }
+  function paintDials() {
+    document.querySelectorAll(".rd-dial").forEach(function (d) {
+      d.querySelectorAll("button").forEach(function (b) {
+        if (!b.getAttribute("data-mode")) { return; }
+        b.classList.toggle("on", b.getAttribute("data-mode") === ST.mode);
+      });
+    });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target;
+    if (b && b.parentNode && b.parentNode.classList && b.parentNode.classList.contains("rd-dial") && b.getAttribute("data-mode")) {
+      ST.mode = b.getAttribute("data-mode");
+      paintDials();
+      tape("emphasis set to " + ST.mode + ": " + (ST.mode === "vibe" ? "the spectacle leads, moments play themselves." : ST.mode === "mogul" ? "the systems lead, moments wait on the wall until you call them." : "both poles live, nothing waits, nothing hides."));
+    }
+  });
+  try {
+    var tools = document.querySelector(".objective-tools");
+    if (tools) {
+      var dw = mkEl("span", "rd-dial-wrap", null);
+      dw.innerHTML = dialHTML();
+      tools.appendChild(dw);
+      var wallBtn = mkEl("button", "hints-toggle", "the wall");
+      wallBtn.type = "button";
+      wallBtn.id = "rd-open-wall";
+      tools.appendChild(wallBtn);
+      wallBtn.addEventListener("click", function () { openWall(); });
+    }
+  } catch (e) {}
+  /* the dial rides into the class + region pick too: emphasis is a
+     career-start choice, changeable any time after. */
+  var pickObs = null;
+  try {
+    var pickOv = gel("rd-pick");
+    if (pickOv && typeof MutationObserver === "function") {
+      pickObs = new MutationObserver(function () {
+        var panel = pickOv.querySelector(".rd-panel");
+        if (panel && !panel.querySelector(".rd-dial-wrap") && !pickOv.classList.contains("hidden")) {
+          var w = mkEl("div", "rd-dial-wrap", null);
+          w.innerHTML = dialHTML();
+          var head = panel.querySelector("h2");
+          if (head && head.nextSibling) { panel.insertBefore(w, head.nextSibling); } else { panel.appendChild(w); }
+          paintDials();
+        }
+      });
+      pickObs.observe(pickOv, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    }
+  } catch (e) {}
+
+  /* the legacy three-way chooser is folded into the intro: the intro's
+     three buttons are the only front door now, so whenever the old
+     chooser would open, it takes its own "jump right in" path straight
+     to the class + region pick and never renders a second gate. */
+  try {
+    var startOvEl = gel("rd-start");
+    function foldStart() {
+      if (!startOvEl || startOvEl.classList.contains("hidden")) { return; }
+      var btns = startOvEl.querySelectorAll("button");
+      for (var bi = 0; bi < btns.length; bi += 1) {
+        if (/straight to class/i.test(btns[bi].textContent || "")) {
+          var jumpBtn = btns[bi];
+          setTimeout(function () { try { jumpBtn.click(); } catch (e) {} }, 40);
+          break;
+        }
+      }
+    }
+    if (startOvEl && typeof MutationObserver === "function") {
+      new MutationObserver(foldStart).observe(startOvEl, { attributes: true, attributeFilter: ["class"] });
+    }
+    foldStart();
+  } catch (e) {}
+
+  /* ================= THE WALL: covers, map, crowd, studio, fit ================= */
+  var wallOv = mkEl("section", "rd-overlay hidden", null);
+  wallOv.id = "rd-wall";
+  wallOv.setAttribute("aria-label", "The wall: your career in pictures");
+  wallOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>the wall</h3><p>the whole career, visible at a glance: covers, the lit map, the crowd, the room, the fit.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(wallOv);
+  wallOv.querySelector(".rd-close").addEventListener("click", function () { wallOv.classList.add("hidden"); });
+  wallOv.addEventListener("click", function (e) { if (e.target === wallOv) { wallOv.classList.add("hidden"); } });
+  function openWall() { paintWall(); wallOv.classList.remove("hidden"); }
+  window.RapDreamWall = openWall;
+
+  function posterFor(song, idx) {
+    var pal = PALETTES[hashStr(song.name) % PALETTES.length];
+    var d = mkEl("div", "stk-poster", null);
+    d.style.background = "linear-gradient(160deg," + pal[0] + "," + pal[1] + " 190%)";
+    d.appendChild(mkEl("span", null, "day " + (song.day || 1) + " · single"));
+    d.appendChild(mkEl("strong", null, song.name));
+    if (song.hook && song.hook[0]) { d.appendChild(mkEl("em", null, song.hook[0])); }
+    return d;
+  }
+  var MAG_TIERS = [
+    { fans: 10000, name: "The Come Up Issue" }, { fans: 100000, name: "Cover Story" },
+    { fans: 500000, name: "Halfway to the Dream" }, { fans: 1000000, name: "The Dream Issue" }
+  ];
+  var FIT_TIERS = [
+    { fans: 0, name: "hand-me-down fit" }, { fans: 1000, name: "clean fit" },
+    { fans: 10000, name: "fly fit" }, { fans: 100000, name: "designer rotation" },
+    { fans: 500000, name: "icon wardrobe" }, { fans: 1000000, name: "museum piece" }
+  ];
+  function fitTierIdx() {
+    var f = S.fans || 0, idx = 0;
+    FIT_TIERS.forEach(function (t, i) { if (f >= t.fans) { idx = i; } });
+    return idx;
+  }
+  function regionShares() {
+    var F = Math.max(0, S.fans || 0);
+    var home = homeRegion();
+    var raw = {}, total = 0;
+    REGIONS6.forEach(function (r, i) {
+      var w = 0.55 + (hashStr(r) % 60) / 100;
+      if (r === home) { w *= 2.1; }
+      raw[r] = w * Math.sqrt(1 + F / (900 * (i + 1)));
+      total += raw[r];
+    });
+    var out = {};
+    REGIONS6.forEach(function (r) { out[r] = total ? raw[r] / total : 0; });
+    return out;
+  }
+  function paintWall() {
+    var body = wallOv.querySelector(".rd-panel-body");
+    body.innerHTML = "";
+    var name = artistName();
+
+    var setSec = mkEl("div", "stk-sec", null);
+    setSec.appendChild(mkEl("h4", null, "how you play"));
+    var dw = mkEl("div", "rd-dial-wrap", null);
+    dw.innerHTML = dialHTML();
+    setSec.appendChild(dw);
+    setSec.appendChild(mkEl("p", "stk-note", "vibe: the moments play themselves. mogul: the deck stays clear and the moments wait here. balanced: both. lanes pick themselves per system: fast auto-resolves the mini-game, deep keeps your hands on it. no lane locks any content away."));
+    [["studio", "the punch-in: writing and recording"], ["promo", "the cannon: pushing a record"], ["release", "ride the buzz: the drop"]].forEach(function (pair) {
+      var row = mkEl("div", "stk-lane-row", null);
+      var lab = mkEl("span", null, pair[0]);
+      lab.appendChild(mkEl("small", null, pair[1]));
+      row.appendChild(lab);
+      var dial = mkEl("span", "rd-dial", null);
+      ["deep", "fast"].forEach(function (lane) {
+        var b = mkEl("button", ST.lanes[pair[0]] === lane ? "on" : "", lane);
+        b.type = "button";
+        b.addEventListener("click", function () {
+          ST.lanes[pair[0]] = lane;
+          dial.querySelectorAll("button").forEach(function (x) { x.classList.remove("on"); });
+          b.classList.add("on");
+          tape(pair[0] + " lane set to " + lane + ".");
+        });
+        dial.appendChild(b);
+      });
+      row.appendChild(dial);
+      setSec.appendChild(row);
+    });
+    body.appendChild(setSec);
+
+    var covSec = mkEl("div", "stk-sec", null);
+    covSec.appendChild(mkEl("h4", null, "cover wall"));
+    var grid = mkEl("div", "stk-grid3", null);
+    var list = songs();
+    if (!list.length) {
+      var empty = mkEl("div", "stk-poster locked", null);
+      empty.appendChild(mkEl("strong", null, "no covers yet"));
+      empty.appendChild(mkEl("span", "stk-lock-why", "write a song and its poster hangs here"));
+      grid.appendChild(empty);
+    }
+    list.forEach(function (s, i) { grid.appendChild(posterFor(s, i)); });
+    MAG_TIERS.forEach(function (t) {
+      var got = (S.fans || 0) >= t.fans;
+      var d = mkEl("div", "stk-poster mag" + (got ? "" : " locked"), null);
+      d.appendChild(mkEl("span", null, "Rap Dream Magazine"));
+      d.appendChild(mkEl("strong", null, got ? name : t.name));
+      d.appendChild(mkEl("em", null, got ? t.name + " · " + fmtN(t.fans) + " fans" : ""));
+      if (!got) { d.appendChild(mkEl("span", "stk-lock-why", "locked · opens at " + fmtN(t.fans) + " fans")); }
+      grid.appendChild(d);
+    });
+    covSec.appendChild(grid);
+    body.appendChild(covSec);
+
+    var mapSec = mkEl("div", "stk-sec", null);
+    mapSec.appendChild(mkEl("h4", null, "the map, lighting up"));
+    var shares = regionShares();
+    var home = homeRegion();
+    var map = mkEl("div", "stk-map", null);
+    var svgNS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
+    var hp = REGION_POS[home] || [50, 50];
+    REGIONS6.forEach(function (r) {
+      if (r === home) { return; }
+      if (shares[r] < 0.09) { return; }
+      var p = REGION_POS[r];
+      var path = document.createElementNS(svgNS, "path");
+      path.setAttribute("class", "arc");
+      path.setAttribute("d", "M " + hp[0] + " " + hp[1] + " Q " + ((hp[0] + p[0]) / 2) + " " + (Math.min(hp[1], p[1]) - 14) + " " + p[0] + " " + p[1]);
+      svg.appendChild(path);
+    });
+    map.appendChild(svg);
+    REGIONS6.forEach(function (r) {
+      var p = REGION_POS[r];
+      var node = mkEl("div", "stk-region" + (r === home ? " home" : ""), null);
+      node.style.left = p[0] + "%";
+      node.style.top = p[1] + "%";
+      var dotEl = mkEl("i", null, null);
+      var inten = Math.min(1, 0.12 + shares[r] * 2.4);
+      dotEl.style.background = "rgba(255,207,63," + inten.toFixed(2) + ")";
+      dotEl.style.boxShadow = "0 0 " + Math.round(inten * 16) + "px rgba(255,207,63,.8)";
+      node.appendChild(dotEl);
+      node.appendChild(mkEl("span", null, r + (r === home ? " · home" : "")));
+      node.appendChild(mkEl("b", null, fmtN((S.fans || 0) * shares[r]) + " fans"));
+      map.appendChild(node);
+    });
+    mapSec.appendChild(map);
+    var trips = 0;
+    try { var tr = window.RapDreamTravel; if (tr && tr.trips) { trips = tr.trips.length; } } catch (e) {}
+    mapSec.appendChild(mkEl("p", "stk-note", "every arc is a road the name has traveled: home to a region that lit up. trips taken: " + trips + ". the path keeps drawing itself as the fans spread."));
+    body.appendChild(mapSec);
+
+    var crowdSec = mkEl("div", "stk-sec", null);
+    crowdSec.appendChild(mkEl("h4", null, "the crowd"));
+    var box = mkEl("div", "stk-crowdbox", null);
+    var F = S.fans || 0;
+    var count = F < 100 ? 5 : F < 1000 ? 25 : F < 10000 ? 60 : F < 100000 ? 120 : 200;
+    var fansWrap = mkEl("div", "stk-fans", null);
+    for (var ci = 0; ci < count; ci += 1) {
+      var fan = mkEl("i", "stk-fan" + (ci % 4 === 0 ? " hot" : ""), null);
+      fansWrap.appendChild(fan);
+    }
+    box.appendChild(fansWrap);
+    var crowdLabel = F < 100 ? "the basement five. everybody here knows your name because you told them." : F < 1000 ? "a room now. strangers in the back." : F < 10000 ? "a venue crowd: the word is out on the block." : F < 100000 ? "a theater wall to wall." : "a festival field. the crowd is the skyline now.";
+    box.appendChild(mkEl("p", "stk-note", fmtN(F) + " fans · " + crowdLabel));
+    crowdSec.appendChild(box);
+    body.appendChild(crowdSec);
+
+    var stuSec = mkEl("div", "stk-sec", null);
+    stuSec.appendChild(mkEl("h4", null, "the studio, filling up"));
+    var peak = 0;
+    try { (S.cashHistory || []).forEach(function (pt) { var v = typeof pt === "number" ? pt : pt.money; if (v > peak) { peak = v; } }); } catch (e) {}
+    peak = Math.max(peak, S.money || 0);
+    var tiles = [
+      { n: "voice notes", have: true, s: "where every run starts" },
+      { n: "a real mic", have: (S.tier || 0) >= 1, s: "gear on the wall", why: "locked · opens at gear tier 1" },
+      { n: "the booth corner", have: (S.tier || 0) >= 2, s: "foam up, door shut", why: "locked · opens at gear tier 2" },
+      { n: "a treated room", have: (S.tier || 0) >= 3, s: "the records sound like money", why: "locked · opens at gear tier 3" },
+      { n: "first chart plaque", have: ST.seen.firstChart, s: "framed by the door", why: "locked · opens with your first charting record" },
+      { n: "gold plaque", have: F >= 100000, s: "100,000 fans, framed", why: "locked · opens at 100,000 fans" },
+      { n: "chain on the hook", have: peak >= 10000, s: "it hangs by the door now", why: "locked · opens when the cash peaks at $10,000" },
+      { n: "couch for the crew", have: (S.network || 0) >= 20, s: "the room has people in it", why: "locked · opens at 20 network" },
+      { n: "engineer on call", have: peak >= 50000, s: "somebody else rides the faders", why: "locked · opens when the cash peaks at $50,000" }
+    ];
+    var tGrid = mkEl("div", "stk-tiles", null);
+    tiles.forEach(function (t) {
+      var d = mkEl("div", "stk-tile" + (t.have ? "" : " locked"), null);
+      d.appendChild(mkEl("strong", null, t.n));
+      d.appendChild(mkEl("span", null, t.have ? t.s : t.why));
+      tGrid.appendChild(d);
+    });
+    stuSec.appendChild(tGrid);
+    body.appendChild(stuSec);
+
+    var fitSec = mkEl("div", "stk-sec", null);
+    fitSec.appendChild(mkEl("h4", null, "the fit"));
+    var fi = fitTierIdx();
+    var fitLine = mkEl("p", "stk-note", "current: " + FIT_TIERS[fi].name + ". the look levels with the career: nobody has to open a menu to know where you stand.");
+    fitSec.appendChild(fitLine);
+    if (FIT_TIERS[fi + 1]) {
+      fitSec.appendChild(mkEl("p", "stk-note", "next: " + FIT_TIERS[fi + 1].name + " · locked · opens at " + fmtN(FIT_TIERS[fi + 1].fans) + " fans."));
+    }
+    body.appendChild(fitSec);
+
+    var pasteSec = mkEl("div", "stk-sec", null);
+    pasteSec.appendChild(mkEl("h4", null, "wheat-paste wall · " + home));
+    var wallEl = mkEl("div", "stk-paste-wall", null);
+    var trending = (S.hype || 0) >= 30 || ST.seen.firstChart;
+    if (trending && list.length) {
+      list.slice(-3).forEach(function (s, i) {
+        var p = mkEl("div", "stk-paste", s.name);
+        p.style.left = (10 + i * 31) + "%";
+        p.style.top = (12 + (i % 2) * 26) + "%";
+        p.style.transform = "rotate(" + (i % 2 ? 3 : -3) + "deg)";
+        p.appendChild(mkEl("small", null, "pasted up in " + home));
+        wallEl.appendChild(p);
+      });
+    } else {
+      var none = mkEl("p", "stk-note", "the wall is bare brick. locked · posters go up when you trend: hype 30 or a record on the chart.");
+      wallEl.appendChild(none);
+    }
+    pasteSec.appendChild(wallEl);
+    body.appendChild(pasteSec);
+
+    var causeSec = mkEl("div", "stk-sec", null);
+    causeSec.appendChild(mkEl("h4", null, "cause and effect"));
+    var causes = mkEl("div", "stk-causes", null);
+    if (!ST.causes.length) {
+      causes.appendChild(mkEl("div", null, "nothing to read yet: sleep a day and the ledger starts talking."));
+    }
+    ST.causes.slice(-8).forEach(function (c) {
+      var row = mkEl("div", null, null);
+      row.innerHTML = "";
+      row.appendChild(mkEl("b", null, "day " + c.day + " "));
+      row.appendChild(document.createTextNode(c.text));
+      causes.appendChild(row);
+    });
+    causeSec.appendChild(causes);
+    body.appendChild(causeSec);
+    paintDials();
+  }
+
+  /* ================= SPECTACLES ================= */
+  function milestoneSpectacle(word, num, sub) {
+    offerSpectacle(function () {
+      showStage("rd-spectacle",
+        "<div class=\"rd-stage-kick\">milestone</div><div class=\"rd-stage-word gold\">" + word + "</div>"
+        + "<div class=\"rd-slam-num\">" + num + "</div><div class=\"rd-stage-sub\">" + sub + "</div>" + phonesHTML(30)
+        + "<div class=\"rd-stage-small\">tap anywhere to keep moving</div>",
+        ST.mode === "vibe" ? 5200 : 3800);
+    });
+  }
+  function liveShowScene() {
+    offerSpectacle(function () {
+      var list = songs();
+      var title = list.length ? list[list.length - 1].name : "the new record";
+      var card = showStage("rd-show",
+        "<div class=\"rd-stagelight\"></div><div class=\"rd-stage-kick\">live · the drop, performed</div>"
+        + "<div class=\"rd-stage-word\">" + title + "</div>"
+        + "<div class=\"rd-stage-sub\">" + artistName() + " · live on the home stage</div>"
+        + crowdHTML(16)
+        + "<div class=\"rd-progress\"><i id=\"rd-show-bar\"></i></div>"
+        + "<div class=\"rd-stage-small\">the show plays itself out · tap to walk off stage</div>", 0);
+      var bar = card.querySelector("#rd-show-bar");
+      var t0 = Date.now();
+      var iv = setInterval(function () {
+        var ov = gel("rd-show");
+        if (!ov || ov.classList.contains("hidden")) { clearInterval(iv); return; }
+        var pct = Math.min(100, (Date.now() - t0) / 100);
+        if (bar) { bar.style.width = pct + "%"; }
+        if (pct >= 100) { clearInterval(iv); ov.classList.add("hidden"); }
+      }, 100);
+    });
+  }
+  function loopVisual() {
+    offerSpectacle(function () {
+      var list = songs();
+      var lines = ["SAY IT BACK", "RUN IT UP", "THE WHOLE ROOM KNOWS"];
+      var title = "the record caught";
+      if (list.length) {
+        var s = list[list.length - 1];
+        title = s.name;
+        if (s.hook && s.hook.length) { lines = s.hook.slice(0, 4).map(function (h) { return h.toUpperCase(); }); }
+      }
+      var card = showStage("rd-loop",
+        "<div class=\"rd-stagelight\"></div><div class=\"rd-stage-kick\">it caught · the loop</div>"
+        + "<div class=\"rd-stage-word gold\">" + title + "</div><div class=\"rd-loop-line\" id=\"rd-loop-line\"></div>"
+        + "<div class=\"rd-stage-small\">eight seconds of the one they keep replaying · tap to close</div>", 8200);
+      var lineEl = card.querySelector("#rd-loop-line");
+      var idx = 0;
+      if (lineEl) { lineEl.textContent = lines[0]; }
+      var iv = setInterval(function () {
+        var ov = gel("rd-loop");
+        if (!ov || ov.classList.contains("hidden") || !lineEl) { clearInterval(iv); return; }
+        idx = (idx + 1) % lines.length;
+        lineEl.textContent = lines[idx];
+        lineEl.style.animation = "none";
+        try { void lineEl.offsetWidth; } catch (e) {}
+        lineEl.style.animation = "";
+      }, 1600);
+      setTimeout(function () { clearInterval(iv); }, 8400);
+    });
+  }
+  function vsSplash(rival) {
+    offerSpectacle(function () {
+      showStage("rd-vs",
+        "<div class=\"rd-stage-kick\">the face-off</div>"
+        + "<div class=\"rd-vs-names\">" + artistName() + "<span class=\"vs\">VS</span>" + rival + "</div>"
+        + "<div class=\"rd-stage-sub\">a flyer on every wall in the region. the crowd is already picking sides.</div>"
+        + "<div class=\"rd-oohs\">" + [40, 65, 50, 80, 58, 92, 70, 100, 62, 84, 48, 74].map(function (h, i) { return "<i style=\"height:" + h + "%;animation-delay:" + (i * 0.07).toFixed(2) + "s\"></i>"; }).join("") + "</div>"
+        + "<div class=\"rd-stage-small\">the reaction meter, live · beef stays your call: answer it, squash it, or walk · tap to close</div>",
+        ST.mode === "vibe" ? 6000 : 4200);
+    });
+  }
+  function chartRace(rows) {
+    offerSpectacle(function () {
+      var html = "<div class=\"rd-stage-kick\">the chart race</div><div class=\"rd-stage-word\">THE CLIMB</div>";
+      rows.slice(0, 8).forEach(function (r) {
+        var wdt = Math.max(8, 104 - r.pos * 9);
+        html += "<div class=\"rd-race-row\"><span class=\"rd-race-lab\">" + r.title + "</span><span class=\"rd-race-track\"><span class=\"rd-race-fill\" data-w=\"" + wdt + "\"></span></span><span class=\"rd-race-pos\">#" + r.pos + "</span></div>";
+      });
+      html += "<div class=\"rd-stage-small\">the week, run as a race · tap to close</div>";
+      var card = showStage("rd-race", html, 6000);
+      setTimeout(function () {
+        card.querySelectorAll(".rd-race-fill").forEach(function (f) { f.style.width = f.getAttribute("data-w") + "%"; });
+      }, 60);
+    });
+  }
+  function waveformCeremony(title, hookLine) {
+    var bars = "";
+    for (var i = 0; i < 26; i += 1) {
+      var h = 22 + (hashStr(title + i) % 66);
+      bars += "<i class=\"" + (i % 5 === 2 ? "punch" : "") + "\" style=\"height:" + h + "%;animation-delay:" + (i * 0.045).toFixed(2) + "s\"></i>";
+    }
+    offerSpectacle(function () {
+      showStage("rd-ceremony",
+        "<div class=\"rd-stage-kick\">new record · pressed in the session</div>"
+        + "<div class=\"rd-stage-word gold\">" + title + "</div>"
+        + (hookLine ? "<div class=\"rd-stage-sub\">“" + hookLine + "”</div>" : "")
+        + "<div class=\"rd-wave\">" + bars + "</div>"
+        + "<div class=\"rd-stage-small\">the waveform drew itself · the gold blocks are the punch-ins, each one a fresh attack · tap to close</div>",
+        ST.mode === "vibe" ? 5600 : 4000);
+    });
+  }
+  window.__rdStackSongBorn = function (name, cur) {
+    var hookLine = cur && cur.hook && cur.hook[0] ? cur.hook[0] : "";
+    waveformCeremony(name, hookLine);
+    tape("the wall got a new poster: “" + name + "” hangs in the cover wall now.");
+  };
+
+  /* ================= RENDER WRAP: milestones, weather, causes, fit ================= */
+  function cashAt(dayTarget) {
+    var hist = S.cashHistory || [];
+    var best = null;
+    for (var i = 0; i < hist.length; i += 1) {
+      var pt = hist[i];
+      var d = typeof pt === "number" ? null : pt.day;
+      var v = typeof pt === "number" ? pt : pt.money;
+      if (d != null && d <= dayTarget) { best = v; }
+    }
+    return best;
+  }
+  function stackRenderPass() {
+    try {
+      if (ST.lastS !== S) { ST.lastS = S; resetRunState(); }
+      if (!S || S.over) { weatherEl.className = ""; weatherEl.id = "rd-weather"; return; }
+      var F = S.fans || 0;
+      if (!ST.seen.fans100 && F >= 100) {
+        ST.seen.fans100 = true;
+        milestoneSpectacle("100 FANS", "100", "the first hundred. a basement five became a room, and the room is loud.");
+      }
+      var feed = gel("nw-chart-feed");
+      if (!ST.seen.firstChart && feed && feed.children && feed.children.length) {
+        ST.seen.firstChart = true;
+        milestoneSpectacle("FIRST CHART", "CHARTED", "a record with your name on it is on the board. the plaque goes up in the studio.");
+      }
+      MAG_TIERS.forEach(function (t) {
+        if (F >= t.fans && !ST.magSeen[t.fans]) {
+          ST.magSeen[t.fans] = true;
+          milestoneSpectacle("COVER STORY", fmtN(t.fans), "fans deep, and the magazine put the face on the front: " + t.name + ". it hangs on the cover wall.");
+        }
+      });
+      var fi = fitTierIdx();
+      if (ST.fitTier >= 0 && fi > ST.fitTier) {
+        shoutT("NEW FIT TIER: " + FIT_TIERS[fi].name.toUpperCase());
+        tape("the fit leveled: " + FIT_TIERS[fi].name + ". the look keeps pace with the career.");
+      }
+      if (fi !== ST.fitTier) { ST.fitTier = fi; }
+      try { document.body.setAttribute("data-rd-fit", String(fi)); } catch (e) {}
+      /* career weather: read the situation by looking */
+      var wkAgo = cashAt((S.day || 1) - 7);
+      var wkGain = wkAgo == null ? 0 : (S.money || 0) - wkAgo;
+      var wcls = "";
+      if (wkGain >= 5000) { wcls = "gold"; }
+      else if ((S.money || 0) < 0) { wcls = "haze"; }
+      if (weatherEl.className !== wcls) { weatherEl.className = wcls; }
+      /* a catch: a big single-step fan jump plays the loop */
+      if (ST.prev && typeof ST.prev.fans === "number") {
+        var jump = F - ST.prev.fans;
+        if (jump >= 2500 && (S.day || 1) - ST.lastCatchDay >= 1) {
+          ST.lastCatchDay = S.day || 1;
+          loopVisual();
+        }
+      }
+      /* cause and effect, kept as a day ledger */
+      if (ST.prevDaySnap && (S.day || 1) !== ST.prevDaySnap.day) {
+        var p = ST.prevDaySnap;
+        var dFans = F - p.fans, dCash = (S.money || 0) - p.money, dRep = (S.rep || 0) - p.rep, dTrk = (S.tracks || 0) - p.tracks;
+        var parts = [];
+        if (dTrk) { parts.push("catalog " + (dTrk > 0 ? "+" : "") + dTrk); }
+        if (dFans) { parts.push("fans " + (dFans > 0 ? "+" : "") + fmtN(dFans)); }
+        if (dCash) { parts.push("cash " + (dCash > 0 ? "+" : "-") + "$" + fmtN(Math.abs(dCash))); }
+        if (dRep) { parts.push("rep " + (dRep > 0 ? "+" : "") + dRep); }
+        var read = "a quiet day: the numbers barely moved.";
+        if (dTrk > 0 && dFans > 0) { read = "new music in the world, and the people came with it."; }
+        else if (dFans >= 1000) { read = "the records are pulling people in on their own now."; }
+        else if (dCash <= -500) { read = "the spend went out faster than it came in: check the promo and the rent."; }
+        else if (dRep >= 5) { read = "the name is heavier than it was yesterday."; }
+        else if (dFans > 0) { read = "steady pull: the catalog keeps working while you sleep."; }
+        if (parts.length) {
+          ST.causes.push({ day: p.day, text: parts.join(" · ") + " — " + read });
+          if (ST.causes.length > 24) { ST.causes = ST.causes.slice(-24); }
+          if (ST.mode === "mogul") { tape("ledger, day " + p.day + ": " + parts.join(" · ") + " — " + read); }
+        }
+      }
+      if (!ST.prevDaySnap || (S.day || 1) !== ST.prevDaySnap.day) {
+        ST.prevDaySnap = { day: S.day || 1, fans: F, money: S.money || 0, rep: S.rep || 0, tracks: S.tracks || 0 };
+      }
+      ST.prev = { fans: F };
+    } catch (e) { /* the stack never blocks the game */ }
+  }
+  if (typeof render === "function") {
+    var prevRenderStack = render;
+    render = function () {
+      var out = prevRenderStack.apply(this, arguments);
+      stackRenderPass();
+      return out;
+    };
+  }
+
+  /* day rollover: the $10K week + the chart race */
+  function chartRows() {
+    var feed = gel("nw-chart-feed");
+    if (!feed || !feed.children) { return []; }
+    var rows = [];
+    for (var i = 0; i < feed.children.length; i += 1) {
+      var row = feed.children[i];
+      var posEl = row.querySelector("span");
+      var pos = posEl ? parseInt(String(posEl.textContent || "").replace(/[^0-9]/g, ""), 10) : NaN;
+      var txt = String(row.textContent || "");
+      var title = txt.replace(/^#?\d+/, "").replace(/^off/, "").split(": debut")[0].replace(/▶ play/g, "").trim();
+      if (!isNaN(pos) && title) { rows.push({ pos: pos, title: title }); }
+    }
+    rows.sort(function (a, b) { return a.pos - b.pos; });
+    return rows;
+  }
+  function dayStackPass() {
+    try {
+      if (!S || S.over) { return; }
+      if (!ST.seen.first10k) {
+        var ago = cashAt((S.day || 1) - 7);
+        if (ago != null && (S.money || 0) - ago >= 10000) {
+          ST.seen.first10k = true;
+          milestoneSpectacle("FIRST $10K WEEK", "$10K", "ten thousand in seven days. the gold rain over the city is yours.");
+        }
+      }
+      var rows = chartRows();
+      if (rows.length >= 2) {
+        var sig = (S.day || 1) + ":" + rows.map(function (r) { return r.pos; }).join(",");
+        if (sig !== ST.chartSig) { ST.chartSig = sig; chartRace(rows); }
+      }
+    } catch (e) {}
+  }
+  if (typeof dayFlash === "function") {
+    var prevDayFlashStack = dayFlash;
+    dayFlash = function () {
+      var out = prevDayFlashStack.apply(this, arguments);
+      setTimeout(dayStackPass, 60);
+      return out;
+    };
+  }
+
+  /* miniFinish wrap: recording visualized + the live show */
+  if (typeof miniFinish === "function") {
+    var prevMiniStack = miniFinish;
+    miniFinish = function (type, result) {
+      var out = prevMiniStack.apply(this, arguments);
+      try {
+        if (type === "record") {
+          var list = songs();
+          var t = list.length ? list[list.length - 1].name : "the take";
+          setTimeout(function () { waveformCeremony(t + " · the take", ""); }, 250);
+        } else if (type === "drop" || type === "release") {
+          setTimeout(liveShowScene, 250);
+        }
+      } catch (e) {}
+      return out;
+    };
+  }
+
+  /* ================= BEEF FACE-OFF splash ================= */
+  try {
+    var beefRoom = gel("beef-room");
+    if (beefRoom && typeof MutationObserver === "function") {
+      new MutationObserver(function () {
+        if (beefRoom.classList.contains("hidden")) { return; }
+        var titleEl = gel("beef-room-title");
+        var copyEl = gel("beef-room-copy");
+        var raw = (titleEl ? titleEl.textContent : "") + " " + (copyEl ? copyEl.textContent : "");
+        var key = raw.slice(0, 60);
+        if (key && key !== ST.beefSplashKey) {
+          ST.beefSplashKey = key;
+          var rival = "THE RIVAL";
+          var m = raw.match(/([A-Z][A-Za-z0-9 .']{2,24})\s+(says|wants|steps|called|dissed)/);
+          if (m) { rival = m[1].toUpperCase(); }
+          else {
+            var strong = beefRoom.querySelector(".rd-rows strong, strong");
+            if (strong && strong.textContent) { rival = strong.textContent.toUpperCase(); }
+          }
+          vsSplash(rival);
+        }
+      }).observe(beefRoom, { attributes: true, attributeFilter: ["class"] });
+    }
+  } catch (e) {}
+
+  /* ================= ROBOT-BALL MINI MATCH ================= */
+  var matchTimer = 0;
+  function paintMatch(room) {
+    try {
+      var body = room.querySelector(".rd-panel-body") || room;
+      if (!body || body.querySelector(".rd-match")) { return; }
+      var strip = mkEl("div", "rd-match", null);
+      strip.appendChild(mkEl("h4", null, "today's game, live"));
+      var court = mkEl("div", "rd-match-court", null);
+      var bots = [];
+      for (var i = 0; i < 6; i += 1) {
+        var bot = mkEl("div", "rd-match-bot" + (i >= 3 ? " away" : ""), null);
+        bot.appendChild(mkEl("i", null, null));
+        bot.style.left = (12 + (i % 3) * 28) + "%";
+        bot.style.top = (14 + Math.floor(i / 3) * 52) + "%";
+        court.appendChild(bot);
+        bots.push(bot);
+      }
+      var ball = mkEl("div", "rd-match-ball", null);
+      ball.style.left = "48%"; ball.style.top = "46%";
+      court.appendChild(ball);
+      strip.appendChild(court);
+      var score = mkEl("div", "rd-match-score", "HOME 0 – 0 AWAY");
+      strip.appendChild(score);
+      strip.appendChild(mkEl("div", "rd-match-note", "every goal is 3 points · the bet is still yours to place below"));
+      body.insertBefore(strip, body.firstChild);
+      var h = 0, a = 0, ticks = 0;
+      if (matchTimer) { clearInterval(matchTimer); }
+      matchTimer = setInterval(function () {
+        if (!document.body.contains(strip)) { clearInterval(matchTimer); return; }
+        ticks += 1;
+        bots.forEach(function (b) {
+          b.style.left = (6 + Math.random() * 82) + "%";
+          b.style.top = (8 + Math.random() * 68) + "%";
+        });
+        ball.style.left = (8 + Math.random() * 84) + "%";
+        ball.style.top = (10 + Math.random() * 70) + "%";
+        if (ticks % 3 === 0) {
+          if (Math.random() < 0.55) { h += 3; } else { a += 3; }
+          score.textContent = "HOME " + h + " – " + a + " AWAY";
+        }
+        if (h >= 15 || a >= 15) {
+          score.textContent = "FINAL · HOME " + h + " – " + a + " AWAY";
+          clearInterval(matchTimer);
+        }
+      }, 620);
+    } catch (e) {}
+  }
+  try {
+    var sportsRoom = gel("sports-room");
+    if (sportsRoom && typeof MutationObserver === "function") {
+      new MutationObserver(function () {
+        if (!sportsRoom.classList.contains("hidden")) { paintMatch(sportsRoom); }
+      }).observe(sportsRoom, { attributes: true, attributeFilter: ["class"] });
+    }
+  } catch (e) {}
+
+  /* ================= SKY TAX JUICE ================= */
+  var skyWatch = { raf: 0, last: {} };
+  function skyLoop() {
+    var field = document.querySelector(".sky-field");
+    if (!field) { skyWatch.raf = 0; skyWatch.last = {}; return; }
+    try {
+      var stones = field.querySelectorAll(".sky-stone");
+      stones.forEach(function (st) {
+        if (Math.random() < 0.5) {
+          var tr = mkEl("div", "sky-trail", null);
+          tr.style.left = st.style.left;
+          tr.style.top = st.style.top;
+          field.appendChild(tr);
+          setTimeout(function () { if (tr.parentNode) { tr.parentNode.removeChild(tr); } }, 240);
+        }
+      });
+      var drones = field.querySelectorAll(".sky-drone");
+      var now = {};
+      drones.forEach(function (d) {
+        var k = d.style.left + "|" + d.style.top;
+        now[k] = { l: d.style.left, t: d.style.top, hit: d.classList.contains("hit") };
+      });
+      Object.keys(skyWatch.last).forEach(function (k) {
+        if (!now[k]) {
+          var p = skyWatch.last[k];
+          for (var di = 0; di < 7; di += 1) {
+            var deb = mkEl("div", "sky-debris" + (di % 3 === 0 ? " gold" : ""), null);
+            deb.style.left = p.l;
+            deb.style.top = p.t;
+            deb.style.setProperty("--dx", (Math.random() * 70 - 35) + "px");
+            field.appendChild(deb);
+            (function (el) { setTimeout(function () { if (el.parentNode) { el.parentNode.removeChild(el); } }, 720); })(deb);
+          }
+          field.classList.remove("rd-shake");
+          try { void field.offsetWidth; } catch (e) {}
+          field.classList.add("rd-shake");
+        }
+      });
+      skyWatch.last = now;
+      var combo = field.querySelector(".sky-combo");
+      if (combo && combo.style.display !== "none" && !field.querySelector(".sky-ripple")) {
+        var rip = mkEl("div", "sky-ripple", null);
+        field.appendChild(rip);
+        setTimeout(function () { if (rip.parentNode) { rip.parentNode.removeChild(rip); } }, 580);
+      }
+    } catch (e) {}
+    skyWatch.raf = requestAnimationFrame(skyLoop);
+  }
+  setInterval(function () {
+    if (!skyWatch.raf && document.querySelector(".sky-field")) { skyWatch.raf = requestAnimationFrame(skyLoop); }
+  }, 700);
+
+  /* ================= FAST LANE: auto-take inside mini-games ================= */
+  var fastLaneDoneFor = null;
+  setInterval(function () {
+    try {
+      var room = gel("minigame-room");
+      if (!room || room.classList.contains("hidden")) { fastLaneDoneFor = null; return; }
+      var title = (gel("minigame-title") || {}).textContent || "";
+      var sys = /punch|record/i.test(title) ? "studio" : /buzz|drop|release/i.test(title) ? "release" : /cannon|promo|meme/i.test(title) ? "promo" : null;
+      if (!sys || ST.lanes[sys] !== "fast") { return; }
+      var stage = gel("minigame-stage");
+      if (!stage || fastLaneDoneFor === title) { return; }
+      var btn = stage.querySelector(".mini-main") || stage.querySelector("button");
+      if (!btn) { return; }
+      fastLaneDoneFor = title;
+      var note = mkEl("p", "rd-match-note", "fast lane: the " + sys + " take resolves itself. switch the lane on the wall any time.");
+      stage.appendChild(note);
+      setTimeout(function () { try { btn.click(); } catch (e) {} }, 700);
+    } catch (e) {}
+  }, 450);
+
+  /* ================= ENDING MURAL ================= */
+  try {
+    var endcard = gel("endcard");
+    if (endcard && typeof MutationObserver === "function") {
+      new MutationObserver(function () {
+        if (endcard.classList.contains("hidden")) { return; }
+        if (ST.muralFor === S && endcard.querySelector("#rd-mural")) { return; }
+        ST.muralFor = S;
+        try {
+          var old = endcard.querySelector("#rd-mural");
+          if (old) { old.parentNode.removeChild(old); }
+          var mural = mkEl("div", null, null);
+          mural.id = "rd-mural";
+          var won = /win|dream|legend|made it/i.test((gel("endtitle") || {}).textContent || "");
+          mural.appendChild(mkEl("h4", null, artistName()));
+          mural.appendChild(mkEl("p", null, (won ? "the run, as one poster: the dream, framed." : "the run, as one poster: it ended, and the wall keeps it.") + " day " + (S.day || 1) + " · " + fmtN(S.fans || 0) + " fans · " + songs().length + " songs in the book · " + money(S.money || 0) + " in hand."));
+          var row = mkEl("div", "rd-mural-row", null);
+          var list = songs();
+          if (!list.length) { row.appendChild(mkEl("i", null, null)).style.background = "#22364a"; }
+          list.slice(0, 9).forEach(function (s) {
+            var cell = mkEl("i", null, null);
+            var pal = PALETTES[hashStr(s.name) % PALETTES.length];
+            cell.style.background = "linear-gradient(160deg," + pal[0] + "," + pal[1] + " 190%)";
+            cell.title = s.name;
+            row.appendChild(cell);
+          });
+          mural.appendChild(row);
+          var anchor = endcard.querySelector("button");
+          if (anchor && anchor.parentNode) { anchor.parentNode.insertBefore(mural, anchor); }
+          else { endcard.appendChild(mural); }
+        } catch (e) {}
+      }).observe(endcard, { attributes: true, attributeFilter: ["class"] });
+    }
+  } catch (e) {}
+
+  stackRenderPass();
+})();
+
 </script>
 
 </body>
