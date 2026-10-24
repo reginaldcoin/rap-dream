@@ -4,10 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <link rel="icon" href="data:," />
+  <meta name="description" content="Rap Dream: a browser rap career game. Write songs, work the room, tax the sky, and build a catalog that pays while you sleep. First to a million fans and a million cash wins the dream." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Rap Dream" />
+  <meta property="og:description" content="A browser rap career game: write songs, read rooms, build the machine. 1M fans + $1M cash wins the dream." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Rap Dream" />
+  <meta name="twitter:description" content="A browser rap career game: write songs, read rooms, build the machine. 1M fans + $1M cash wins the dream." />
+  <meta name="theme-color" content="#0b1620" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1620'/%3E%3Ccircle cx='32' cy='32' r='19' fill='none' stroke='%23ffcf3f' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23ffcf3f'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Silkscreen:wght@400;700&family=VT323&display=swap" />
   <title>Rap Dream</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Silkscreen:wght@400;700&family=VT323&display=swap');
 
     :root {
       color-scheme: light dark;
@@ -2390,21 +2400,37 @@
     .panel-room-inner .feed-wrap { margin-top: 0; min-height: 0; }
     .panel-room-inner .feed { margin-top: 10px; }
 
-    /* Compact command deck: still three per row, shorter faces, tighter type. */
-    #actions { gap: 4px; padding: 4px; }
+    /* Compact command deck: still three per row, shorter faces, tighter type.
+       Stable geometry: every card owns one fixed box in every state.
+       A state flip (available, locked, energy-gated) swaps only the
+       interior — the title reserves two lines so a wrapped name costs
+       nothing, and the small print is clamped to a fixed line budget
+       inside the box — so no card, row, or neighbor ever moves under
+       the player's finger mid-tap. */
+    #actions { gap: 4px; padding: 4px; grid-auto-rows: 1fr; }
     #actions button, #actions button:last-child,
     #actions button[data-act="sleep"], #actions button[data-act="merch"] {
-      min-height: 62px;
+      height: 142px;
+      min-height: 0;
       padding: 6px 7px 5px;
+      overflow: hidden;
     }
-    #actions b { font-size: 10px; line-height: 1.15; }
-    #actions small { margin-top: 2px; font-size: 12px; line-height: 1.02; }
+    #actions b { font-size: 10px; line-height: 1.15; min-height: 2.3em; }
+    #actions small {
+      margin-top: 2px;
+      font-size: 12px;
+      line-height: 1.02;
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
     #actions .key { width: 17px; height: 15px; font-size: 7px; }
     @media (max-width: 620px) {
       #actions button, #actions button:last-child,
-      #actions button[data-act="sleep"], #actions button[data-act="merch"] { min-height: 56px; padding: 5px; }
+      #actions button[data-act="sleep"], #actions button[data-act="merch"] { height: 158px; min-height: 0; padding: 5px; }
       #actions b { font-size: 9px; }
-      #actions small { font-size: 11px; }
+      #actions small { font-size: 11px; -webkit-line-clamp: 8; }
     }
 
     /* COMPUTER: a terminal room off the command deck. The screen stays dark in
@@ -2792,8 +2818,8 @@
           <div><strong>A · label advance</strong>1 release + 25 rep. Big check now; label keeps catalog pay till 150% recoups.</div>
           <div><strong>E · school</strong>Defend the thesis. Degrees raise work pay.</div>
           <div><strong>0 · sleep</strong>Under 50 energy only. Settle up, restore, pay bills.</div>
-          <div><strong>K · party</strong>Read the room. Richer you are, pricier the flex.</div>
-          <div><strong>B · beef ladder</strong>Tap a name to diss. Every diss counts as a release. Ignoring beef always works too.</div>
+          <div><strong>K · party</strong>A house party you walk through: rooms to move between, a different crowd every night. Talk to people and the bond sticks: who you know here opens doors later.</div>
+          <div><strong>B · beef ladder</strong>Tap a name to diss: 10 energy, real tension, and it is not a release. Ignoring beef always works too.</div>
           <div><strong>tournament</strong>Bracket by the radar. Wins stack into championships and purses.</div>
           <div><strong>consult</strong>A money read: runway, income, debt, next move.</div>
         </div>
@@ -3188,6 +3214,7 @@ startTournament = function () {
       if (!holdNC) { S.careerLosses = (S.careerLosses || 0) + 1; }
     }
     log((champion ? "championship won. " : holdNC ? "bracket ended in round " + (round + 1) + ". no contest under autoplay: the loss stays off your career record. " : "bracket ended in round " + (round + 1) + ". the loss goes on your career record. ") + wins + " wins stacked. +$" + formatNumber(purse) + " purse, +" + repGain + " rep, +" + netGain + " network" + (merchGain ? ", +$" + formatNumber(merchGain) + " tournament merch" : "") + ".");
+    if (!champion && !holdNC) { log("out of the bracket: the round went to the cleaner read of the moment. the scenario names the winning move before it names yours."); }
     queueWire(S, champion ? "You won rap tournament championship #" + S.championships + " and moved the venue merch table." : "You stacked " + wins + " tournament win" + (wins === 1 ? "" : "s") + " before the bracket closed.");
     banner(champion ? "CHAMPIONSHIP #" + S.championships : "BRACKET RUN: " + wins + " WINS");
     playCompletionChime(champion ? 1 : 0.55);
@@ -4069,6 +4096,7 @@ syncDoll();
   var step = 0;
   var currentSet = 1;
   var sessionCount = 0;
+  var lastTermHeadDay = 0;
   var typing = null;
   var diaryRunState = null;
 
@@ -4268,7 +4296,10 @@ syncDoll();
       addLine("$ rapdream --connect", "sys");
       addLine("link open. the log keeps everything from this run.", "sys");
     }
-    addLine("day " + S.day + " · session " + sessionCount, "sys");
+    /* the date header prints once per day, not once per session: the
+       log is a running transcript, and the day only needs naming when
+       it changes. */
+    if (lastTermHeadDay !== S.day) { lastTermHeadDay = S.day; addLine("day " + S.day + " · session " + sessionCount, "sys"); }
     typeVoice(thread.open, afterVoice);
     render();
     document.getElementById("close-computer-room").focus();
@@ -6058,7 +6089,7 @@ render();
 (function () {
   if (typeof S === "undefined" || !S) { return; }
   function $(id) { return document.getElementById(id); }
-  function esc(s) { return String(s == null ? "" : s); }
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
   function tape(text) { try { if (typeof log === "function") { log(text); } } catch (e) {} }
   function wire(text) { try { if (typeof queueWire === "function") { queueWire(S, text); } } catch (e) {} }
   function shout(tag) { try { if (typeof banner === "function") { banner(tag); } } catch (e) {} }
@@ -6357,10 +6388,18 @@ render();
   var prevCannon = startMemeCannon;
   startMemeCannon = function () {
     promoMedium = null;
-    setMini("Promo", "promo // pick the medium first", "Before the cannon fires, pick where this push lives. Print feeds street records, television feeds radio records, social media feeds club records. Match the medium to the record and the same push lands harder.");
+    /* the fit is named before any money moves: the record's dominant
+       style is read up front, the prompt says which medium is home,
+       and every button carries its verdict for this record. */
+    var fitStyle = null;
+    try { fitStyle = dominantStyle(myLastReleaseMix) || dominantStyle(window.RapDreamMix); } catch (e) {}
+    var homeName = fitStyle === "street" ? "Print" : fitStyle === "radio" ? "Television" : fitStyle === "club" ? "Social Media" : null;
+    setMini("Promo", "promo // pick the medium first", "Before the cannon fires, pick where this push lives. Print feeds street records, television feeds radio records, social media feeds club records. Match the medium to the record and the same push lands harder." + (fitStyle ? " Your record reads as a " + fitStyle + " record: " + homeName + " is its home medium." : ""));
     var grid = miniChoiceGrid(1);
     [["Print", "print · feeds street records", "street"], ["Television", "television · feeds radio records", "radio"], ["Social Media", "social media · feeds club records", "club"]].forEach(function (m) {
-      grid.appendChild(miniButton(m[0], m[1], function () {
+      var sub = m[1];
+      if (fitStyle) { sub += (m[2] === fitStyle ? " · fits your record" : " · wrong fit for a " + fitStyle + " record"); }
+      grid.appendChild(miniButton(m[0], sub, function () {
         promoMedium = { name: m[0], style: m[2] };
         prevCannon();
       }));
@@ -6421,6 +6460,17 @@ render();
           }
           promoMedium = null;
           render();
+        }
+        /* every defeat names its reason in one plain line, so a loss
+           teaches the read it punished. */
+        if (action === "cypher" && result && result.correct === false) {
+          tape("lost the cypher: the bar you picked did not answer the setup line. the room scores the punchline against the line it follows, never on its own.");
+        }
+        if (action === "study" && result && typeof result.score === "number" && result.score <= 0) {
+          tape("the defense failed: the panel found the question the thesis could not answer. the degree waits another term.");
+        }
+        if (action === "tournament" && result && typeof result.score === "number" && result.score < 0.5) {
+          tape("out of the bracket: the round went to the cleaner read of the moment. the scenario names the winning move before it names yours.");
         }
       } catch (e) { /* mediums never block a promo */ }
       return out;
@@ -6541,7 +6591,13 @@ render();
   function wrLyricBlock(title, bars) {
     var box = el("div", "lyric-block");
     box.appendChild(el("h3", null, title));
-    bars.forEach(function (b) { box.appendChild(el("p", null, b)); });
+    /* a chant hook is one line said four times: print it once, marked. */
+    var runs = [];
+    (bars || []).forEach(function (b) {
+      if (runs.length && runs[runs.length - 1].text === b) { runs[runs.length - 1].n += 1; }
+      else { runs.push({ text: b, n: 1 }); }
+    });
+    runs.forEach(function (r) { box.appendChild(el("p", null, r.n > 1 ? r.text + " ×" + r.n : r.text)); });
     return box;
   }
   function openWriting() { writingRoom.classList.remove("hidden"); paintWriting(); }
@@ -7102,7 +7158,7 @@ render();
           paintTimeline();
         });
         zone.appendChild(dissBtn);
-        zone.appendChild(el("span", "tl-wait", "same cost as a radar diss · free · it goes public"));
+        zone.appendChild(el("span", "tl-wait", "10 energy, same as a radar diss · it goes public"));
       }
       card.appendChild(zone);
     }
@@ -7115,6 +7171,11 @@ render();
     return { text: text, cat: cat, target: target };
   }
   function tlSendDiss(post, ins) {
+    /* a diss costs 10 energy everywhere it can be thrown, this surface
+       included, and it never counts as a release: it is a statement,
+       not a drop. */
+    if ((S.energy || 0) < 10) { shout("NOT ENOUGH ENERGY: A DISS TAKES 10"); return; }
+    S.energy = Math.max(0, (S.energy || 0) - 10);
     var mine = { id: tl.nextId, author: playerName(), text: ins.target + ": " + ins.text, day: S.day, mine: true, waiting: true, stamp: tlStamp() };
     tl.nextId += 1;
     if (tlRegister(mine.text)) { tl.posts.unshift(mine); }
@@ -8212,6 +8273,47 @@ render();
     };
   }
   window.RapDreamTl = { posts: function () { return tl.posts; }, open: openTimeline, rel: tlRel, handle: tlHandle };
+  /* V11: the songbook, the timeline, the sports desk and the travel
+     log live in this closure, outside S, so the save layer reaches
+     them through this one bridge: collect on every autosave, restore
+     on every continue. One home for run state: the save payload. */
+  window.RapDreamPersist = {
+    collect: function () {
+      try {
+        return {
+          songs: wr.songs, current: wr.current,
+          posts: tl.posts, nextId: tl.nextId, liked: tl.liked, seen: tl.seen,
+          sports: sp, travel: tv, menuUse: menuUse,
+          demoMix: myDemoMix, lastReleaseMix: myLastReleaseMix
+        };
+      } catch (e) { return null; }
+    },
+    restore: function (x) {
+      if (!x || typeof x !== "object") { return; }
+      try {
+        if (Array.isArray(x.songs)) { wr.songs = x.songs; window.RapDreamSongs = wr.songs; }
+        if (x.current && typeof x.current === "object") { wr.current = x.current; }
+        if (Array.isArray(x.posts)) { tl.posts = x.posts; }
+        if (typeof x.nextId === "number") { tl.nextId = x.nextId; }
+        if (x.liked && typeof x.liked === "object") { tl.liked = x.liked; }
+        if (x.seen && typeof x.seen === "object") { tl.seen = x.seen; }
+        if (x.sports && typeof x.sports === "object") {
+          /* the sports world carries two sim functions JSON cannot hold:
+             re-seed a live world and pour the saved records into it. */
+          var freshWorld = spSeedWorld();
+          ["boxers", "teams", "history", "fixtures", "bets", "tipDay", "tips", "newsDay", "sel"].forEach(function (k) {
+            if (x.sports[k] != null) { freshWorld[k] = x.sports[k]; }
+          });
+          sp = freshWorld;
+        }
+        if (x.travel && typeof x.travel === "object") { tv = x.travel; window.RapDreamTravel = tv; }
+        if (x.menuUse && typeof x.menuUse === "object") { menuUse = x.menuUse; }
+        if (x.demoMix && typeof x.demoMix === "object") { myDemoMix = x.demoMix; }
+        if (x.lastReleaseMix && typeof x.lastReleaseMix === "object") { myLastReleaseMix = x.lastReleaseMix; }
+        paintPlaces();
+      } catch (e) { /* a partial restore never blocks the run */ }
+    }
+  };
   window.RapDreamApps = { menu: openMenu, writing: openWriting, sports: openSports, travel: openTravel };
   resetMine();
   myState = S;
@@ -8431,7 +8533,13 @@ render();
     var panel = pickOv.querySelector(".rd-panel");
     panel.innerHTML = "";
     panel.appendChild(el("h2", null, "Pick your class"));
-    panel.appendChild(el("p", "rd-sub", "class flavors your bars and bends the aiming."));
+    panel.appendChild(el("p", "rd-sub", "class flavors your bars and bends the aiming. what each one does is under its name."));
+    var CLASS_FX = {
+      trap: "in play: the street needle runs hot on every record",
+      drill: "in play: every needle sweeps quicker, so windows are tighter",
+      rnb: "in play: needles sweep slower, so pockets are wider",
+      experimental: "in play: needle speeds swing wild, bigger swings both ways"
+    };
     var grid = el("div", "rd-grid");
     CLASSES.forEach(function (c) {
       var b = el("button", "rd-opt");
@@ -8439,6 +8547,7 @@ render();
       b.setAttribute("data-class", c.id);
       b.appendChild(el("strong", null, c.name));
       b.appendChild(el("small", null, c.line));
+      b.appendChild(el("small", null, CLASS_FX[c.id] || ""));
       b.addEventListener("click", function () { RD.cls = c.id; paintPickRegion(); });
       grid.appendChild(b);
     });
@@ -8448,7 +8557,7 @@ render();
     var panel = pickOv.querySelector(".rd-panel");
     panel.innerHTML = "";
     panel.appendChild(el("h2", null, "Pick your region"));
-    panel.appendChild(el("p", "rd-sub", "region bends one channel in your favor."));
+    panel.appendChild(el("p", "rd-sub", "region bends one channel in your favor. what each one does is under its name."));
     var grid = el("div", "rd-grid");
     REGIONS.forEach(function (r) {
       var b = el("button", "rd-opt");
@@ -8456,6 +8565,7 @@ render();
       b.setAttribute("data-region", r.id);
       b.appendChild(el("strong", null, r.name));
       b.appendChild(el("small", null, r.line));
+      b.appendChild(el("small", null, "in play: the " + r.channel + " band runs wider and easier on records and releases"));
       b.addEventListener("click", function () { finishPick(r); });
       grid.appendChild(b);
     });
@@ -9113,7 +9223,7 @@ render();
     var tournBtn = document.createElement("button");
     tournBtn.type = "button";
     tournBtn.setAttribute("data-act", "tournament");
-    tournBtn.innerHTML = "<span class=\"key\">T</span><b>tournament</b><small>rap bracket · wins stack on the career record</small>";
+    tournBtn.innerHTML = "<span class=\"key\">T</span><b>tournament</b><small>rap bracket · takes your whole day: entering spends all energy over 60 · wins stack on the career record</small>";
     tournBtn.addEventListener("click", function () { var tb = $("tournament-button"); if (tb) { tb.click(); } });
     actionsEl.appendChild(tournBtn);
     ["merch", "market", "promo", "show", "realestate", "sign", "features"].forEach(function (a) {
@@ -10107,6 +10217,28 @@ render();
           songsNow.forEach(function (s) { songSymbol(s); });
         } catch (e) {}
         try { rdqPromote(); } catch (e) {}
+        /* V11: the label recoups at the speed of the career. Past the
+           small nightly diversion the engine already takes, the label
+           sweeps half of last night's income against the balance each
+           morning (never less than a meaningful floor, never more than
+           the cash on hand), so a large advance clears in weeks. */
+        var rDay = S.day || 1;
+        if (rDay > (X.lastRecoupDay || 0)) {
+          X.lastRecoupDay = rDay;
+          try {
+            var bal = Math.max(0, Math.round(S.dealBalance || 0));
+            if (bal > 0 && rDay > 1) {
+              var inc = Math.max(0, Math.round(((S.lastCashflow || {}).income) || 0));
+              var sweep = Math.min(bal, Math.max(25, Math.round(inc * 0.5), Math.round(bal * 0.04)));
+              sweep = Math.min(sweep, Math.max(0, Math.floor(S.money || 0)));
+              if (sweep > 0) {
+                S.money -= sweep;
+                S.dealBalance = bal - sweep;
+                tapeLine("the label swept $" + fmt(sweep) + " against the advance overnight. " + (S.dealBalance > 0 ? "$" + fmt(S.dealBalance) + " still owed." : "books clear: the advance is recouped."));
+              }
+            }
+          } catch (e) { /* the sweep never blocks the morning */ }
+        }
         var day = S.day || 1;
         if (day > X.lastDay) { X.lastDay = day; dayHook(); }
         paintFeatChartRows();
@@ -10529,9 +10661,17 @@ render();
       .replace(/\bwritten day (\d+)\b/g, function (m, n) { return "written " + weekLower(+n); })
       .replace(/\breturned on day (\d+)\b/g, function (m, n) { return "returned on " + weekLower(+n); })
       .replace(/\bfell off day (\d+)\b/g, function (m, n) { return "fell off " + weekLower(+n); })
-      .replace(/\blands (?:on )?day (\d+)\b/g, function (m, n) { return "lands " + weekLower(+n); })
-      .replace(/\bday (\d+) · session\b/g, function (m, n) { return weekLower(+n) + " · session"; })
-      .replace(/\bday (\d+): /g, function (m, n) { return weekLower(+n) + ": "; });
+      .replace(/\blands (?:on )?day (\d+)\b/g, function (m, n) { return "lands " + weekLower(+n); });
+    /* the session and colon stamps expand into text that still matches
+       their own pattern ("week 1 · day 4 · session" still contains
+       "day 4 · session"), so they may only run on a stamp that has not
+       been expanded yet — otherwise every render stacks another week. */
+    if (!/week \d+ · day \d+ · session/.test(out)) {
+      out = out.replace(/\bday (\d+) · session\b/g, function (m, n) { return weekLower(+n) + " · session"; });
+    }
+    if (!/week \d+ · day \d+:/.test(out)) {
+      out = out.replace(/\bday (\d+): /g, function (m, n) { return weekLower(+n) + ": "; });
+    }
     if (/^day \d+$/.test(v.trim())) { out = weekLower(+v.trim().slice(4)); }
     if (out !== v) { node.nodeValue = out; }
   }
@@ -11015,9 +11155,9 @@ render();
 
   /* SKY TAX, restored: the original slingshot from the Oct 14 build —
      boxy drones in mixed sizes crossing both ways, stones / down /
-     salvage / fans / streak on the status line — with the caps off:
-     drones keep crossing, stones never run out, and no miss streak
-     ends it. The run ends when the player walks away, and walking
+     salvage / fans / streak on the status line. A visit is ten stones
+     (V11 bound): the visit ends when the stones run out or the player
+     walks away, and walking
      away banks it: $500 salvage and 10 fans per drone downed, flat,
      any size. BOUNCE COMBO: a stone that bounces off one drone's top
      and then kills another drops EVERY drone on screen, and each one
@@ -11031,7 +11171,9 @@ render();
     var room = gel("minigame-room");
     if (room && !room.classList.contains("hidden")) { return; }
     if ((S.energy || 0) < 15) { shout("SKY TAX: NEED 15 ENERGY"); return; }
-    S.energy = Math.max(0, (S.energy || 0) - 15);
+    /* the 15 energy is the price of shooting, not of looking: it is
+       charged on the first stone loosed (see releaseStone), so walking
+       in and walking straight back out costs nothing. */
     var myRun = ++skyRun;
     var myState = S;
     try { activeMiniAction = "skytax"; } catch (e) {}
@@ -11095,6 +11237,10 @@ render();
        nothing — sizes only change the target, never the money. */
     var RATE_CASH = 500, RATE_FANS = 10;
     var spawned = 0, hits = 0, cleared = 0, streak = 0;
+    /* a visit is ten stones: when the tenth stone is spent and gone,
+       the visit banks itself and ends. Re-entry is a new visit at the
+       standing 15 energy, so the sky pays for aim, not for time. */
+    var stonesLeft = 10, skyCharged = false;
     var drones = [], stones = [], done = false, lastSpawn = 0, lastT = 0, raf = 0;
     var lastStepAt = performance.now(), watchdog = 0;
     var SIZES = [
@@ -11112,7 +11258,7 @@ render();
     function hud() {
       var st = gel("minigame-status");
       var t = totals();
-      if (st) { st.textContent = "stones ∞ · down " + t.down + " · salvage $" + fmt(t.cash) + " and counting · fans +" + fmt(t.fans) + " · streak " + streak; }
+      if (st) { st.textContent = "stones " + stonesLeft + " · down " + t.down + " · salvage $" + fmt(t.cash) + " and counting · fans +" + fmt(t.fans) + " · streak " + streak; }
     }
     function spawnDrone(now) {
       measure();
@@ -11259,6 +11405,9 @@ render();
               hud();
             }
           });
+          /* out of stones and none in the air: the visit is over and
+             banks itself, same as walking away. */
+          if (!done && skyCharged && stonesLeft <= 0 && stones.length === 0) { finish(); return; }
         }
       } catch (e) { /* one bad frame never ends the run */ }
       raf = requestAnimationFrame(step);
@@ -11307,6 +11456,12 @@ render();
       clearAim();
       var len = Math.sqrt(pullX * pullX + pullY * pullY);
       if (len < 22) { return; }
+      if (stonesLeft <= 0) { return; }
+      if (!skyCharged) {
+        skyCharged = true;
+        S.energy = Math.max(0, (S.energy || 0) - 15);
+      }
+      stonesLeft -= 1;
       var el = mkEl("div", "sky-stone");
       field.appendChild(el);
       stones.push({ el: el, x: forkX - 5, y: forkY - 5, vx: -pullX * 5, vy: -pullY * 5, dead: false, bounced: false });
@@ -12869,6 +13024,28 @@ render();
       return d;
     } catch (e) { return null; }
   }
+  /* first boot after an upgrade walks the same road as every boot
+     after it: a save written before the songbook moved into the
+     payload carries no extras field at all, and until a resume plus
+     an autosave happened to rewrite it, the boot kept meeting that
+     older shape at the title screen. Supply the field here, once, at
+     the save's own front door, before any timer reads the save: the
+     run inside is untouched, and a current save is left exactly as
+     it lies. */
+  (function normalizeSave() {
+    var ls = store(); if (!ls) { return; }
+    try {
+      var raw = ls.getItem(SAVE_KEY);
+      if (!raw) { return; }
+      var d = JSON.parse(raw);
+      if (!d || d.v !== 1 || !d.state || typeof d.state !== "object") { return; }
+      if (!("extras" in d)) {
+        d.extras = null;
+        var txt = safeStringify(d);
+        if (txt) { ls.setItem(SAVE_KEY, txt); }
+      }
+    } catch (e) { /* an unreadable save is readSave's call, not the boot's */ }
+  })();
   function runLive() {
     var RD = window.RapDreamStart;
     return !!(RD && RD.picked && typeof S !== "undefined" && S && !S.over);
@@ -12882,7 +13059,8 @@ render();
         v: 1,
         savedAt: Date.now(),
         state: S,
-        rd: { cls: RD.cls, region: RD.region, channel: RD.channel, words: RD.words, nickname: RD.nickname, deeds: RD.deeds }
+        extras: (window.RapDreamPersist && window.RapDreamPersist.collect) ? window.RapDreamPersist.collect() : null,
+        rd: { cls: RD.cls, region: RD.region, channel: RD.channel, words: RD.words, nickname: RD.nickname, deeds: RD.deeds, emphasis: (window.RapDreamEmphasis && window.RapDreamEmphasis.get) ? window.RapDreamEmphasis.get() : null }
       };
       var txt = safeStringify(payload);
       if (txt) { ls.setItem(SAVE_KEY, txt); }
@@ -12952,6 +13130,9 @@ render();
     RD.picked = true;
     RD.startDone = true;
     RD.startPending = false;
+    if (rd.emphasis && window.RapDreamEmphasis && window.RapDreamEmphasis.set) {
+      try { window.RapDreamEmphasis.set(rd.emphasis); } catch (e) {}
+    }
     if (RD.cls) { window.RapDreamClassRegion = { cls: RD.cls, region: RD.region, channel: RD.channel }; }
   }
   function hideStartSurfaces() {
@@ -12972,6 +13153,12 @@ render();
       applyRD(d);
       hideStartSurfaces();
       if (typeof render === "function") { render(); }
+      /* the render above reset the closure systems for the swapped
+         state; now pour the saved songbook, timeline, sports desk and
+         travel log back into them, so a reload loses nothing written. */
+      if (d.extras && window.RapDreamPersist && window.RapDreamPersist.restore) {
+        try { window.RapDreamPersist.restore(d.extras); } catch (e) {}
+      }
       if (typeof log === "function") { log("picked the run back up: day " + S.day + ", the desk exactly where you left it."); }
       dirty = true;
     } catch (e) {
@@ -13007,6 +13194,41 @@ render();
   setInterval(paintContinue, 1500);
   paintContinue();
   window.RapDreamContinueSaved = continueRun;
+
+  /* the title screen heals itself. If a boot ever strands a player
+     before the title is usable — no live run, no landed intro, no
+     start surface standing — the page reloads itself once: the same
+     recovery a manual reboot performs, done for the player instead
+     of by them. The guard flag lives in session storage, is set
+     before the reload, and the first healthy boot clears it, so the
+     guard can never loop and never fires on a title that came up. */
+  (function bootGuard() {
+    function session() { try { return window.sessionStorage || null; } catch (e) { return null; } }
+    function titleUsable() {
+      if (runLive()) { return true; }
+      var intro = gel("rd-intro");
+      if (intro && (intro.classList.contains("hidden") || intro.classList.contains("landed"))) { return true; }
+      var ids = ["rd-start", "rd-pick", "rd-archetype"];
+      for (var i = 0; i < ids.length; i += 1) {
+        var o = gel(ids[i]);
+        if (o && !o.classList.contains("hidden")) { return true; }
+      }
+      return false;
+    }
+    function check() {
+      try {
+        var ss = session();
+        if (titleUsable()) { if (ss) { ss.removeItem("rapdream.bootguard.v1"); } return; }
+        if (!ss) { return; }
+        if (ss.getItem("rapdream.bootguard.v1") === "1") { return; }
+        try { ss.setItem("rapdream.bootguard.v1", "1"); } catch (e) { return; }
+        if (ss.getItem("rapdream.bootguard.v1") !== "1") { return; }
+        location.reload();
+      } catch (e) { /* the guard never blocks the game */ }
+    }
+    if (document.readyState === "complete") { setTimeout(check, 6000); }
+    else { window.addEventListener("load", function () { setTimeout(check, 6000); }); }
+  })();
 
   /* spawn input gate, belt and braces: while the picks are unfinished or
      any start surface is up, a press that lands on the hold button is
@@ -13112,7 +13334,7 @@ render();
       document.addEventListener("keydown", function (e) {
         if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) { return; }
         var key = String(e.key || "").toLowerCase();
-        if (key !== "w" && key !== "v") { return; }
+        if (key !== "w" && key !== "v" && key !== "f") { return; }
         var t = e.target;
         var tag = t && t.tagName ? String(t.tagName).toUpperCase() : "";
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) { return; }
@@ -13120,6 +13342,7 @@ render();
         var RD = window.RapDreamStart;
         if (!RD || !RD.picked) { return; }
         if (key === "w") { if (window.RapDreamApps) { window.RapDreamApps.writing(); } }
+        else if (key === "f") { var fb = document.querySelector("#actions [data-act=\"features\"]"); if (fb && !fb.disabled) { fb.click(); } }
         else { var wb = gel("open-wire-room"); if (wb) { wb.click(); } }
       });
     }
@@ -13243,6 +13466,15 @@ render();
     var st = obj.state;
     if (typeof st.money !== "number" || typeof st.day !== "number" || typeof st.fans !== "number") { return { err: "the string decoded, but the run inside it is not whole. nothing was loaded." }; }
     if (st.over) { return { err: "that run is finished. a string can only carry a live run. nothing was loaded." }; }
+    /* a shared string is untrusted text: no string field anywhere in
+       the payload may carry markup, so angle brackets are stripped on
+       the way in, before anything in it can reach the page. */
+    (function scrub(v, depth) {
+      if (depth > 8 || v == null) { return; }
+      if (typeof v === "string") { return; }
+      if (Array.isArray(v)) { for (var i = 0; i < v.length; i += 1) { if (typeof v[i] === "string") { v[i] = v[i].replace(/[<>]/g, ""); } else { scrub(v[i], depth + 1); } } return; }
+      if (typeof v === "object") { Object.keys(v).forEach(function (k) { if (typeof v[k] === "string") { v[k] = v[k].replace(/[<>]/g, ""); } else { scrub(v[k], depth + 1); } }); }
+    })(obj, 0);
     return { obj: obj };
   }
   function ssExportString() {
@@ -13254,7 +13486,8 @@ render();
     return ssEncode({
       v: SS_VER,
       state: S,
-      rd: { cls: RD.cls || null, region: RD.region || null, channel: RD.channel || null, words: RD.words || null, nickname: RD.nickname || null, deeds: RD.deeds || {} },
+      extras: (window.RapDreamPersist && window.RapDreamPersist.collect) ? window.RapDreamPersist.collect() : null,
+      rd: { cls: RD.cls || null, region: RD.region || null, channel: RD.channel || null, words: RD.words || null, nickname: RD.nickname || null, deeds: RD.deeds || {}, emphasis: (window.RapDreamEmphasis && window.RapDreamEmphasis.get) ? window.RapDreamEmphasis.get() : null },
       ctr: ctr
     });
   }
@@ -13289,7 +13522,7 @@ render();
     try { ls = window.localStorage || null; } catch (e) {}
     if (!ls) { return "this browser is not storing saves, so there is nowhere to land the run."; }
     try {
-      ls.setItem(SS_SAVE_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), state: merged, rd: obj.rd || {} }));
+      ls.setItem(SS_SAVE_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), state: merged, extras: obj.extras || null, rd: obj.rd || {} }));
       if (obj.ctr) {
         var cur = {};
         try { cur = JSON.parse(ls.getItem(SS_CTR_KEY) || "{}") || {}; } catch (e) { cur = {}; }
@@ -13522,6 +13755,33 @@ render();
   }
   function holdOn() { try { return !!window.__rdHoldActive; } catch (e) { return false; } }
 
+  /* ================= diss price: 10 energy, never a release =================
+     Every diss pays the same 10 energy the timeline charges, and a diss
+     must never inflate the release ledger. The beef-room guard below
+     only turns a broke player away before a target is picked;
+     selecting and leaving stay free, and beef stays optional. The
+     settlement at the throw itself lives in the discipline home. */
+  document.addEventListener("click", function (e) {
+    var wrap = document.getElementById("beef-room-rivals");
+    if (!wrap || wrap.classList.contains("hidden")) { return; }
+    var t = e.target;
+    if (!t || !wrap.contains(t)) { return; }
+    var btn = t.closest ? t.closest("button") : null;
+    if (!btn || !wrap.contains(btn)) { return; }
+    if (!btn.classList.contains("rival-target")) { return; }
+    if ((S.energy || 0) < 10) {
+      e.preventDefault(); e.stopPropagation();
+      try { if (typeof banner === "function") { banner("NOT ENOUGH ENERGY: A DISS TAKES 10"); } } catch (err) {}
+      return;
+    }
+  }, true);
+  /* the settlement itself — snapshot the ledger at the throw, restore
+     any release it counted, take the 10 energy once it resolves —
+     lives in the discipline home now, on the same state bridge as the
+     hotkey guard and the spend confirms, where it provably executes.
+     What stays here is this room's own door: the energy gate above,
+     which turns a broke player away before a target is picked. */
+
   /* ================= ITEM 3: beef ladder thought lines =================
      One living line under every rival's name on the ladder: a temperature
      read, not a bio. It moves with their tension, their disses, the bout
@@ -13629,6 +13889,9 @@ render();
   var lastShifts = -1;
   function workLine(shifts) {
     var tier = shifts >= 20 ? WORK_TIERS[2] : shifts >= 5 ? WORK_TIERS[1] : WORK_TIERS[0];
+    /* the day-one line belongs to day one: past it, the rotation starts
+       one line in, so week two never reads like the first morning. */
+    if (tier === WORK_TIERS[0] && (S.day || 1) > 1) { return tier[1 + (shifts % (tier.length - 1))]; }
     return tier[shifts % tier.length];
   }
   function paintWorkLine() {
@@ -15178,7 +15441,7 @@ render();
 @keyframes rdDronePatrol{0%{transform:translate(0,0)}25%{transform:translate(30vw,-9px)}50%{transform:translate(58vw,5px)}75%{transform:translate(88vw,-7px)}100%{transform:translate(115vw,0)}}
 #rd-intro .rd-skyline{position:absolute;left:0;right:0;bottom:0;height:120px;background:repeating-linear-gradient(to right,#05090f 0 34px,#0a1119 34px 40px,#05090f 40px 74px,#0c1420 74px 82px);opacity:.95}
 #rd-intro .rd-intro-core{position:relative;text-align:center;padding:20px;max-width:640px;width:100%}
-#rd-intro .rd-big-title{font:900 clamp(44px,11vw,96px)/1 'Archivo Black',sans-serif;color:#eefbff;letter-spacing:.02em;text-transform:uppercase}
+#rd-intro .rd-big-title{font:900 clamp(27px,9.2vw,96px)/1 'Archivo Black',sans-serif;color:#eefbff;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
 #rd-intro .rd-big-title span{display:inline-block;opacity:0;transform:translateY(-46px) scale(1.6)}
 #rd-intro .rd-big-title span.land{animation:rdSlam .38s cubic-bezier(.2,1.6,.4,1) forwards}
 #rd-intro .rd-big-title span.gold{color:#ffcf3f}
@@ -15298,10 +15561,11 @@ render();
 .rd-match-ball{position:absolute;width:11px;height:11px;border-radius:50%;background:#ff9d3f;transition:left .3s,top .3s}
 .rd-match-score{font:800 13px 'Space Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#ffcf3f;text-align:center;margin-top:8px}
 .rd-match-note{font:500 11.5px 'Space Grotesk',sans-serif;color:#9fc6de;text-align:center;margin-top:2px}
-.sky-trail{position:absolute;width:7px;height:7px;border-radius:50%;background:rgba(217,239,255,.55);pointer-events:none;z-index:3}
-.sky-debris{position:absolute;width:6px;height:6px;border-radius:2px;background:#69bdff;pointer-events:none;z-index:4;animation:rdDebris .7s ease-in forwards}
-.sky-debris.gold{background:#ffcf3f}
-@keyframes rdDebris{to{transform:translate(var(--dx,10px),64px) rotate(200deg);opacity:0}}
+.sky-trail{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(207,238,255,.5);pointer-events:none;z-index:3;animation:rdTrailFade .16s linear forwards}
+@keyframes rdTrailFade{from{opacity:.5}to{opacity:0}}
+.sky-debris{position:absolute;width:4px;height:4px;border-radius:50%;background:#d9efff;pointer-events:none;z-index:4;animation:rdDebris .45s ease-out forwards}
+.sky-debris.ice{background:#9fd8ff}
+@keyframes rdDebris{to{transform:translate(var(--dx,8px),var(--dy,8px)) scale(.4);opacity:0}}
 .sky-ripple{position:absolute;inset:0;border:3px solid rgba(255,207,63,.65);border-radius:8px;pointer-events:none;z-index:5;animation:rdRipple .55s ease-out forwards}
 @keyframes rdRipple{from{opacity:1;transform:scale(.96)}to{opacity:0;transform:scale(1.03)}}
 .sky-field.rd-shake{animation:rdShake .18s linear}
@@ -15451,8 +15715,19 @@ render();
     if (!t || t === intro) { return; }
     if (t.id === "rd-btn-new") {
       closeIntro();
+      /* the wipe is one direct motion now: open the confirm and confirm
+         it on the next painted frame. No fixed timer stands between the
+         player's press and the new run anymore. */
       var nr = gel("new-run");
-      if (nr) { nr.click(); setTimeout(function () { var cf = gel("confirm-new-run"); if (cf) { cf.click(); } }, 350); }
+      if (nr) {
+        nr.click();
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            var cf = gel("confirm-new-run");
+            if (cf) { cf.click(); }
+          });
+        });
+      }
     } else if (t.id === "rd-btn-continue") {
       closeIntro();
     } else if (t.id === "rd-btn-how") {
@@ -15477,6 +15752,16 @@ render();
       });
     });
   }
+  /* the dial's one address: the save layer reads and restores the
+     emphasis through here, so the choice survives a reload. */
+  window.RapDreamEmphasis = {
+    get: function () { return ST.mode; },
+    set: function (m) {
+      if (["vibe", "balanced", "mogul"].indexOf(m) < 0) { return; }
+      ST.mode = m;
+      paintDials();
+    }
+  };
   document.addEventListener("click", function (e) {
     var b = e.target;
     if (b && b.parentNode && b.parentNode.classList && b.parentNode.classList.contains("rd-dial") && b.getAttribute("data-mode")) {
@@ -16023,8 +16308,8 @@ render();
       try {
         if (type === "record") {
           var list = songs();
-          var t = list.length ? list[list.length - 1].name : "the take";
-          setTimeout(function () { waveformCeremony(t + " · the take", ""); }, 250);
+          var t = list.length ? list[list.length - 1].name : "";
+          setTimeout(function () { waveformCeremony(t ? t + " · the take" : "the take", ""); }, 250);
         } else if (type === "drop" || type === "release") {
           setTimeout(liveShowScene, 250);
         }
@@ -16116,44 +16401,44 @@ render();
   } catch (e) {}
 
   /* ================= SKY TAX JUICE ================= */
-  var skyWatch = { raf: 0, last: {} };
+  var skyWatch = { raf: 0 };
   function skyLoop() {
     var field = document.querySelector(".sky-field");
-    if (!field) { skyWatch.raf = 0; skyWatch.last = {}; return; }
+    if (!field) { skyWatch.raf = 0; return; }
     try {
+      /* the stone's wake: a short comet of pale sparks tight on the
+         flight line — small, faint, gone in a blink. Never a stream,
+         and nothing rains off the arc. */
       var stones = field.querySelectorAll(".sky-stone");
       stones.forEach(function (st) {
-        if (Math.random() < 0.5) {
+        if (Math.random() < 0.6) {
           var tr = mkEl("div", "sky-trail", null);
           tr.style.left = st.style.left;
           tr.style.top = st.style.top;
           field.appendChild(tr);
-          setTimeout(function () { if (tr.parentNode) { tr.parentNode.removeChild(tr); } }, 240);
+          setTimeout(function () { if (tr.parentNode) { tr.parentNode.removeChild(tr); } }, 170);
         }
       });
+      /* a drone sheds sparks once, at the hit: a tight pale burst at
+         the hull that drifts a few pixels and dies where it was born.
+         Flying drones shed nothing — the sky behind them stays clean. */
       var drones = field.querySelectorAll(".sky-drone");
-      var now = {};
       drones.forEach(function (d) {
-        var k = d.style.left + "|" + d.style.top;
-        now[k] = { l: d.style.left, t: d.style.top, hit: d.classList.contains("hit") };
-      });
-      Object.keys(skyWatch.last).forEach(function (k) {
-        if (!now[k]) {
-          var p = skyWatch.last[k];
-          for (var di = 0; di < 7; di += 1) {
-            var deb = mkEl("div", "sky-debris" + (di % 3 === 0 ? " gold" : ""), null);
-            deb.style.left = p.l;
-            deb.style.top = p.t;
-            deb.style.setProperty("--dx", (Math.random() * 70 - 35) + "px");
-            field.appendChild(deb);
-            (function (el) { setTimeout(function () { if (el.parentNode) { el.parentNode.removeChild(el); } }, 720); })(deb);
-          }
-          field.classList.remove("rd-shake");
-          try { void field.offsetWidth; } catch (e) {}
-          field.classList.add("rd-shake");
+        if (!d.classList.contains("hit") || d._rdSparked) { return; }
+        d._rdSparked = true;
+        for (var di = 0; di < 6; di += 1) {
+          var deb = mkEl("div", "sky-debris" + (di % 2 ? " ice" : ""), null);
+          deb.style.left = d.style.left;
+          deb.style.top = d.style.top;
+          deb.style.setProperty("--dx", (Math.random() * 40 - 20) + "px");
+          deb.style.setProperty("--dy", (Math.random() * 16 - 8) + "px");
+          field.appendChild(deb);
+          (function (el) { setTimeout(function () { if (el.parentNode) { el.parentNode.removeChild(el); } }, 470); })(deb);
         }
+        field.classList.remove("rd-shake");
+        try { void field.offsetWidth; } catch (e) {}
+        field.classList.add("rd-shake");
       });
-      skyWatch.last = now;
       var combo = field.querySelector(".sky-combo");
       if (combo && combo.style.display !== "none" && !field.querySelector(".sky-ripple")) {
         var rip = mkEl("div", "sky-ripple", null);
@@ -16219,6 +16504,447 @@ render();
           else { endcard.appendChild(mural); }
         } catch (e) {}
       }).observe(endcard, { attributes: true, attributeFilter: ["class"] });
+    }
+  } catch (e) {}
+
+  /* ==================================================================
+     V11 CONSOLIDATION: one door for dialogs, keys and big spends.
+     Dialog discipline, the hotkey guard and Escape all live here, in
+     the same home as the dial and the wall, instead of being chased
+     across every surface that ever opened a room.
+     ================================================================== */
+  function rdVis(el) { return !!(el && !el.classList.contains("hidden")); }
+  function rdCloseEl(o) {
+    if (!o) { return; }
+    try {
+      if (o.id === "new-run-confirm") { var c0 = gel("cancel-new-run"); if (c0) { c0.click(); } }
+      else if (o.id === "instructions") { var c1 = gel("close-instructions"); if (c1) { c1.click(); } }
+      else if (o.id === "minigame-room") { var c2 = gel("minigame-close"); if (c2) { c2.click(); } }
+      else if (o.id === "nw-interview") { var c3 = gel("nw-close"); if (c3) { c3.click(); } }
+      else {
+        var closer = o.querySelector(".room-close, .rd-close");
+        if (closer) { closer.click(); }
+      }
+      /* the room's own close runs first, with its side effects; the
+         hide itself is then guaranteed here, because a closer click
+         alone does not take on every room family. */
+      if (rdVis(o)) { o.classList.add("hidden"); }
+    } catch (e) { try { o.classList.add("hidden"); } catch (e2) {} }
+  }
+  function rdCloseTopDialog() {
+    if (typeof window.RapDreamSkyBank === "function") { try { window.RapDreamSkyBank(); return; } catch (e) {} }
+    var splash = document.querySelector(".rd-splash:not(.hidden)");
+    if (splash) { splash.classList.add("hidden"); return; }
+    var df = gel("dayflash");
+    if (rdVis(df)) { var sd = gel("start-day"); if (sd) { sd.click(); } return; }
+    /* The top dialog is the LAST visible one in document order: rooms
+       paint in the order they stand in the body, so the last match is
+       the one the player is looking at, whichever family built it —
+       the static rooms, the makeRoom rooms (Song Writing Engine,
+       Timeline, and their kin), and the overlay panels alike. The old
+       hand-kept id list could strand a whole family behind an earlier
+       entry; selecting by real visibility cannot. The start surfaces
+       are the front door, not dialogs: Escape never sweeps them, and
+       the endcard is a full stop, not a room. */
+    var open = document.querySelectorAll(".rd-overlay:not(.hidden), .market-room:not(.hidden), #minigame-room:not(.hidden), #instructions:not(.hidden), #new-run-confirm:not(.hidden), #signing-room:not(.hidden)");
+    for (var i = open.length - 1; i >= 0; i -= 1) {
+      var o = open[i];
+      if (o.id === "rd-start" || o.id === "rd-pick" || o.id === "rd-archetype" || o.id === "rd-intro") { continue; }
+      rdCloseEl(o);
+      return;
+    }
+  }
+  /* one dialog at a time: a room that opens puts every other room
+     away. Decision overlays that queue on purpose (the label, the
+     package, the offer, the interview under the hold) are exempt as
+     openers, and the morning report is a flow, not a room. */
+  var RD_EXCL_IDS = ["instructions", "market-room", "advisor-room", "beef-room", "wire-room", "office-room", "legend-room", "signing-room", "computer-room", "menu-room", "travel-room", "nw-interview", "minigame-room", "writing-room", "timeline-room", "sports-room", "features-room"];
+  var RD_EXEMPT_OPENERS = ["rd-label", "rd-package", "rd-offer", "rd-recap", "rd-start", "rd-pick", "rd-archetype", "rd-intro"];
+  function rdEnforceExclusive(opened) {
+    if (!opened) { return; }
+    /* the start family's own door: the pick surfaces are exempt from
+       being closed, but How to Play never stays standing under them. */
+    if (opened.id === "rd-pick" || opened.id === "rd-archetype" || opened.id === "rd-start") {
+      var ins0 = gel("instructions");
+      if (rdVis(ins0)) { rdCloseEl(ins0); }
+      return;
+    }
+    /* the same door swung the other way: the pick surfaces stand from
+       boot, before any class change can fire, so How to Play opening
+       over an already-standing picker must put the picker away —
+       the two never share the screen in either order. */
+    if (opened.id === "instructions") {
+      ["rd-pick", "rd-archetype"].forEach(function (id) {
+        var pk = gel(id);
+        if (rdVis(pk)) { rdCloseEl(pk); }
+      });
+    }
+    if (RD_EXEMPT_OPENERS.indexOf(opened.id) >= 0) { return; }
+    try {
+      RD_EXCL_IDS.forEach(function (id) {
+        if (opened.id === id) { return; }
+        var o = gel(id);
+        if (rdVis(o)) { rdCloseEl(o); }
+      });
+      document.querySelectorAll(".rd-overlay:not(.hidden)").forEach(function (o) {
+        if (o === opened || RD_EXEMPT_OPENERS.indexOf(o.id) >= 0) { return; }
+        rdCloseEl(o);
+      });
+    } catch (e) { /* discipline never blocks a room */ }
+  }
+  try {
+    new MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i += 1) {
+        var t = muts[i].target;
+        if (t && t.classList && !t.classList.contains("hidden")) {
+          if (RD_EXCL_IDS.indexOf(t.id) >= 0 || t.classList.contains("rd-overlay")) { rdEnforceExclusive(t); }
+        }
+      }
+    }).observe(document.body, { attributes: true, attributeFilter: ["class"], subtree: true });
+  } catch (e) {}
+  /* hotkeys: the same anyRoomOpen guard the key-9 handler already
+     uses, applied to every dash key at the window's capture phase, so
+     nothing fires behind a popup or before the run starts. The
+     terminal keeps its own keys while the computer room is up. */
+  var RD_DIALOG_SEL = ".rd-overlay:not(.hidden), .market-room:not(.hidden), #minigame-room:not(.hidden), #menu-room:not(.hidden), #instructions:not(.hidden), #dayflash:not(.hidden), #endcard:not(.hidden), #new-run-confirm:not(.hidden), #nw-interview:not(.hidden), #travel-room:not(.hidden), #signing-room:not(.hidden), #rd-pick:not(.hidden), #rd-archetype:not(.hidden)";
+  window.addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    if (e.key === "Escape") { rdCloseTopDialog(); return; }
+    var t = e.target;
+    var tag = t && t.tagName ? String(t.tagName).toUpperCase() : "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) { return; }
+    if (rdVis(gel("computer-room"))) { return; }
+    var RD = window.RapDreamStart;
+    var picked = !!(RD && RD.picked);
+    if ((!picked || document.querySelector(RD_DIALOG_SEL)) && e.key && e.key.length === 1) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+  /* ================= diss price: 10 energy, never a release =================
+     The settlement lives here, in the discipline home, on the same
+     state bridge as the hotkey guard above — not in the diss home,
+     whose settler could not be proven to execute. Every throw —
+     beef room, radar chip, punch picker — is a click on a pick inside
+     the minigame room while a diss is on the table, and every throw
+     resolves synchronously inside that click and shuts the room. So:
+     the gate stands at the throw itself (under 10 energy the throw
+     never fires — radar chips reach the picker without passing the
+     beef room's door, so the door cannot be the only gate), the
+     release ledger is snapshotted before the throw, and the moment
+     the room shuts, any release the throw counted is restored and
+     the 10 energy is taken, exactly once. One re-assertion follows
+     at +400 ms — an effect that lands late does not get to re-count
+     the release after the settle — unless the player has already
+     clicked anything else, in which case the ledger is theirs again.
+     Backing out and closing the picker stay free: nothing resolved,
+     nothing charged. The timeline prices its own disses at the send
+     (tlSendDiss) and never touches the ledger. */
+  document.addEventListener("click", function (e) {
+    var room = gel("minigame-room");
+    if (!room || room.classList.contains("hidden")) { return; }
+    var t = e.target;
+    if (!t || !room.contains(t)) { return; }
+    var btn = t.closest ? t.closest("button") : null;
+    if (!btn || btn.id === "minigame-close") { return; }
+    var label = (btn.textContent || "").toLowerCase().replace(/\s+/g, " ").trim();
+    if (label === "back" || label === "← back" || label === "close" || label === "leave") { return; }
+    var head = room.textContent || "";
+    if (head.indexOf("targeted diss") < 0 && head.indexOf("beef round") < 0 && head.indexOf("name flip") < 0) { return; }
+    if (typeof S === "undefined" || !S) { return; }
+    if ((S.energy || 0) < 10) {
+      e.preventDefault(); e.stopPropagation();
+      try { if (typeof banner === "function") { banner("NOT ENOUGH ENERGY: A DISS TAKES 10"); } } catch (err) {}
+      return;
+    }
+    var tracksBefore = S.tracks || 0;
+    var relBefore = (S.actionCounts && S.actionCounts.release) || 0;
+    var charged = false;
+    var superseded = false;
+    function clampLedger() {
+      if ((S.tracks || 0) > tracksBefore) { S.tracks = tracksBefore; }
+      if (S.actionCounts && (S.actionCounts.release || 0) > relBefore) { S.actionCounts.release = relBefore; }
+    }
+    function settle() {
+      clampLedger();
+      if (!charged) { charged = true; S.energy = Math.max(0, (S.energy || 0) - 10); }
+      if (typeof render === "function") { render(); }
+    }
+    document.addEventListener("click", function () { superseded = true; }, { capture: true, once: true });
+    var tries = 0;
+    var settleTimer = setInterval(function () {
+      tries += 1;
+      try {
+        if (!room.classList.contains("hidden")) {
+          if (tries >= 84) { clearInterval(settleTimer); }
+          return;
+        }
+        clearInterval(settleTimer);
+        settle();
+        setTimeout(function () {
+          try { if (!superseded) { clampLedger(); if (typeof render === "function") { render(); } } } catch (err) {}
+        }, 400);
+      } catch (err) { clearInterval(settleTimer); }
+    }, 60);
+  }, true);
+  /* big spends say their price twice: a confirm stands between the
+     press and the money for the label advance and for gear at $200
+     and up, whichever door the press came through. */
+  var rdConfirmOv = mkEl("section", "rd-overlay hidden", null);
+  rdConfirmOv.id = "rd-confirm-spend";
+  rdConfirmOv.setAttribute("aria-label", "Confirm the spend");
+  rdConfirmOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3></h3><p></p></div></div><div class=\"rd-panel-body\"><div class=\"pk-bet-row\"><button type=\"button\" class=\"pk-bet-place rd-confirm-yes\"></button><button type=\"button\" class=\"pk-bet-btn rd-confirm-no\">not yet</button></div></div></div>";
+  document.body.appendChild(rdConfirmOv);
+  var rdConfirmTarget = null, rdConfirmBypassUntil = 0;
+  function rdAskSpend(btn, title, text, yesLabel) {
+    rdConfirmTarget = btn;
+    rdConfirmOv.querySelector("h3").textContent = title;
+    rdConfirmOv.querySelector(".rd-panel-head p").textContent = text;
+    rdConfirmOv.querySelector(".rd-confirm-yes").textContent = yesLabel;
+    rdConfirmOv.classList.remove("hidden");
+  }
+  rdConfirmOv.querySelector(".rd-confirm-no").addEventListener("click", function () { rdConfirmOv.classList.add("hidden"); rdConfirmTarget = null; });
+  rdConfirmOv.querySelector(".rd-confirm-yes").addEventListener("click", function () {
+    var b = rdConfirmTarget;
+    rdConfirmTarget = null;
+    rdConfirmOv.classList.add("hidden");
+    if (b) { rdConfirmBypassUntil = Date.now() + 2000; b.click(); }
+  });
+  document.addEventListener("click", function (e) {
+    if (Date.now() < rdConfirmBypassUntil) { return; }
+    var b = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
+    if (!b || b.disabled) { return; }
+    var act = b.getAttribute("data-act");
+    if (act === "advance") {
+      e.preventDefault(); e.stopPropagation();
+      rdAskSpend(b, "take the label advance?", "the check lands now, and the label recoups 150% of it out of your catalog pay before the money is yours. a big check is a decision, not a reflex.", "take the advance");
+    } else if (act === "gear") {
+      var gc = gel("gear-cost");
+      var txt = (gc && gc.textContent) || b.textContent || "";
+      var m = /\$\s*([\d,]+)/.exec(txt);
+      var amt = m ? parseInt(m[1].replace(/,/g, ""), 10) : 0;
+      if (amt >= 200) {
+        e.preventDefault(); e.stopPropagation();
+        rdAskSpend(b, "buy the next setup?", "it costs $" + fmtN(amt) + ". gear is forever; cash is not.", "buy it · $" + fmtN(amt));
+      }
+    }
+  }, true);
+  /* small print patrol: a doubled card title reads once. (The bracket
+     names no exit price here: walking out of it is free, and the room
+     does not claim a price the game does not charge.) */
+  setInterval(function () {
+    try {
+      ["minigame-room", "rd-dash-session", "wire-room"].forEach(function (id) {
+        var root = gel(id);
+        if (!root || !document.createTreeWalker) { return; }
+        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+        var nodes = [];
+        while (walker.nextNode()) { nodes.push(walker.currentNode); }
+        nodes.forEach(function (n) {
+          if (n.nodeValue && n.nodeValue.indexOf("THE TAKE · THE TAKE") >= 0) {
+            n.nodeValue = n.nodeValue.split("THE TAKE · THE TAKE").join("THE TAKE");
+          }
+        });
+      });
+    } catch (e) { /* the patrol never blocks the game */ }
+  }, 900);
+
+  /* ==================================================================
+     DJ MODE v1: one record, six pads, one gig. Born here, in the
+     consolidated home: no second deck, no quantize, no loop capture.
+     The sound is procedural, unlocked by walking in.
+     ================================================================== */
+  var djCss = document.createElement("style");
+  djCss.textContent = ""
+    + ".rd-dj-discwrap{display:flex;justify-content:center;padding:10px 0 4px}"
+    + ".rd-dj-disc{width:216px;height:216px;border-radius:50%;cursor:grab;touch-action:none;position:relative;background:repeating-radial-gradient(circle at 50% 50%,#10161c 0 3px,#1a232c 3px 6px);border:3px solid #3d6076;box-shadow:0 10px 28px rgba(0,0,0,.45)}"
+    + ".rd-dj-disc:active{cursor:grabbing}"
+    + ".rd-dj-disc:before{content:'';position:absolute;left:50%;top:8px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#eefbff}"
+    + ".rd-dj-label{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;background:#ffcf3f;color:#12202c;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 10px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-align:center;padding:6px}"
+    + ".rd-dj-label small{font-weight:600;letter-spacing:.02em;margin-top:2px}"
+    + ".rd-dj-pads{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}"
+    + ".rd-dj-pad{min-height:64px;border:2px solid #3d6076;border-radius:12px;background:#12202c;color:#d5efff;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}"
+    + ".rd-dj-pad small{display:block;margin-top:3px;font-weight:500;letter-spacing:0;text-transform:none;color:#9fc6de}"
+    + ".rd-dj-pad:active{border-color:#ffcf3f;color:#ffcf3f}"
+    + ".rd-dj-note{font:500 12.5px/1.5 'Space Grotesk',sans-serif;color:#9fc6de;margin:0 0 10px}"
+    + ".rd-dj-gig{width:100%;padding:12px 10px;background:#ffcf3f;color:#12202c;border:none;border-radius:12px;font:800 13px 'Space Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}"
+    + ".rd-dj-gig:disabled{opacity:.45;cursor:not-allowed}";
+  document.head.appendChild(djCss);
+  var djOv = mkEl("section", "rd-overlay hidden", null);
+  djOv.id = "rd-dj";
+  djOv.setAttribute("aria-label", "DJ booth");
+  djOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>dj booth</h3><p>one record, six pads, and the room is listening. grab the record and pull it back.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(djOv);
+  var djBody = djOv.querySelector(".rd-panel-body");
+  var djDiscWrap = mkEl("div", "rd-dj-discwrap", null);
+  var djDisc = mkEl("div", "rd-dj-disc", null);
+  djDisc.setAttribute("role", "img");
+  djDisc.setAttribute("aria-label", "a spinning record you can grab and scratch");
+  var djLabel = mkEl("div", "rd-dj-label", null);
+  djLabel.innerHTML = "RAP DREAM<small>side a · your hands</small>";
+  djDisc.appendChild(djLabel);
+  djDiscWrap.appendChild(djDisc);
+  djBody.appendChild(djDiscWrap);
+  djBody.appendChild(mkEl("p", "rd-dj-note", "the baile kit: drums tuned low and fast, the stab is the funk. tap the pads, ride the record, then take the gig."));
+  var djPads = mkEl("div", "rd-dj-pads", null);
+  djBody.appendChild(djPads);
+  var djGigBtn = mkEl("button", "rd-dj-gig", "play a dj gig");
+  djGigBtn.type = "button";
+  djBody.appendChild(djGigBtn);
+  var djGigNote = mkEl("p", "rd-dj-note", "");
+  djBody.appendChild(djGigNote);
+  djOv.querySelector(".rd-close").addEventListener("click", function () { closeDj(); });
+  djOv.addEventListener("click", function (e) { if (e.target === djOv) { closeDj(); } });
+
+  var djCtx = null, djNoiseBuf = null;
+  function djAudio() {
+    try {
+      if (!djCtx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) { return null; }
+        djCtx = new AC();
+        var len = Math.floor(djCtx.sampleRate * 0.5);
+        djNoiseBuf = djCtx.createBuffer(1, len, djCtx.sampleRate);
+        var d = djNoiseBuf.getChannelData(0);
+        for (var i = 0; i < len; i += 1) { d[i] = Math.random() * 2 - 1; }
+      }
+      if (djCtx.state === "suspended") { djCtx.resume(); }
+      return djCtx;
+    } catch (e) { return null; }
+  }
+  function djTone(type, f0, f1, dur, gain, delay) {
+    var ctx = djAudio(); if (!ctx) { return; }
+    try {
+      var t0 = ctx.currentTime + (delay || 0);
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, t0);
+      if (f1) { o.frequency.exponentialRampToValueAtTime(Math.max(24, f1), t0 + dur); }
+      g.gain.setValueAtTime(gain, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t0); o.stop(t0 + dur + 0.03);
+    } catch (e) {}
+  }
+  function djNoiseHit(dur, type, f0, f1, gain, delay) {
+    var ctx = djAudio(); if (!ctx || !djNoiseBuf) { return; }
+    try {
+      var t0 = ctx.currentTime + (delay || 0);
+      var src = ctx.createBufferSource(); src.buffer = djNoiseBuf;
+      src.playbackRate.value = 0.7 + Math.random() * 0.6;
+      var flt = ctx.createBiquadFilter(); flt.type = type;
+      flt.frequency.setValueAtTime(f0, t0);
+      if (f1) { flt.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t0 + dur); }
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(gain, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(flt); flt.connect(g); g.connect(ctx.destination);
+      src.start(t0); src.stop(t0 + dur + 0.03);
+    } catch (e) {}
+  }
+  var DJ_PADS = [
+    { name: "kick", sub: "the 150 drop", play: function () { djTone("sine", 150, 40, 0.26, 0.55); } },
+    { name: "snare", sub: "crack on the two", play: function () { djNoiseHit(0.16, "bandpass", 1900, 1200, 0.32); djTone("triangle", 195, 150, 0.07, 0.16); } },
+    { name: "hat", sub: "fast and thin", play: function () { djNoiseHit(0.05, "highpass", 7200, 9000, 0.16); } },
+    { name: "perc", sub: "agogo chatter", play: function () { djTone("square", 840, 790, 0.06, 0.13); djTone("square", 1180, 1120, 0.06, 0.11, 0.07); } },
+    { name: "funk stab", sub: "the whole band, once", play: function () { [220, 277, 330].forEach(function (f) { djTone("sawtooth", f, f * 0.98, 0.17, 0.13); }); djNoiseHit(0.1, "lowpass", 2600, 700, 0.1); } },
+    { name: "bass hit", sub: "sub you feel", play: function () { djTone("sine", 62, 46, 0.3, 0.5); } }
+  ];
+  DJ_PADS.forEach(function (p) {
+    var b = mkEl("button", "rd-dj-pad", null);
+    b.type = "button";
+    b.innerHTML = "";
+    b.appendChild(document.createTextNode(p.name));
+    b.appendChild(mkEl("small", null, p.sub));
+    b.addEventListener("pointerdown", function (e) { e.preventDefault(); p.play(); });
+    djPads.appendChild(b);
+  });
+  /* the record: it spins on its own; grab it and it follows the hand,
+     and the scratch you hear is the hand's own speed. */
+  var djOpen = false, djAngle = 0, djRaf = 0, djDrag = null, djLastScratch = 0;
+  function djLoop() {
+    if (!djOpen) { return; }
+    if (!djDrag) { djAngle = (djAngle + 2.4) % 360; }
+    djDisc.style.transform = "rotate(" + djAngle + "deg)";
+    djRaf = requestAnimationFrame(djLoop);
+  }
+  function djPointerAngle(e) {
+    var r = djDisc.getBoundingClientRect();
+    var dx = e.clientX - (r.left + r.width / 2);
+    var dy = e.clientY - (r.top + r.height / 2);
+    return Math.atan2(dy, dx) * 180 / Math.PI;
+  }
+  djDisc.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    djAudio();
+    djDrag = { startPointer: djPointerAngle(e), startAngle: djAngle, last: djAngle, lastT: performance.now() };
+    try { djDisc.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  djDisc.addEventListener("pointermove", function (e) {
+    if (!djDrag) { return; }
+    var now = performance.now();
+    var next = djDrag.startAngle + (djPointerAngle(e) - djDrag.startPointer);
+    var vel = (next - djDrag.last) / Math.max(1, now - djDrag.lastT) * 16;
+    djAngle = next;
+    djDrag.last = next; djDrag.lastT = now;
+    djDisc.style.transform = "rotate(" + djAngle + "deg)";
+    if (Math.abs(vel) > 1.2 && now - djLastScratch > 55) {
+      djLastScratch = now;
+      djNoiseHit(0.07, "bandpass", 700 + Math.min(2600, Math.abs(vel) * 260), 500, Math.min(0.3, 0.08 + Math.abs(vel) * 0.02));
+    }
+  });
+  function djEndDrag() { djDrag = null; }
+  djDisc.addEventListener("pointerup", djEndDrag);
+  djDisc.addEventListener("pointercancel", djEndDrag);
+  var DJ_GIG_ENERGY = 25;
+  function paintDjGig() {
+    var e = S.energy || 0;
+    if (e < DJ_GIG_ENERGY) {
+      djGigBtn.disabled = true;
+      djGigNote.textContent = "locked · a gig takes " + DJ_GIG_ENERGY + " energy and you have " + Math.floor(e) + ". sleep, then come back loud.";
+    } else {
+      djGigBtn.disabled = false;
+      djGigNote.textContent = "one set, paid on the night: cash and fans for " + DJ_GIG_ENERGY + " energy. the bigger the name, the bigger the door.";
+    }
+  }
+  djGigBtn.addEventListener("click", function () {
+    if ((S.energy || 0) < DJ_GIG_ENERGY) { shoutT("NOT ENOUGH ENERGY: A DJ GIG TAKES 25"); paintDjGig(); return; }
+    djAudio();
+    S.energy = Math.max(0, (S.energy || 0) - DJ_GIG_ENERGY);
+    var cash = 150 + Math.floor(Math.random() * 121) + Math.floor((S.rep || 0) * 2);
+    var fans = 25 + Math.floor(Math.random() * 20) + Math.floor((S.fans || 0) * 0.001);
+    S.money = (S.money || 0) + cash;
+    S.fans = (S.fans || 0) + fans;
+    tape("dj gig: hands up, record under yours. +$" + fmtN(cash) + " and +" + fmtN(fans) + " fans for the set.");
+    shoutT("DJ GIG: +$" + fmtN(cash));
+    [0, 1, 2, 3].forEach(function (i) { setTimeout(function () { DJ_PADS[0].play(); DJ_PADS[2].play(); }, i * 130); });
+    try { if (typeof recordCashPoint === "function") { recordCashPoint(); } } catch (e) {}
+    try { render(); } catch (e) {}
+    paintDjGig();
+  });
+  function openDj() {
+    djAudio();
+    djOv.classList.remove("hidden");
+    djOpen = true;
+    paintDjGig();
+    if (djRaf) { cancelAnimationFrame(djRaf); }
+    djRaf = requestAnimationFrame(djLoop);
+  }
+  function closeDj() {
+    djOv.classList.add("hidden");
+    djOpen = false;
+    djDrag = null;
+    if (djRaf) { cancelAnimationFrame(djRaf); djRaf = 0; }
+  }
+  window.RapDreamDJ = openDj;
+  try {
+    var wallBtn2 = gel("rd-open-wall");
+    if (wallBtn2 && wallBtn2.parentNode) {
+      var djBtn = mkEl("button", "hints-toggle", "dj booth");
+      djBtn.type = "button";
+      djBtn.id = "rd-open-dj";
+      djBtn.addEventListener("click", function () { openDj(); });
+      wallBtn2.parentNode.insertBefore(djBtn, wallBtn2.nextSibling);
     }
   } catch (e) {}
 
