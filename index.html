@@ -8895,6 +8895,10 @@ render();
     X.buzz = null;
     X.wallOpen = -1; X.playToken += 1; X.playingKey = null;
     shop.pending = null; shop.queue = []; shop.worn = []; shop.ownedGear = []; shop.shown = []; shop.stored = [];
+    /* a morning card still standing belongs to the old run: it comes
+       down with the queue, so nothing the old run was asked walks
+       into the new run's first morning. */
+    try { [labelOv, pkgOv, offerOv].forEach(function (ov) { if (ov) { ov.classList.add("hidden"); } }); } catch (e) {}
   }
 
   /* ---------- toasts: minor results land soft, no card to dismiss ---------- */
@@ -12076,7 +12080,11 @@ render();
           ivDeferred = true;
           if (rdHoldOn) { rdHoldWaitNotes.push("the interview: it came up during the hold and is still waiting on you"); }
           ivEl.classList.add("hidden");
+          var ivForS = S;
           ivPoll = setInterval(function () {
+            /* a deferred interview belongs to the run that earned it:
+               if the run changed while it waited, it never lands. */
+            if (S !== ivForS) { clearInterval(ivPoll); ivPoll = null; ivDeferred = false; return; }
             if (ivEl && !ivEl.classList.contains("hidden")) { clearInterval(ivPoll); ivPoll = null; ivDeferred = false; return; }
             if (!ivBlocked()) {
               clearInterval(ivPoll); ivPoll = null; ivDeferred = false;
@@ -13495,6 +13503,22 @@ render();
     beefActivePrev = {};
     beefReturned = {};
     lastShifts = -1;
+    /* the phone's memory is per-run too: the missed-things notes, the
+       snapshots they were diffed against, and the night stack belong
+       to the run that lived them, so a new run starts with a clear
+       phone instead of the old run's popups knocking on entry. */
+    notes = [];
+    notesViewed = [];
+    noteSeenPosts = null;
+    noteBondSnap = null;
+    noteRivalSnap = null;
+    noteOfferDay = 0;
+    noteOfferSeenDay = 0;
+    nightVisited = false;
+    nightEvents = [];
+    lastDaySeenN = 0;
+    try { if (noteOv) { noteOv.classList.add("hidden"); } } catch (e) {}
+    try { syncNoteBtn(); } catch (e) {}
   }
   function holdOn() { try { return !!window.__rdHoldActive; } catch (e) { return false; } }
 
@@ -15108,6 +15132,34 @@ render();
     ST.seen = { fans100: false, firstChart: false, first10k: false };
     ST.magSeen = {}; ST.causes = []; ST.prev = null; ST.prevDaySnap = null;
     ST.lastCatchDay = -9; ST.muralFor = null; ST.beefSplashKey = ""; ST.chartSig = ""; ST.fitTier = -1;
+    /* a new run starts with a clear desk. A moment the old run queued
+       (mogul mode keeps spectacles waiting behind the moment button)
+       dies with that run: the pending callback is dropped, the button
+       goes dark, any stage card still standing comes down, and every
+       popup room the old run left open is put away before the new
+       run's first paint. The start surfaces (chooser, class + region
+       pick, archetype pick) are the new run's own front door and are
+       never swept. */
+    ST.pending = null;
+    try { var mb = gel("rd-moment-btn"); if (mb) { mb.classList.remove("on"); } } catch (e) {}
+    try {
+      document.querySelectorAll(".rd-stage-ov:not(.hidden)").forEach(function (ov) {
+        ov.classList.add("hidden");
+        var c = ov.querySelector(".rd-stage-card"); if (c) { c.innerHTML = ""; }
+      });
+    } catch (e) {}
+    try {
+      document.querySelectorAll(".rd-overlay:not(.hidden)").forEach(function (ov) {
+        if (ov.id === "rd-start" || ov.id === "rd-pick" || ov.id === "rd-archetype") { return; }
+        ov.classList.add("hidden");
+      });
+      ["nw-interview", "dayflash", "endcard", "beef-room", "signing-room", "travel-room", "minigame-room", "legend-room", "advisor-room", "wire-room", "office-room", "features-room", "computer-room", "menu-room", "rd-phone"].forEach(function (id) {
+        var o = gel(id); if (o) { o.classList.add("hidden"); }
+      });
+      document.querySelectorAll(".market-room:not(.hidden)").forEach(function (o) { o.classList.add("hidden"); });
+      var sf = document.querySelector(".rd-saved-flash"); if (sf) { sf.style.display = "none"; }
+    } catch (e) {}
+    try { window.__rdAutoAnswers = []; } catch (e) {}
   }
 
   var CSS = `
