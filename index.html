@@ -15117,10 +15117,13 @@ render();
 #rd-intro .rd-lightdot{position:absolute;width:4px;height:4px;border-radius:50%;background:#ffd97a;opacity:0;animation:rdFlicker .5s ease forwards}
 @keyframes rdFlicker{0%{opacity:0}30%{opacity:1}55%{opacity:.15}80%{opacity:.95}100%{opacity:.85}}
 #rd-intro .rd-drone{position:absolute;top:16%;left:-70px;width:44px;height:20px;background:#1b2735;border:2px solid #69bdff;border-radius:6px;animation:rdDroneFly 2.6s linear forwards}
-#rd-intro .rd-drone i{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#f32e68;border-radius:50%}
-#rd-intro .rd-drone:before,#rd-intro .rd-drone:after{content:'';position:absolute;top:-7px;width:16px;height:5px;border-radius:50%;background:rgba(217,239,255,.85)}
-#rd-intro .rd-drone:before{left:-6px}#rd-intro .rd-drone:after{right:-6px}
+#rd-intro .rd-drone i,#rd-intro .rd-drone-ambient i{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#f32e68;border-radius:50%}
+#rd-intro .rd-drone:before,#rd-intro .rd-drone:after,#rd-intro .rd-drone-ambient:before,#rd-intro .rd-drone-ambient:after{content:'';position:absolute;top:-7px;width:16px;height:5px;border-radius:50%;background:rgba(217,239,255,.85)}
+#rd-intro .rd-drone:before,#rd-intro .rd-drone-ambient:before{left:-6px}#rd-intro .rd-drone:after,#rd-intro .rd-drone-ambient:after{right:-6px}
 @keyframes rdDroneFly{to{transform:translateX(115vw)}}
+#rd-intro .rd-drone-ambient{position:absolute;top:23%;left:-70px;width:44px;height:20px;background:#1b2735;border:2px solid #69bdff;border-radius:6px;opacity:.8;pointer-events:none}
+#rd-intro.landed .rd-drone-ambient{animation:rdDronePatrol 27s linear infinite}
+@keyframes rdDronePatrol{0%{transform:translate(0,0)}25%{transform:translate(30vw,-9px)}50%{transform:translate(58vw,5px)}75%{transform:translate(88vw,-7px)}100%{transform:translate(115vw,0)}}
 #rd-intro .rd-skyline{position:absolute;left:0;right:0;bottom:0;height:120px;background:repeating-linear-gradient(to right,#05090f 0 34px,#0a1119 34px 40px,#05090f 40px 74px,#0c1420 74px 82px);opacity:.95}
 #rd-intro .rd-intro-core{position:relative;text-align:center;padding:20px;max-width:640px;width:100%}
 #rd-intro .rd-big-title{font:900 clamp(44px,11vw,96px)/1 'Archivo Black',sans-serif;color:#eefbff;letter-spacing:.02em;text-transform:uppercase}
@@ -15257,7 +15260,7 @@ render();
 #rd-mural .rd-mural-row{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap}
 #rd-mural .rd-mural-row i{width:30px;height:40px;border-radius:5px;display:block}
 @media(prefers-reduced-motion:reduce){
- #rd-intro .rd-drone{animation:none;display:none}
+ #rd-intro .rd-drone,#rd-intro .rd-drone-ambient{animation:none;display:none}
  .rd-phones i,.rd-crowd i,.rd-wave i,.rd-oohs i,.stk-map path.arc,#rd-weather.gold i,.sky-debris{animation:none}
  #rd-moment-btn.on{animation:none}
  .rd-race-fill{transition:none}
@@ -15331,7 +15334,7 @@ render();
   intro.id = "rd-intro";
   intro.setAttribute("role", "dialog");
   intro.setAttribute("aria-label", "Rap Dream intro");
-  var introHTML = "<div class=\"rd-sky\"></div><div class=\"rd-drone\"><i></i></div><div class=\"rd-skyline\"></div>"
+  var introHTML = "<div class=\"rd-sky\"></div><div class=\"rd-drone\"><i></i></div><div class=\"rd-drone-ambient\" aria-hidden=\"true\"><i></i></div><div class=\"rd-skyline\"></div>"
     + "<div class=\"rd-intro-core\"><div class=\"rd-big-title\" aria-label=\"Rap Dream\"></div>"
     + "<div class=\"rd-intro-sub\">the sky up top · the map lights under it</div>"
     + "<div class=\"rd-mapdots\">" + REGIONS6.map(function () { return "<i></i>"; }).join("") + "</div>"
@@ -15342,6 +15345,7 @@ render();
     + "</div></div><div class=\"rd-skip\">tap to skip</div>";
   intro.innerHTML = introHTML;
   document.body.appendChild(intro);
+  var introT0 = Date.now();
   var titleEl = intro.querySelector(".rd-big-title");
   "RAP DREAM".split("").forEach(function (ch, i) {
     var sp = mkEl("span", null, ch === " " ? " " : ch);
@@ -15361,6 +15365,9 @@ render();
   function finishIntro() {
     if (introDone) { return; }
     introDone = true;
+    intro.classList.add("landed");
+    var amb = intro.querySelector(".rd-drone-ambient");
+    if (amb) { amb.style.animationDelay = Math.max(0, 2600 - (Date.now() - introT0)) + "ms"; }
     intro.querySelectorAll(".rd-big-title span").forEach(function (sp) { sp.classList.add("land"); sp.style.opacity = "1"; });
     intro.querySelector(".rd-intro-sub").classList.add("on");
     var dots = intro.querySelectorAll(".rd-mapdots i");
