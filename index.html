@@ -16750,44 +16750,77 @@ render();
   }, 900);
 
   /* ==================================================================
-     DJ MODE v1: one record, six pads, one gig. Born here, in the
-     consolidated home: no second deck, no quantize, no loop capture.
-     The sound is procedural, unlocked by walking in.
+     DJ MODE v2: the cassette deck. The booth's one room, rebuilt in
+     place: a portrait cassette body, 8 pads on the left rail, two
+     reels on the right. The top reel is the BEAT deck: an 8-bit loop
+     at exactly 80 BPM on a WebAudio lookahead clock; grab it and the
+     clock bends tape-style, let go and it snaps back to 80. The
+     bottom reel is the SCRATCH deck: a chip phrase under a needle,
+     scrubbed sample-by-sample at the hand's velocity (sign is
+     direction, magnitude is strength) — no position-follow clicks.
+     The pads quantize to the same clock's 16th grid. One clock, one
+     synth home, one gig, unchanged economics.
      ================================================================== */
   var djCss = document.createElement("style");
   djCss.textContent = ""
-    + ".rd-dj-discwrap{display:flex;justify-content:center;padding:10px 0 4px}"
-    + ".rd-dj-disc{width:216px;height:216px;border-radius:50%;cursor:grab;touch-action:none;position:relative;background:repeating-radial-gradient(circle at 50% 50%,#10161c 0 3px,#1a232c 3px 6px);border:3px solid #3d6076;box-shadow:0 10px 28px rgba(0,0,0,.45)}"
-    + ".rd-dj-disc:active{cursor:grabbing}"
-    + ".rd-dj-disc:before{content:'';position:absolute;left:50%;top:8px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#eefbff}"
-    + ".rd-dj-label{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;background:#ffcf3f;color:#12202c;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 10px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-align:center;padding:6px}"
-    + ".rd-dj-label small{font-weight:600;letter-spacing:.02em;margin-top:2px}"
-    + ".rd-dj-pads{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}"
-    + ".rd-dj-pad{min-height:64px;border:2px solid #3d6076;border-radius:12px;background:#12202c;color:#d5efff;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}"
-    + ".rd-dj-pad small{display:block;margin-top:3px;font-weight:500;letter-spacing:0;text-transform:none;color:#9fc6de}"
-    + ".rd-dj-pad:active{border-color:#ffcf3f;color:#ffcf3f}"
+    + ".rd-dj-deck{max-width:452px;margin:2px auto 0;border:3px solid #3d6076;border-radius:24px;background:linear-gradient(180deg,#1b2833,#10181f);box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 2px 0 rgba(238,251,255,.08);padding:14px 14px 16px}"
+    + ".rd-dj-window{display:flex;align-items:center;justify-content:space-between;border:2px solid #3d6076;border-radius:14px;background:rgba(5,10,14,.55);padding:7px 12px;margin-bottom:12px}"
+    + ".rd-dj-window .rd-dj-screw{width:9px;height:9px;border-radius:50%;background:#3d6076;box-shadow:inset 0 0 0 2px #10181f;flex:none}"
+    + ".rd-dj-window .rd-dj-title{font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.14em;color:#eefbff;text-transform:uppercase;text-align:center}"
+    + ".rd-dj-window .rd-dj-title small{display:block;font-weight:600;letter-spacing:.06em;color:#ffcf3f;margin-top:2px;text-transform:none}"
+    + ".rd-dj-main{display:flex;gap:12px;align-items:stretch}"
+    + ".rd-dj-pads{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(4,1fr);gap:8px;flex:1 1 auto;min-width:0}"
+    + ".rd-dj-pad{border:2px solid #3d6076;border-radius:14px;background:#12202c;color:#d5efff;font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;padding:8px 4px;min-height:56px}"
+    + ".rd-dj-pad small{display:block;margin-top:3px;font-weight:500;letter-spacing:0;text-transform:none;color:#9fc6de;font-size:10px}"
+    + ".rd-dj-pad:active,.rd-dj-pad.rd-dj-hit{border-color:#ffcf3f;color:#ffcf3f;background:#1d2f3d}"
+    + ".rd-dj-reels{display:flex;flex-direction:column;gap:12px;flex:none}"
+    + ".rd-dj-reel{width:158px;height:172px;border-radius:48%/44%;cursor:grab;touch-action:none;position:relative;background:repeating-radial-gradient(ellipse at 50% 50%,#10161c 0 4px,#1d2934 4px 8px);border:3px solid #3d6076;box-shadow:0 10px 24px rgba(0,0,0,.45)}"
+    + ".rd-dj-reel:active{cursor:grabbing}"
+    + ".rd-dj-reel:before{content:'';position:absolute;left:50%;top:9px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#eefbff}"
+    + ".rd-dj-reel-label{position:absolute;left:50%;top:50%;width:86px;height:86px;margin:-43px 0 0 -43px;border-radius:50%;background:#ffcf3f;color:#12202c;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 10px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-align:center;padding:6px;text-transform:uppercase}"
+    + ".rd-dj-reel-label small{font-weight:600;letter-spacing:.02em;margin-top:2px;text-transform:none}"
+    + ".rd-dj-reel-scratch .rd-dj-reel-label{background:#7ee0ff}"
     + ".rd-dj-note{font:500 12.5px/1.5 'Space Grotesk',sans-serif;color:#9fc6de;margin:0 0 10px}"
     + ".rd-dj-gig{width:100%;padding:12px 10px;background:#ffcf3f;color:#12202c;border:none;border-radius:12px;font:800 13px 'Space Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}"
-    + ".rd-dj-gig:disabled{opacity:.45;cursor:not-allowed}";
+    + ".rd-dj-gig:disabled{opacity:.45;cursor:not-allowed}"
+    + "@media (max-width:430px){.rd-dj-reel{width:132px;height:150px}.rd-dj-reel-label{width:74px;height:74px;margin:-37px 0 0 -37px}}";
   document.head.appendChild(djCss);
   var djOv = mkEl("section", "rd-overlay hidden", null);
   djOv.id = "rd-dj";
   djOv.setAttribute("aria-label", "DJ booth");
-  djOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>dj booth</h3><p>one record, six pads, and the room is listening. grab the record and pull it back.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  djOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>dj booth</h3><p>the cassette deck: a beat running at 80, a record under your hand, eight pads on the grid.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
   document.body.appendChild(djOv);
   var djBody = djOv.querySelector(".rd-panel-body");
-  var djDiscWrap = mkEl("div", "rd-dj-discwrap", null);
-  var djDisc = mkEl("div", "rd-dj-disc", null);
-  djDisc.setAttribute("role", "img");
-  djDisc.setAttribute("aria-label", "a spinning record you can grab and scratch");
-  var djLabel = mkEl("div", "rd-dj-label", null);
-  djLabel.innerHTML = "RAP DREAM<small>side a · your hands</small>";
-  djDisc.appendChild(djLabel);
-  djDiscWrap.appendChild(djDisc);
-  djBody.appendChild(djDiscWrap);
-  djBody.appendChild(mkEl("p", "rd-dj-note", "the baile kit: drums tuned low and fast, the stab is the funk. tap the pads, ride the record, then take the gig."));
+  var djDeck = mkEl("div", "rd-dj-deck", null);
+  var djWindow = mkEl("div", "rd-dj-window", null);
+  djWindow.appendChild(mkEl("span", "rd-dj-screw", ""));
+  var djTitle = mkEl("div", "rd-dj-title", null);
+  djTitle.innerHTML = "RAP DREAM<small>side a · chip funk · 80 bpm</small>";
+  djWindow.appendChild(djTitle);
+  djWindow.appendChild(mkEl("span", "rd-dj-screw", ""));
+  djDeck.appendChild(djWindow);
+  var djMain = mkEl("div", "rd-dj-main", null);
   var djPads = mkEl("div", "rd-dj-pads", null);
-  djBody.appendChild(djPads);
+  djMain.appendChild(djPads);
+  var djReels = mkEl("div", "rd-dj-reels", null);
+  var djBeatReel = mkEl("div", "rd-dj-reel rd-dj-reel-beat", null);
+  djBeatReel.setAttribute("role", "img");
+  djBeatReel.setAttribute("aria-label", "the beat deck: an 80 bpm loop you can grab to bend the tape");
+  var djBeatLabel = mkEl("div", "rd-dj-reel-label", null);
+  djBeatLabel.innerHTML = "BEAT<small>80 bpm · drag to bend</small>";
+  djBeatReel.appendChild(djBeatLabel);
+  djReels.appendChild(djBeatReel);
+  var djScratchReel = mkEl("div", "rd-dj-reel rd-dj-reel-scratch", null);
+  djScratchReel.setAttribute("role", "img");
+  djScratchReel.setAttribute("aria-label", "the scratch deck: scrub the record, your hand is the needle");
+  var djScratchLabel = mkEl("div", "rd-dj-reel-label", null);
+  djScratchLabel.innerHTML = "SCRATCH<small>your hand is the needle</small>";
+  djScratchReel.appendChild(djScratchLabel);
+  djReels.appendChild(djScratchReel);
+  djMain.appendChild(djReels);
+  djDeck.appendChild(djMain);
+  djBody.appendChild(djDeck);
+  djBody.appendChild(mkEl("p", "rd-dj-note", "8-bit baile: the beat reel runs the clock and every pad snaps to its grid. bend the beat, scrub the scratch, then take the gig."));
   var djGigBtn = mkEl("button", "rd-dj-gig", "play a dj gig");
   djGigBtn.type = "button";
   djBody.appendChild(djGigBtn);
@@ -16796,106 +16829,279 @@ render();
   djOv.querySelector(".rd-close").addEventListener("click", function () { closeDj(); });
   djOv.addEventListener("click", function (e) { if (e.target === djOv) { closeDj(); } });
 
-  var djCtx = null, djNoiseBuf = null;
+  /* ---- one audio home: context, master, bit-crush bus, buffers ---- */
+  var DJ_BPM = 80;
+  var DJ_STEP_SEC = 60 / DJ_BPM / 4; /* one 16th at 80 BPM = 0.1875s; a beat is 0.75s */
+  var djCtx = null, djMaster = null, djCrush = null, djNoiseBuf = null, djChipBuf = null;
+  function djMakeChipBuffer(ctx) {
+    var dur = 2, sr = ctx.sampleRate;
+    var buf = ctx.createBuffer(1, Math.floor(sr * dur), sr);
+    var d = buf.getChannelData(0);
+    var notes = [220, 0, 220, 261.63, 0, 220, 0, 329.63, 392, 0, 329.63, 261.63, 293.66, 0, 220, 196];
+    var step = dur / 16;
+    for (var i = 0; i < d.length; i += 1) {
+      var t = i / sr, idx = Math.floor(t / step), lt = t - idx * step;
+      var f = notes[idx], v = 0;
+      if (f) { var ph = (t * f) % 1; v = (ph < 0.5 ? 1 : -1) * 0.30 * Math.max(0, 1 - (lt / step) * 0.8); }
+      var bf = [55, 55, 82.41, 65.41][Math.floor(t / 0.5) % 4];
+      v += Math.sin(2 * Math.PI * bf * t) * 0.16;
+      d[i] = Math.max(-0.9, Math.min(0.9, v));
+    }
+    return buf;
+  }
   function djAudio() {
     try {
       if (!djCtx) {
         var AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) { return null; }
         djCtx = new AC();
+        djMaster = djCtx.createGain(); djMaster.gain.value = 0.9;
+        djMaster.connect(djCtx.destination);
+        djCrush = djCtx.createWaveShaper();
+        var curve = new Float32Array(256);
+        for (var ci = 0; ci < 256; ci += 1) { var cx = ci / 128 - 1; curve[ci] = Math.round(cx * 7) / 7; }
+        djCrush.curve = curve;
+        djCrush.connect(djMaster);
         var len = Math.floor(djCtx.sampleRate * 0.5);
         djNoiseBuf = djCtx.createBuffer(1, len, djCtx.sampleRate);
-        var d = djNoiseBuf.getChannelData(0);
-        for (var i = 0; i < len; i += 1) { d[i] = Math.random() * 2 - 1; }
+        var nd = djNoiseBuf.getChannelData(0);
+        for (var i = 0; i < len; i += 1) { nd[i] = Math.random() * 2 - 1; }
+        djChipBuf = djMakeChipBuffer(djCtx);
+        djScratchStart();
       }
       if (djCtx.state === "suspended") { djCtx.resume(); }
       return djCtx;
     } catch (e) { return null; }
   }
-  function djTone(type, f0, f1, dur, gain, delay) {
-    var ctx = djAudio(); if (!ctx) { return; }
+  /* ---- chip synth voices, all scheduled at an explicit time ---- */
+  function djToneAt(type, f0, f1, dur, gain, t0) {
+    if (!djCtx) { return; }
     try {
-      var t0 = ctx.currentTime + (delay || 0);
-      var o = ctx.createOscillator(), g = ctx.createGain();
+      var o = djCtx.createOscillator(), g = djCtx.createGain();
       o.type = type;
       o.frequency.setValueAtTime(f0, t0);
       if (f1) { o.frequency.exponentialRampToValueAtTime(Math.max(24, f1), t0 + dur); }
       g.gain.setValueAtTime(gain, t0);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(g); g.connect(ctx.destination);
+      o.connect(g); g.connect(djCrush);
       o.start(t0); o.stop(t0 + dur + 0.03);
     } catch (e) {}
   }
-  function djNoiseHit(dur, type, f0, f1, gain, delay) {
-    var ctx = djAudio(); if (!ctx || !djNoiseBuf) { return; }
+  function djNoiseAt(dur, type, f0, f1, gain, t0) {
+    if (!djCtx || !djNoiseBuf) { return; }
     try {
-      var t0 = ctx.currentTime + (delay || 0);
-      var src = ctx.createBufferSource(); src.buffer = djNoiseBuf;
+      var src = djCtx.createBufferSource(); src.buffer = djNoiseBuf;
       src.playbackRate.value = 0.7 + Math.random() * 0.6;
-      var flt = ctx.createBiquadFilter(); flt.type = type;
+      var flt = djCtx.createBiquadFilter(); flt.type = type;
       flt.frequency.setValueAtTime(f0, t0);
       if (f1) { flt.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t0 + dur); }
-      var g = ctx.createGain();
+      var g = djCtx.createGain();
       g.gain.setValueAtTime(gain, t0);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      src.connect(flt); flt.connect(g); g.connect(ctx.destination);
+      src.connect(flt); flt.connect(g); g.connect(djCrush);
       src.start(t0); src.stop(t0 + dur + 0.03);
     } catch (e) {}
   }
+  function djKickAt(t) { djToneAt("square", 160, 46, 0.14, 0.5, t); djNoiseAt(0.03, "highpass", 4000, 6000, 0.12, t); }
+  function djSnareAt(t) { djNoiseAt(0.13, "bandpass", 1900, 1100, 0.34, t); djToneAt("square", 196, 150, 0.06, 0.16, t); }
+  function djHatAt(t, open) { djNoiseAt(open ? 0.14 : 0.045, "highpass", 7600, 9200, open ? 0.17 : 0.13, t); }
+  function djBassAt(t, f) { djToneAt("triangle", f, f * 0.99, 0.21, 0.42, t); }
+  function djBlipAt(t, f, g) { djToneAt("square", f, f * 0.98, 0.07, g || 0.1, t); }
+
+  /* ---- the shared clock: beat loop + quantized pads, one scheduler ---- */
+  var djProbe = { bpm: DJ_BPM, stepSec: DJ_STEP_SEC, playing: false, bend: 1, scratchRate: 0, scratchTarget: 0, stepsScheduled: 0, padsFired: 0, lastPadAt: 0, lastPadQuantMs: 0, lastStepAt: 0 };
+  window.RapDreamDJProbe = djProbe;
+  var djClock = { timer: 0, step: 0, nextTime: 0 };
+  var djBend = 1;
+  var DJ_KICK_STEPS = { 0: 1, 3: 1, 6: 1, 8: 1, 11: 1, 14: 1 };
+  var DJ_BASS_LINE = [110, 0, 110, 0, 130.81, 0, 110, 0, 98, 0, 110, 0, 164.81, 0, 146.83, 0];
+  var DJ_BLIP_LINE = [0, 0, 440, 0, 0, 0, 523.25, 0, 0, 0, 659.25, 0, 0, 587.33, 0, 0];
+  function djSchedStep(step, t) {
+    var s16 = ((step % 16) + 16) % 16;
+    if (DJ_KICK_STEPS[s16]) { djKickAt(t); }
+    if (s16 === 4 || s16 === 12) { djSnareAt(t); }
+    if (s16 % 2 === 0) { djHatAt(t, s16 === 14); }
+    else if (s16 === 7 || s16 === 15) { djHatAt(t, false); }
+    if (DJ_BASS_LINE[s16]) { djBassAt(t, DJ_BASS_LINE[s16]); }
+    if (DJ_BLIP_LINE[s16]) { djBlipAt(t, DJ_BLIP_LINE[s16], 0.09); }
+    djProbe.stepsScheduled += 1;
+    djProbe.lastStepAt = t;
+  }
+  function djClockTick() {
+    if (!djCtx || !djProbe.playing) { return; }
+    while (djClock.nextTime < djCtx.currentTime + 0.12) {
+      djSchedStep(djClock.step, djClock.nextTime);
+      djClock.step += 1;
+      djClock.nextTime += DJ_STEP_SEC / djBend;
+    }
+  }
+  function djNextGridTime() {
+    /* the next 16th boundary on the shared clock at or after now */
+    if (!djCtx || !djProbe.playing) { return djCtx ? djCtx.currentTime : 0; }
+    var now = djCtx.currentTime;
+    var lastBoundary = djClock.nextTime - DJ_STEP_SEC / djBend;
+    if (lastBoundary > now + 0.004) { return lastBoundary; }
+    return djClock.nextTime;
+  }
+
+  /* ---- the scratch deck: continuous chip phrase, velocity-scrubbed ---- */
+  var djScratch = { pos: 0, rate: 0, target: 0, node: null, gain: null, held: false, lastMoveT: 0 };
+  function djScratchStart() {
+    if (!djCtx || djScratch.node) { return; }
+    try {
+      djScratch.gain = djCtx.createGain();
+      djScratch.gain.gain.value = 0;
+      djScratch.gain.connect(djMaster);
+      var node = djCtx.createScriptProcessor(1024, 0, 1);
+      node.onaudioprocess = function (ev) {
+        var out = ev.outputBuffer.getChannelData(0);
+        if (!djChipBuf) { for (var z = 0; z < out.length; z += 1) { out[z] = 0; } return; }
+        var d = djChipBuf.getChannelData(0), n = d.length;
+        djScratch.rate += (djScratch.target - djScratch.rate) * 0.35;
+        var r = djScratch.rate;
+        for (var i = 0; i < out.length; i += 1) {
+          djScratch.pos += r;
+          while (djScratch.pos >= n) { djScratch.pos -= n; }
+          while (djScratch.pos < 0) { djScratch.pos += n; }
+          var i0 = Math.floor(djScratch.pos), i1 = i0 + 1 < n ? i0 + 1 : 0, fr = djScratch.pos - i0;
+          out[i] = d[i0] * (1 - fr) + d[i1] * fr;
+        }
+        djProbe.scratchRate = djScratch.rate;
+        djProbe.scratchTarget = djScratch.target;
+      };
+      node.connect(djScratch.gain);
+      djScratch.node = node;
+    } catch (e) {}
+  }
+  function djScratchGain(on) {
+    if (!djCtx || !djScratch.gain) { return; }
+    try {
+      var t = djCtx.currentTime;
+      djScratch.gain.gain.cancelScheduledValues(t);
+      djScratch.gain.gain.setValueAtTime(djScratch.gain.gain.value, t);
+      djScratch.gain.gain.linearRampToValueAtTime(on ? 0.85 : 0, t + (on ? 0.03 : 0.09));
+    } catch (e) {}
+  }
+
+  /* ---- the 8 pads, quantized to the clock ---- */
   var DJ_PADS = [
-    { name: "kick", sub: "the 150 drop", play: function () { djTone("sine", 150, 40, 0.26, 0.55); } },
-    { name: "snare", sub: "crack on the two", play: function () { djNoiseHit(0.16, "bandpass", 1900, 1200, 0.32); djTone("triangle", 195, 150, 0.07, 0.16); } },
-    { name: "hat", sub: "fast and thin", play: function () { djNoiseHit(0.05, "highpass", 7200, 9000, 0.16); } },
-    { name: "perc", sub: "agogo chatter", play: function () { djTone("square", 840, 790, 0.06, 0.13); djTone("square", 1180, 1120, 0.06, 0.11, 0.07); } },
-    { name: "funk stab", sub: "the whole band, once", play: function () { [220, 277, 330].forEach(function (f) { djTone("sawtooth", f, f * 0.98, 0.17, 0.13); }); djNoiseHit(0.1, "lowpass", 2600, 700, 0.1); } },
-    { name: "bass hit", sub: "sub you feel", play: function () { djTone("sine", 62, 46, 0.3, 0.5); } }
+    { name: "kick", sub: "the 150 drop", at: function (t) { djKickAt(t); } },
+    { name: "snare", sub: "crack on the two", at: function (t) { djSnareAt(t); } },
+    { name: "hat", sub: "fast and thin", at: function (t) { djHatAt(t, false); } },
+    { name: "open hat", sub: "let it breathe", at: function (t) { djHatAt(t, true); } },
+    { name: "perc", sub: "agogo chatter", at: function (t) { djBlipAt(t, 840, 0.13); djBlipAt(t + DJ_STEP_SEC / 2, 1180, 0.11); } },
+    { name: "funk stab", sub: "the whole band, once", at: function (t) { [220, 277.18, 329.63].forEach(function (f) { djToneAt("square", f, f * 0.98, 0.16, 0.11, t); }); djNoiseAt(0.1, "lowpass", 2600, 700, 0.1, t); } },
+    { name: "chip arp", sub: "three notes, one breath", at: function (t) { djBlipAt(t, 440, 0.12); djBlipAt(t + DJ_STEP_SEC / 2, 554.37, 0.12); djBlipAt(t + DJ_STEP_SEC, 659.25, 0.12); } },
+    { name: "bass hit", sub: "sub you feel", at: function (t) { djToneAt("sine", 62, 46, 0.3, 0.5, t); } }
   ];
   DJ_PADS.forEach(function (p) {
     var b = mkEl("button", "rd-dj-pad", null);
     b.type = "button";
-    b.innerHTML = "";
     b.appendChild(document.createTextNode(p.name));
     b.appendChild(mkEl("small", null, p.sub));
-    b.addEventListener("pointerdown", function (e) { e.preventDefault(); p.play(); });
+    b.addEventListener("pointerdown", function (e) {
+      e.preventDefault();
+      var ctx = djAudio(); if (!ctx) { return; }
+      var t = djNextGridTime();
+      p.at(t);
+      djProbe.padsFired += 1;
+      djProbe.lastPadAt = t;
+      djProbe.lastPadQuantMs = Math.round((t - ctx.currentTime) * 1000);
+      var delay = Math.max(0, (t - ctx.currentTime) * 1000);
+      setTimeout(function () { b.classList.add("rd-dj-hit"); }, delay);
+      setTimeout(function () { b.classList.remove("rd-dj-hit"); }, delay + 130);
+    });
     djPads.appendChild(b);
   });
-  /* the record: it spins on its own; grab it and it follows the hand,
-     and the scratch you hear is the hand's own speed. */
-  var djOpen = false, djAngle = 0, djRaf = 0, djDrag = null, djLastScratch = 0;
-  function djLoop() {
+
+  /* ---- the reels: spin, bend, scrub ---- */
+  var djOpen = false, djRaf = 0, djBeatAngle = 0, djScratchAngle = 0;
+  var djBeatDrag = null, djScratchDrag = null;
+  function djReelLoop() {
     if (!djOpen) { return; }
-    if (!djDrag) { djAngle = (djAngle + 2.4) % 360; }
-    djDisc.style.transform = "rotate(" + djAngle + "deg)";
-    djRaf = requestAnimationFrame(djLoop);
+    if (!djBeatDrag) { djBeatAngle = (djBeatAngle + 480 * djBend * 0.016) % 360; }
+    if (!djScratchDrag && djCtx && djScratch.lastMoveT && performance.now() - djScratch.lastMoveT > 90) {
+      djScratch.target *= 0.8;
+      if (Math.abs(djScratch.target) < 0.01) { djScratch.target = 0; }
+    }
+    djBeatReel.style.transform = "rotate(" + djBeatAngle + "deg)";
+    if (djChipBuf) { djScratchAngle = (djScratch.pos / djChipBuf.length) * 720 % 360; }
+    djScratchReel.style.transform = "rotate(" + djScratchAngle + "deg)";
+    djRaf = requestAnimationFrame(djReelLoop);
   }
-  function djPointerAngle(e) {
-    var r = djDisc.getBoundingClientRect();
+  function djPointerAngle(el, e) {
+    var r = el.getBoundingClientRect();
     var dx = e.clientX - (r.left + r.width / 2);
     var dy = e.clientY - (r.top + r.height / 2);
     return Math.atan2(dy, dx) * 180 / Math.PI;
   }
-  djDisc.addEventListener("pointerdown", function (e) {
+  function djAngleDelta(a, b) {
+    var d = a - b;
+    while (d > 180) { d -= 360; }
+    while (d < -180) { d += 360; }
+    return d;
+  }
+  djBeatReel.addEventListener("pointerdown", function (e) {
     e.preventDefault();
     djAudio();
-    djDrag = { startPointer: djPointerAngle(e), startAngle: djAngle, last: djAngle, lastT: performance.now() };
-    try { djDisc.setPointerCapture(e.pointerId); } catch (err) {}
+    djBeatDrag = { lastPointer: djPointerAngle(djBeatReel, e), total: 0 };
+    try { djBeatReel.setPointerCapture(e.pointerId); } catch (err) {}
   });
-  djDisc.addEventListener("pointermove", function (e) {
-    if (!djDrag) { return; }
+  djBeatReel.addEventListener("pointermove", function (e) {
+    if (!djBeatDrag) { return; }
+    var a = djPointerAngle(djBeatReel, e);
+    var d = djAngleDelta(a, djBeatDrag.lastPointer);
+    djBeatDrag.lastPointer = a;
+    djBeatDrag.total += d;
+    djBeatAngle = (djBeatAngle + d) % 360;
+    djBend = Math.max(0.35, Math.min(2.25, 1 + djBeatDrag.total / 200));
+    djProbe.bend = djBend;
+    djBeatReel.style.transform = "rotate(" + djBeatAngle + "deg)";
+  });
+  function djBeatEnd() {
+    djBeatDrag = null;
+    djBend = 1; /* letting go snaps the tape back to 80 */
+    djProbe.bend = 1;
+  }
+  djBeatReel.addEventListener("pointerup", djBeatEnd);
+  djBeatReel.addEventListener("pointercancel", djBeatEnd);
+  djScratchReel.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    djAudio();
+    djScratchDrag = { lastPointer: djPointerAngle(djScratchReel, e), lastT: performance.now(), ema: 0 };
+    djScratch.held = true;
+    djScratchGain(true);
+    try { djScratchReel.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  djScratchReel.addEventListener("pointermove", function (e) {
+    if (!djScratchDrag) { return; }
     var now = performance.now();
-    var next = djDrag.startAngle + (djPointerAngle(e) - djDrag.startPointer);
-    var vel = (next - djDrag.last) / Math.max(1, now - djDrag.lastT) * 16;
-    djAngle = next;
-    djDrag.last = next; djDrag.lastT = now;
-    djDisc.style.transform = "rotate(" + djAngle + "deg)";
-    if (Math.abs(vel) > 1.2 && now - djLastScratch > 55) {
-      djLastScratch = now;
-      djNoiseHit(0.07, "bandpass", 700 + Math.min(2600, Math.abs(vel) * 260), 500, Math.min(0.3, 0.08 + Math.abs(vel) * 0.02));
-    }
+    var a = djPointerAngle(djScratchReel, e);
+    var d = djAngleDelta(a, djScratchDrag.lastPointer);
+    var dt = Math.max(4, now - djScratchDrag.lastT);
+    djScratchDrag.lastPointer = a;
+    djScratchDrag.lastT = now;
+    /* hand speed in revolutions per second; the needle rate IS that
+       speed, scaled: a fast pull screams, a slow drag growls, and
+       the sign carries the direction. */
+    var revPerSec = (d / 360) * (1000 / dt);
+    var rate = Math.max(-6, Math.min(6, revPerSec * 1.2));
+    djScratchDrag.ema = djScratchDrag.ema * 0.45 + rate * 0.55;
+    djScratch.target = djScratchDrag.ema;
+    djScratch.lastMoveT = now;
+    djProbe.scratchTarget = djScratch.target;
   });
-  function djEndDrag() { djDrag = null; }
-  djDisc.addEventListener("pointerup", djEndDrag);
-  djDisc.addEventListener("pointercancel", djEndDrag);
+  function djScratchEnd() {
+    djScratchDrag = null;
+    djScratch.held = false;
+    djScratch.target = 0;
+    djProbe.scratchTarget = 0;
+    djScratchGain(false);
+  }
+  djScratchReel.addEventListener("pointerup", djScratchEnd);
+  djScratchReel.addEventListener("pointercancel", djScratchEnd);
+
+  /* ---- the gig: v1 economics and copy, untouched ---- */
   var DJ_GIG_ENERGY = 25;
   function paintDjGig() {
     var e = S.energy || 0;
@@ -16917,23 +17123,39 @@ render();
     S.fans = (S.fans || 0) + fans;
     tape("dj gig: hands up, record under yours. +$" + fmtN(cash) + " and +" + fmtN(fans) + " fans for the set.");
     shoutT("DJ GIG: +$" + fmtN(cash));
-    [0, 1, 2, 3].forEach(function (i) { setTimeout(function () { DJ_PADS[0].play(); DJ_PADS[2].play(); }, i * 130); });
+    var ctx = djCtx;
+    if (ctx) {
+      var t0 = djNextGridTime();
+      [0, 1, 2, 3].forEach(function (i) { DJ_PADS[0].at(t0 + i * DJ_STEP_SEC * 2); DJ_PADS[2].at(t0 + i * DJ_STEP_SEC * 2); });
+    }
     try { if (typeof recordCashPoint === "function") { recordCashPoint(); } } catch (e) {}
     try { render(); } catch (e) {}
     paintDjGig();
   });
   function openDj() {
-    djAudio();
+    var ctx = djAudio();
     djOv.classList.remove("hidden");
     djOpen = true;
     paintDjGig();
+    if (ctx) {
+      djClock.step = 0;
+      djClock.nextTime = ctx.currentTime + 0.06;
+      djProbe.playing = true;
+      if (djClock.timer) { clearInterval(djClock.timer); }
+      djClock.timer = setInterval(djClockTick, 25);
+      djClockTick();
+    }
     if (djRaf) { cancelAnimationFrame(djRaf); }
-    djRaf = requestAnimationFrame(djLoop);
+    djRaf = requestAnimationFrame(djReelLoop);
   }
   function closeDj() {
     djOv.classList.add("hidden");
     djOpen = false;
-    djDrag = null;
+    djProbe.playing = false;
+    if (djClock.timer) { clearInterval(djClock.timer); djClock.timer = 0; }
+    djBeatEnd();
+    if (djScratchDrag || djScratch.held) { djScratchEnd(); }
+    djScratch.target = 0;
     if (djRaf) { cancelAnimationFrame(djRaf); djRaf = 0; }
   }
   window.RapDreamDJ = openDj;
