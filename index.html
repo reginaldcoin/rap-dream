@@ -2544,6 +2544,10 @@
   </style>
 </head>
 <body>
+<style id="rd-veil-css">#rd-veil{position:fixed;inset:0;z-index:9999;background:#0b1116;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .45s ease;font-family:'Space Grotesk',sans-serif}#rd-veil.rd-veil-off{opacity:0;pointer-events:none}#rd-veil .rd-veil-title{font-weight:800;letter-spacing:.18em;font-size:30px;color:#eefbff}#rd-veil .rd-veil-title b{color:#ffcf3f}#rd-veil .rd-veil-sub{font-size:12px;letter-spacing:.3em;color:#9fc6de;text-transform:uppercase;animation:rdVeilPulse 1.1s ease-in-out infinite}@keyframes rdVeilPulse{0%,100%{opacity:.45}50%{opacity:1}}</style>
+<div id="rd-veil" aria-hidden="true"><div class="rd-veil-title">RAP <b>DREAM</b></div><div class="rd-veil-sub">loading the city</div></div>
+<script>(function(){function off(){var v=document.getElementById("rd-veil");if(v){v.classList.add("rd-veil-off");setTimeout(function(){if(v&&v.parentNode){v.parentNode.removeChild(v);}},650);}}window.addEventListener("load",function(){setTimeout(off,350);});setTimeout(off,6000);})();</script>
+
   <main class="shell">
     <section class="objective" aria-label="Game controls">
       <h1 id="objective-title">Rap Dream</h1>
@@ -6534,15 +6538,15 @@ render();
     return [first, second || { key: "the come up", why: "off the top: the engine dealing wild", src: "wild" }];
   }
   var WR_CLASS_FRAGS = {
-    trap: ["perc talking, money walking", "count it up, stack it straight", "phone buzzing, buyers calling", "heavy drums, heavier pockets", "trap phone ringing off the hook"],
-    drill: ["slide first, talk later", "cold block, colder stare", "clipped words, sharp aim", "no wasted motion, all business", "mask off, name up"],
-    rnb: ["sing it soft, mean every word", "slow song, fast money", "your name in a high note", "velvet voice, iron terms", "hold the note, hold the bag"],
-    experimental: ["off-grid and on the money", "static talking, I answer in cash", "left field, home plate money", "bent the beat, never bent once", "upside-down anthem, right-side-up checks"]
+    trap: ["perc talking, money walking", "count it up, stack it straight", "phone buzzing, buyers calling", "heavy drums, heavier pockets", "trap phone ringing off the hook", "scale don't lie, neither do I", "whip the work, plate it pretty", "corner store economics, phd", "cash register singing tenor", "fiends at the gate, gate stay paid"],
+    drill: ["slide first, talk later", "cold block, colder stare", "clipped words, sharp aim", "no wasted motion, all business", "mask off, name up", "footwork first, questions never", "heartbeat on the offbeat", "short sentences, long memory", "the block talks, I translate", "aim small, miss never"],
+    rnb: ["sing it soft, mean every word", "slow song, fast money", "your name in a high note", "velvet voice, iron terms", "hold the note, hold the bag", "falsetto with a firm handshake", "slow jam, quick count", "love songs, landlord energy", "silk shirt, steel terms", "every note a signature"],
+    experimental: ["off-grid and on the money", "static talking, I answer in cash", "left field, home plate money", "bent the beat, never bent once", "upside-down anthem, right-side-up checks", "glitch in the gold chain", "backwards drums, forwards money", "noise complaint from the future", "sampled the silence, sold it back", "off-axis and on schedule"]
   };
   var WR_CLASS_KEYS = {
-    trap: ["the trap phone", "the undercurrent"],
+    trap: ["the trap phone", "the scale"],
     drill: ["the slide", "cold blocks"],
-    rnb: ["the high note", "slow water"],
+    rnb: ["the high note", "the slow song"],
     experimental: ["the glitch", "sideways clocks"]
   };
   /* ascending ladders: a verse that climbs instead of wandering —
@@ -6567,13 +6571,35 @@ render();
     if (style === 2) { return key + " in my head, " + frag; }
     return "from " + topic + " to the sky, " + frag;
   }
+  /* hooks are chants, not descriptions: a short core, a few beats
+     of mouth, said the same way four times so a crowd that heard it
+     once can shout it back. When the door the player picked is
+     itself short enough to chant, the door becomes the hook;
+     otherwise the engine deals a core from the chant deck. */
+  var WR_CHANTS = ["count it up", "say my name", "no cosign", "run it back", "pay in full", "all mine, all mine", "watch me work", "talk to me nice", "name heavy", "first of the month", "say it louder", "hands up, rent due", "came up talking", "big step, no whisper", "show me the money", "loud in the booth", "one take, one name", "check the scoreboard", "the whole block singing", "sign the name"];
+  function wrChantCore(key) {
+    var words = String(key || "").split(/\s+/).filter(Boolean);
+    if (words.length && words.length <= 4) { return key; }
+    return pick(WR_CHANTS);
+  }
   function wrMakeSet(key, flavor) {
+    if (flavor === "hook") {
+      /* one chant per career run of the book: if the door's own core
+         is already sung, the engine walks the chant deck before it
+         ever repeats itself — a hook never falls back to prose. */
+      var cands = [wrChantCore(key)];
+      shuffle(WR_CHANTS).forEach(function (c) { if (cands.indexOf(c) < 0) { cands.push(c); } });
+      for (var ci = 0; ci < cands.length; ci += 1) {
+        var trial = [cands[ci], cands[ci], cands[ci], cands[ci]];
+        var tsig = trial.join(" / ");
+        if (!wr.used[tsig]) { wr.used[tsig] = 1; return trial; }
+      }
+      var lastCore = cands[0];
+      return [lastCore, lastCore, lastCore, lastCore];
+    }
     for (var attempt = 0; attempt < 60; attempt += 1) {
       var bars;
-      if (flavor === "hook") {
-        var hb = wrBar(key, "hook");
-        bars = [hb, hb, hb, hb];
-      } else if (Math.random() < 0.5) {
+      if (Math.random() < 0.5) {
         /* half the verses climb a ladder: four rungs, low to high */
         bars = pick(WR_LADDERS).slice();
       } else {
@@ -6584,7 +6610,7 @@ render();
     }
     var extra = [key + ": " + pick(WR_FRAGS) + ", " + pick(WR_FRAGS)];
     wr.used[extra.join(" / ")] = 1;
-    return flavor === "hook" ? [extra[0], extra[0], extra[0], extra[0]] : [extra[0], wrBar(key), wrBar(key), wrBar(key)];
+    return [extra[0], wrBar(key), wrBar(key), wrBar(key)];
   }
   var writingRoom = makeRoom("writing-room", "Song writing engine");
   function wrStageName(stage) { return stage === 0 ? "the hook" : stage === 1 ? "verse part 1" : "verse part 2"; }
@@ -14167,6 +14193,9 @@ render();
   var talkLast = "";
   var talkDelta = null;
   var talkShock = false;
+  var talkTotal = 0;
+  var talkDone = false;
+  var talkGrade = "";
   var promoDaySeen = 0;
 
   function bondMap() {
@@ -14370,6 +14399,24 @@ render();
     if (mv.id === "joke") { return r < 0.5 + luck ? between(5, 10) : -between(5, 11); }
     return r < 0.5 + luck ? between(5, 9) : -between(5, 10);
   }
+  /* ---------- the conversation: three exchanges, graded ----------
+     Nate's blueprint, Fire Emblem grammar: a talk is a conversation
+     of three exchanges. Each guest has stable tastes: one move they
+     light up for (sharp), one that lands fine (solid), the rest a
+     read you have to make (off). The grade never shows before the
+     pick; the note after it teaches the read, and the tastes do not
+     move between nights, so a player who pays attention learns
+     people the way you learn people. */
+  function tasteOf(name) {
+    var h = hashStr("taste|" + name);
+    return { sharp: TALK_MOVES[h % TALK_MOVES.length].id, solid: TALK_MOVES[(h + 2) % TALK_MOVES.length].id };
+  }
+  function gradeOf(name, mv) {
+    var t = tasteOf(name);
+    if (mv.id === t.sharp) { return "sharp"; }
+    if (mv.id === t.solid) { return "solid"; }
+    return "off";
+  }
   function currentMoves() {
     var start = hashStr("moves|" + talkName + "|" + talkTurn + "|" + (S.day || 1)) % TALK_MOVES.length;
     var out = [];
@@ -14406,6 +14453,9 @@ render();
     talkDelta = null;
     talkShock = false;
     talkDebtHit = false;
+    talkTotal = 0;
+    talkDone = false;
+    talkGrade = "";
     var b = bondOf(name);
     var tierT = cashTier();
     var pool = b >= 25 ? TALK_OPEN.warm
@@ -14425,16 +14475,18 @@ render();
     head.appendChild(faceEl(name));
     var headText = el("div", "rdn-party-headtext");
     headText.appendChild(el("p", "rdn-party-where", name));
-    headText.appendChild(el("p", "rd-sub", PARTY_CELLS[partyPos].name + " · " + bondText(name) + " · energy " + (S.energy || 0)));
+    headText.appendChild(el("p", "rd-sub", PARTY_CELLS[partyPos].name + " · " + bondText(name) + " · exchange " + Math.min(talkTurn + 1, 3) + " of 3 · energy " + (S.energy || 0)));
     head.appendChild(headText);
     body.appendChild(head);
     if (talkLast) { body.appendChild(el("p", "rd-sub", talkLast)); }
     if (note) { body.appendChild(el("p", "rd-sub", note)); }
     var grid = el("div", "rd-grid");
-    if ((S.energy || 0) >= 10) {
+    if (!talkDone && (S.energy || 0) >= 10) {
       currentMoves().forEach(function (mv) {
         grid.appendChild(partyBtn(mv.label, mv.say + " · one response · −10 energy", function () { talkRespond(mv); }));
       });
+    } else if (talkDone) {
+      body.appendChild(el("p", "rd-sub", "three exchanges, done properly. the bond keeps what it earned tonight — talk again any night. people remember being read well."));
     } else {
       body.appendChild(el("p", "rd-sub", "the words are gone — energy's spent, and the talk ends the way talks end. the bond keeps what it earned tonight."));
     }
@@ -14450,6 +14502,12 @@ render();
     var evBefore = nightEvents.length;
     var before = bondOf(name);
     var d = rollDelta(mv, before);
+    var grade = gradeOf(name, mv);
+    talkGrade = grade;
+    if (grade === "sharp") { d = Math.abs(d) + between(1, 3); }
+    else if (grade === "solid") { if (d < 0) { d = between(1, 2); } }
+    else { d = d - between(1, 4); }
+    talkTotal += d;
     var after = setBond(name, before + d);
     talkTurn += 1;
     /* the night keeps receipts: what happens in these rooms is written
@@ -14480,6 +14538,13 @@ render();
       talkLast = name + ": " + pick(DEBT_LINES);
       nightEvents.push({ type: "debt", who: name });
     }
+    if (talkTurn >= 3) {
+      talkDone = true;
+      talkLast = name + ": " + (talkTotal >= 12 ? "“three exchanges and you never once bored me. that is rare air. we are locked in.”"
+        : talkTotal >= 4 ? "“good talk. the real kind. do not be a stranger in my rooms.”"
+        : talkTotal >= 0 ? "“we did the three. that is the night being polite to both of us.”"
+        : "“that is three. some conversations are just rent you pay for the room.”");
+    }
     /* the face reads this exchange: the delta, and whether a leak,
        beef, or debt moment surfaced in the talk just now */
     talkDelta = d;
@@ -14489,6 +14554,10 @@ render();
       + (bondTier(before) !== bondTier(after) ? " (was: " + bondTier(before) + ")" : "");
     if (after >= 50 && before < 50) { note += " family now — and family promotes family. watch the feed on a coming day."; }
     if ((S.energy || 0) < 10) { note += " — that's the tank: the talk closes itself."; }
+    if (talkGrade === "sharp") { note += " · you read them exactly right."; }
+    else if (talkGrade === "solid") { note += " · it lands fine."; }
+    else if (talkGrade === "off") { note += " · that one missed the person, not the room."; }
+    if (talkDone) { note += " · the whole conversation: bond " + (talkTotal >= 0 ? "+" : "") + talkTotal + "."; }
     try { render(); } catch (e) {}
     paintTalk(note);
   }
@@ -16842,9 +16911,10 @@ render();
     for (var i = 0; i < d.length; i += 1) {
       var t = i / sr, idx = Math.floor(t / step), lt = t - idx * step;
       var f = notes[idx], v = 0;
-      if (f) { var ph = (t * f) % 1; v = (ph < 0.5 ? 1 : -1) * 0.30 * Math.max(0, 1 - (lt / step) * 0.8); }
+      if (f) { var ph = (t * f) % 1; v = (ph < 0.5 ? 1 : -1) * 0.26 * Math.max(0, 1 - (lt / step) * 0.8); var ph2 = (t * f * 2.02) % 1; v += (ph2 < 0.5 ? 1 : -1) * 0.12 * Math.max(0, 1 - (lt / step) * 0.6); var ph3 = (t * f * 3.98) % 1; v += (ph3 < 0.5 ? 1 : -1) * 0.06; }
       var bf = [55, 55, 82.41, 65.41][Math.floor(t / 0.5) % 4];
       v += Math.sin(2 * Math.PI * bf * t) * 0.16;
+      if (((i * 1103515245 + 12345) % 997) < 3) { v += (i % 2 ? -0.22 : 0.22); } /* baked-in crackle: grit for the needle */
       d[i] = Math.max(-0.9, Math.min(0.9, v));
     }
     return buf;
@@ -16912,6 +16982,7 @@ render();
   var djProbe = { bpm: DJ_BPM, stepSec: DJ_STEP_SEC, playing: false, bend: 1, scratchRate: 0, scratchTarget: 0, stepsScheduled: 0, padsFired: 0, lastPadAt: 0, lastPadQuantMs: 0, lastStepAt: 0 };
   window.RapDreamDJProbe = djProbe;
   var djClock = { timer: 0, step: 0, nextTime: 0 };
+  var djPaused = false;
   var djBend = 1;
   var DJ_KICK_STEPS = { 0: 1, 3: 1, 6: 1, 8: 1, 11: 1, 14: 1 };
   var DJ_BASS_LINE = [110, 0, 110, 0, 130.81, 0, 110, 0, 98, 0, 110, 0, 164.81, 0, 146.83, 0];
@@ -16929,6 +17000,14 @@ render();
   }
   function djClockTick() {
     if (!djCtx || !djProbe.playing) { return; }
+    if (djPaused) { djClock.nextTime = djCtx.currentTime + 0.05; return; }
+    if (djBeatDrag && performance.now() - (djBeatDrag.lastMoveT || 0) > 70) {
+      /* a held, still hand is the only motor: the tape waits for it */
+      djClock.nextTime = djCtx.currentTime + 0.05;
+      djProbe.beatFrozen = true;
+      return;
+    }
+    djProbe.beatFrozen = false;
     while (djClock.nextTime < djCtx.currentTime + 0.12) {
       djSchedStep(djClock.step, djClock.nextTime);
       djClock.step += 1;
@@ -16938,6 +17017,7 @@ render();
   function djNextGridTime() {
     /* the next 16th boundary on the shared clock at or after now */
     if (!djCtx || !djProbe.playing) { return djCtx ? djCtx.currentTime : 0; }
+    if (djPaused) { return djCtx.currentTime; }
     var now = djCtx.currentTime;
     var lastBoundary = djClock.nextTime - DJ_STEP_SEC / djBend;
     if (lastBoundary > now + 0.004) { return lastBoundary; }
@@ -16951,20 +17031,23 @@ render();
     try {
       djScratch.gain = djCtx.createGain();
       djScratch.gain.gain.value = 0;
-      djScratch.gain.connect(djMaster);
+      djScratch.gain.connect(djCrush); /* the scrub runs through the crush bus: grit, not glass */
       var node = djCtx.createScriptProcessor(1024, 0, 1);
       node.onaudioprocess = function (ev) {
         var out = ev.outputBuffer.getChannelData(0);
         if (!djChipBuf) { for (var z = 0; z < out.length; z += 1) { out[z] = 0; } return; }
         var d = djChipBuf.getChannelData(0), n = d.length;
-        djScratch.rate += (djScratch.target - djScratch.rate) * 0.35;
+        djScratch.rate += (djScratch.target - djScratch.rate) * (djScratch.held ? 0.6 : 0.5); /* shorter smoothing: reversals chirp */
         var r = djScratch.rate;
+        var ampTgt = Math.max(0.12, Math.min(1, Math.abs(r) * 0.6 + 0.12));
+        djScratch.amp = (djScratch.amp || 0) + (ampTgt - (djScratch.amp || 0)) * 0.25;
+        var amp = djScratch.amp; /* the hand's speed is the volume: slow drag mutters, hard pull shouts */
         for (var i = 0; i < out.length; i += 1) {
           djScratch.pos += r;
           while (djScratch.pos >= n) { djScratch.pos -= n; }
           while (djScratch.pos < 0) { djScratch.pos += n; }
           var i0 = Math.floor(djScratch.pos), i1 = i0 + 1 < n ? i0 + 1 : 0, fr = djScratch.pos - i0;
-          out[i] = d[i0] * (1 - fr) + d[i1] * fr;
+          out[i] = (d[i0] * (1 - fr) + d[i1] * fr) * amp;
         }
         djProbe.scratchRate = djScratch.rate;
         djProbe.scratchTarget = djScratch.target;
@@ -17019,7 +17102,8 @@ render();
   var djBeatDrag = null, djScratchDrag = null;
   function djReelLoop() {
     if (!djOpen) { return; }
-    if (!djBeatDrag) { djBeatAngle = (djBeatAngle + 480 * djBend * 0.016) % 360; }
+    if (!djBeatDrag && !djPaused) { djBeatAngle = (djBeatAngle + 480 * djBend * 0.016) % 360; }
+    if (djScratchDrag && performance.now() - djScratch.lastMoveT > 50) { djScratch.target = 0; }
     if (!djScratchDrag && djCtx && djScratch.lastMoveT && performance.now() - djScratch.lastMoveT > 90) {
       djScratch.target *= 0.8;
       if (Math.abs(djScratch.target) < 0.01) { djScratch.target = 0; }
@@ -17044,7 +17128,7 @@ render();
   djBeatReel.addEventListener("pointerdown", function (e) {
     e.preventDefault();
     djAudio();
-    djBeatDrag = { lastPointer: djPointerAngle(djBeatReel, e), total: 0 };
+    djBeatDrag = { lastPointer: djPointerAngle(djBeatReel, e), total: 0, lastMoveT: performance.now() };
     try { djBeatReel.setPointerCapture(e.pointerId); } catch (err) {}
   });
   djBeatReel.addEventListener("pointermove", function (e) {
@@ -17052,6 +17136,7 @@ render();
     var a = djPointerAngle(djBeatReel, e);
     var d = djAngleDelta(a, djBeatDrag.lastPointer);
     djBeatDrag.lastPointer = a;
+    djBeatDrag.lastMoveT = performance.now();
     djBeatDrag.total += d;
     djBeatAngle = (djBeatAngle + d) % 360;
     djBend = Math.max(0.35, Math.min(2.25, 1 + djBeatDrag.total / 200));
@@ -17136,6 +17221,8 @@ render();
     var ctx = djAudio();
     djOv.classList.remove("hidden");
     djOpen = true;
+    djPaused = false;
+    try { paintDjTransport(); } catch (e) {}
     paintDjGig();
     if (ctx) {
       djClock.step = 0;
@@ -17169,6 +17256,437 @@ render();
       wallBtn2.parentNode.insertBefore(djBtn, wallBtn2.nextSibling);
     }
   } catch (e) {}
+
+  /* ==================================================================
+     V13: the deck grows a memory, the game learns to be shared.
+     Everything below lives in the same two homes as V11/V12: state
+     rides the one save payload through the RapDreamPersist bridge,
+     and every surface here answers to the same dialog discipline.
+     ================================================================== */
+  var v13Css = document.createElement("style");
+  v13Css.textContent = ""
+    /* the game surface is a surface, not a document: the native text
+       grab never gets a vote on a drag, a bend, or a scratch. */
+    + "html{-webkit-touch-callout:none}"
+    + "body{-webkit-user-select:none;user-select:none}"
+    + "input,textarea,select,[contenteditable=\"true\"]{-webkit-user-select:text;user-select:text}"
+    + ".rd-dj-pad,.rd-dj-reel,.rd-dj-step,.rd-dj-chip{touch-action:none}"
+    + ".rd-dj-transport{display:flex;gap:8px;margin:0 0 12px}"
+    + ".rd-dj-tbtn{flex:1;padding:10px 6px;border:2px solid #3d6076;border-radius:12px;background:#12202c;color:#d5efff;font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}"
+    + ".rd-dj-tbtn.on{border-color:#ffcf3f;color:#ffcf3f;background:#1d2f3d}"
+    + ".rd-dj-prog{border:2px solid #3d6076;border-radius:14px;background:rgba(5,10,14,.55);padding:10px 12px;margin:0 0 12px}"
+    + ".rd-dj-prog h4{margin:0 0 8px;font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.12em;color:#eefbff;text-transform:uppercase}"
+    + ".rd-dj-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}"
+    + ".rd-dj-chip{padding:6px 9px;border:2px solid #3d6076;border-radius:10px;background:#12202c;color:#9fc6de;font:700 10.5px 'Space Grotesk',sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}"
+    + ".rd-dj-chip.on{border-color:#7ee0ff;color:#7ee0ff}"
+    + ".rd-dj-chip.has{color:#eefbff}"
+    + ".rd-dj-steps{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:10px}"
+    + ".rd-dj-step{height:34px;border:2px solid #2a4356;border-radius:9px;background:#0d1620;color:#54707f;font:800 10px 'Space Grotesk',sans-serif;cursor:pointer;padding:0}"
+    + ".rd-dj-step.bar{border-color:#3d6076}"
+    + ".rd-dj-step.on{background:#ffcf3f;border-color:#ffcf3f;color:#12202c}"
+    + ".rd-dj-prow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}"
+    + ".rd-dj-prow .rd-dj-tbtn{flex:0 1 auto;padding:8px 12px}"
+    + ".rd-dj-prow input[type=\"text\"]{flex:1;min-width:110px;background:#0d1620;border:2px solid #3d6076;border-radius:10px;color:#eefbff;padding:8px 10px;font:600 12px 'Space Grotesk',sans-serif}"
+    + ".rd-dj-prow select{flex:1;min-width:110px;background:#0d1620;border:2px solid #3d6076;border-radius:10px;color:#eefbff;padding:8px;font:600 12px 'Space Grotesk',sans-serif}"
+    + ".rd-share-card{border:2px solid #3d6076;border-radius:16px;background:linear-gradient(180deg,#1b2833,#10181f);padding:14px;margin:0 0 12px}"
+    + ".rd-share-card h4{margin:0 0 4px;font:800 15px 'Space Grotesk',sans-serif;color:#ffcf3f;letter-spacing:.04em}"
+    + ".rd-share-card .rd-share-hook{font:700 16px/1.45 'Space Grotesk',sans-serif;color:#eefbff;margin:4px 0}"
+    + ".rd-share-card p{font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin:3px 0}"
+    + ".rd-share-post{margin-top:9px;padding:10px 14px;background:#ffcf3f;color:#12202c;border:none;border-radius:11px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.09em;text-transform:uppercase;cursor:pointer}";
+  document.head.appendChild(v13Css);
+  try { RD_EXEMPT_OPENERS.push("rd-rate"); } catch (e) {}
+
+  /* ---- V13 state: loops, the ratings flag, career peaks ---- */
+  var v13 = {
+    loops: [],          /* [{name, steps}] saved in the booth */
+    rated: false,       /* the ratings nudge has had its one say */
+    peaks: { fans: 0, money: 0, bestGain: 0, lastDay: 0, lastFans: 0 }
+  };
+  window.RapDreamV13 = v13;
+
+  /* ---- the program loop: the pads get a memory ----
+     steps: { padIndex: { stepIndex: 1 } } on the deck's own 16-step
+     grid. When the loop is on and the pattern holds anything, the
+     pattern replaces the backing groove step for step; the gig, the
+     clock and the bend never hear about it. */
+  var djProg = { on: false, editing: 0, steps: {} };
+  djProbe.progFired = 0;
+  djProbe.loopOn = false;
+  function djProgHas() {
+    for (var k in djProg.steps) { if (djProg.steps[k] && Object.keys(djProg.steps[k]).length) { return true; } }
+    return false;
+  }
+  function djProgCount() {
+    var n = 0;
+    for (var k in djProg.steps) { if (djProg.steps[k]) { n += Object.keys(djProg.steps[k]).length; } }
+    return n;
+  }
+  var djSchedStepOrig = djSchedStep;
+  djSchedStep = function (step, t) {
+    if (djProg.on && djProgHas()) {
+      var s16 = ((step % 16) + 16) % 16;
+      var fired = false;
+      for (var pi = 0; pi < DJ_PADS.length; pi += 1) {
+        if (djProg.steps[pi] && djProg.steps[pi][s16]) { DJ_PADS[pi].at(t); fired = true; }
+      }
+      if (fired) { djProbe.progFired += 1; djProbe.stepsScheduled += 1; djProbe.lastStepAt = t; return; }
+      /* a silent step in your own pattern is a rest, and rests are
+         part of the pattern: the groove does not fill them in. */
+      djProbe.stepsScheduled += 1; djProbe.lastStepAt = t; return;
+    }
+    return djSchedStepOrig(step, t);
+  };
+
+  /* ---- transport + program surfaces on the deck face ---- */
+  var djTransport = mkEl("div", "rd-dj-transport", null);
+  var djPauseBtn = mkEl("button", "rd-dj-tbtn", "pause the beat");
+  djPauseBtn.type = "button";
+  var djProgBtn = mkEl("button", "rd-dj-tbtn", "program a loop");
+  djProgBtn.type = "button";
+  djTransport.appendChild(djPauseBtn);
+  djTransport.appendChild(djProgBtn);
+  djDeck.insertBefore(djTransport, djDeck.children[1] || null);
+  function paintDjTransport() {
+    djPauseBtn.textContent = djPaused ? "run the beat" : "pause the beat";
+    djPauseBtn.classList.toggle("on", !!djPaused);
+    djProgBtn.classList.toggle("on", !!djProg.on || !djProgPanel.classList.contains("hidden"));
+    djProbe.paused = !!djPaused;
+    djProbe.loopOn = !!djProg.on;
+  }
+  djPauseBtn.addEventListener("click", function () {
+    djAudio();
+    djPaused = !djPaused;
+    if (!djPaused && djCtx) { djClock.nextTime = djCtx.currentTime + 0.06; }
+    paintDjTransport();
+  });
+  var djProgPanel = mkEl("div", "rd-dj-prog hidden", null);
+  djProgPanel.innerHTML = "<h4>program the loop · 16 steps at 80</h4>";
+  var djProgChips = mkEl("div", "rd-dj-chips", null);
+  djProgPanel.appendChild(djProgChips);
+  var djProgSteps = mkEl("div", "rd-dj-steps", null);
+  djProgPanel.appendChild(djProgSteps);
+  var djProgRow1 = mkEl("div", "rd-dj-prow", null);
+  var djLoopBtn = mkEl("button", "rd-dj-tbtn", "loop: off");
+  djLoopBtn.type = "button";
+  var djClearBtn = mkEl("button", "rd-dj-tbtn", "clear pad");
+  djClearBtn.type = "button";
+  djProgRow1.appendChild(djLoopBtn);
+  djProgRow1.appendChild(djClearBtn);
+  djProgPanel.appendChild(djProgRow1);
+  var djProgRow2 = mkEl("div", "rd-dj-prow", null);
+  djProgRow2.style.marginTop = "8px";
+  var djLoopName = document.createElement("input");
+  djLoopName.type = "text"; djLoopName.placeholder = "name this loop"; djLoopName.maxLength = 24;
+  var djSaveLoopBtn = mkEl("button", "rd-dj-tbtn", "save loop");
+  djSaveLoopBtn.type = "button";
+  djProgRow2.appendChild(djLoopName);
+  djProgRow2.appendChild(djSaveLoopBtn);
+  djProgPanel.appendChild(djProgRow2);
+  var djProgRow3 = mkEl("div", "rd-dj-prow", null);
+  djProgRow3.style.marginTop = "8px";
+  var djLoopSel = document.createElement("select");
+  var djLoadLoopBtn = mkEl("button", "rd-dj-tbtn", "load");
+  djLoadLoopBtn.type = "button";
+  var djDelLoopBtn = mkEl("button", "rd-dj-tbtn", "delete");
+  djDelLoopBtn.type = "button";
+  djProgRow3.appendChild(djLoopSel);
+  djProgRow3.appendChild(djLoadLoopBtn);
+  djProgRow3.appendChild(djDelLoopBtn);
+  djProgPanel.appendChild(djProgRow3);
+  djBody.insertBefore(djProgPanel, djBody.children[1] || null);
+  function paintDjProg() {
+    djProgChips.innerHTML = "";
+    DJ_PADS.forEach(function (p, i) {
+      var c = mkEl("button", "rd-dj-chip" + (i === djProg.editing ? " on" : "") + (djProg.steps[i] && Object.keys(djProg.steps[i]).length ? " has" : ""), p.name);
+      c.type = "button";
+      c.addEventListener("click", function () { djProg.editing = i; paintDjProg(); });
+      djProgChips.appendChild(c);
+    });
+    djProgSteps.innerHTML = "";
+    for (var s = 0; s < 16; s += 1) {
+      (function (stepIdx) {
+        var on = !!(djProg.steps[djProg.editing] && djProg.steps[djProg.editing][stepIdx]);
+        var b = mkEl("button", "rd-dj-step" + (stepIdx % 4 === 0 ? " bar" : "") + (on ? " on" : ""), String(stepIdx + 1));
+        b.type = "button";
+        b.setAttribute("aria-label", "step " + (stepIdx + 1) + (on ? " on" : " off"));
+        b.addEventListener("click", function () {
+          if (!djProg.steps[djProg.editing]) { djProg.steps[djProg.editing] = {}; }
+          if (djProg.steps[djProg.editing][stepIdx]) { delete djProg.steps[djProg.editing][stepIdx]; }
+          else {
+            djProg.steps[djProg.editing][stepIdx] = 1;
+            var ctx = djAudio();
+            if (ctx) { DJ_PADS[djProg.editing].at(ctx.currentTime + 0.02); }
+          }
+          paintDjProg();
+        });
+        djProgSteps.appendChild(b);
+      })(s);
+    }
+    djLoopBtn.textContent = djProg.on ? "loop: on" : "loop: off";
+    djLoopBtn.classList.toggle("on", !!djProg.on);
+    djLoopSel.innerHTML = "";
+    if (!v13.loops.length) {
+      var o0 = document.createElement("option");
+      o0.textContent = "no saved loops yet"; o0.value = "";
+      djLoopSel.appendChild(o0);
+    }
+    v13.loops.forEach(function (L, i) {
+      var o = document.createElement("option");
+      o.value = String(i); o.textContent = L.name;
+      djLoopSel.appendChild(o);
+    });
+    paintDjTransport();
+  }
+  djProgBtn.addEventListener("click", function () {
+    djProgPanel.classList.toggle("hidden");
+    paintDjProg();
+  });
+  djLoopBtn.addEventListener("click", function () {
+    djProg.on = !djProg.on;
+    if (djProg.on) { djAudio(); }
+    paintDjProg();
+  });
+  djClearBtn.addEventListener("click", function () {
+    djProg.steps[djProg.editing] = {};
+    paintDjProg();
+  });
+  function djStepsSnapshot() {
+    var out = {};
+    for (var k in djProg.steps) { if (djProg.steps[k]) { out[k] = JSON.parse(JSON.stringify(djProg.steps[k])); } }
+    return out;
+  }
+  djSaveLoopBtn.addEventListener("click", function () {
+    var nm = (djLoopName.value || "").trim() || ("loop " + (v13.loops.length + 1));
+    var steps = djStepsSnapshot();
+    var found = -1;
+    v13.loops.forEach(function (L, i) { if (L.name === nm) { found = i; } });
+    if (found >= 0) { v13.loops[found].steps = steps; }
+    else { v13.loops.push({ name: nm, steps: steps }); }
+    djLoopName.value = "";
+    shoutT("LOOP SAVED: " + nm.toUpperCase());
+    paintDjProg();
+  });
+  djLoadLoopBtn.addEventListener("click", function () {
+    var L = v13.loops[parseInt(djLoopSel.value, 10)];
+    if (!L) { return; }
+    djProg.steps = JSON.parse(JSON.stringify(L.steps || {}));
+    paintDjProg();
+  });
+  djDelLoopBtn.addEventListener("click", function () {
+    var i = parseInt(djLoopSel.value, 10);
+    if (isNaN(i) || !v13.loops[i]) { return; }
+    v13.loops.splice(i, 1);
+    paintDjProg();
+  });
+  paintDjProg();
+
+  /* ---- V13 state rides the one save payload ---- */
+  (function v13Persist() {
+    var P = window.RapDreamPersist;
+    if (!P || typeof P.collect !== "function" || typeof P.restore !== "function") { return; }
+    var collect0 = P.collect, restore0 = P.restore;
+    P.collect = function () {
+      var base = null;
+      try { base = collect0(); } catch (e) {}
+      if (!base || typeof base !== "object") { base = {}; }
+      base.v13 = {
+        loops: v13.loops,
+        pattern: djStepsSnapshot(),
+        rated: v13.rated,
+        peaks: v13.peaks
+      };
+      return base;
+    };
+    P.restore = function (x) {
+      try { restore0(x); } catch (e) {}
+      try {
+        if (x && x.v13 && typeof x.v13 === "object") {
+          if (Array.isArray(x.v13.loops)) { v13.loops = x.v13.loops; }
+          if (x.v13.pattern && typeof x.v13.pattern === "object") { djProg.steps = x.v13.pattern; }
+          v13.rated = !!x.v13.rated;
+          if (x.v13.peaks && typeof x.v13.peaks === "object") { v13.peaks = x.v13.peaks; }
+          paintDjProg();
+        }
+      } catch (e) {}
+    };
+  })();
+
+  /* ---- measurement: GoatCounter tag + the five beacons ----
+     The endpoint code is Doucet's account string; empty means the
+     tag stays off the page and the beacons still log to
+     window.RapDreamBeacons, so nothing about the wiring is a lie
+     either way. */
+  var RD_GC_CODE = "";
+  if (RD_GC_CODE) {
+    try {
+      var gcScript = document.createElement("script");
+      gcScript.async = true;
+      gcScript.src = "https://gc.zgo.at/count.js";
+      gcScript.setAttribute("data-goatcounter", "https://" + RD_GC_CODE + ".goatcounter.com/count");
+      document.head.appendChild(gcScript);
+    } catch (e) {}
+  }
+  var rdBeaconLog = [];
+  window.RapDreamBeacons = rdBeaconLog;
+  function rdBeacon(name) {
+    rdBeaconLog.push({ n: name, at: Date.now() });
+    try {
+      if (window.goatcounter && typeof window.goatcounter.count === "function") {
+        window.goatcounter.count({ path: "/event/" + name, title: name, event: true });
+      }
+    } catch (e) {}
+  }
+  var rdFired = {};
+  function rdBeaconOnce(name, key) {
+    if (rdFired[key]) { return; }
+    rdFired[key] = true;
+    rdBeacon(name);
+  }
+  var rdWasPicked = false;
+  setInterval(function () {
+    try {
+      if (typeof S === "undefined" || !S) { return; }
+      var RD = window.RapDreamStart;
+      var picked = !!(RD && RD.picked);
+      if (picked && !rdWasPicked && (S.day || 1) <= 2) {
+        rdBeaconOnce("run_started", "run");
+        rdFired.day3 = false;
+        v13.peaks.lastDay = S.day || 1;
+        v13.peaks.lastFans = S.fans || 0;
+      }
+      rdWasPicked = picked;
+      if (!picked) { return; }
+      if ((S.day || 1) >= 3) { rdBeaconOnce("day_3", "day3"); }
+      if (songs().length >= 1) { rdBeaconOnce("first_song", "song"); }
+      if (S.actionCounts && (S.actionCounts.show || 0) >= 1) { rdBeaconOnce("first_show", "show"); }
+      /* career peaks, sampled as the days turn */
+      if ((S.fans || 0) > (v13.peaks.fans || 0)) { v13.peaks.fans = S.fans || 0; }
+      if ((S.money || 0) > (v13.peaks.money || 0)) { v13.peaks.money = S.money || 0; }
+      if ((S.day || 1) !== (v13.peaks.lastDay || 1)) {
+        var gain = (S.fans || 0) - (v13.peaks.lastFans || 0);
+        if (gain > (v13.peaks.bestGain || 0)) { v13.peaks.bestGain = gain; }
+        v13.peaks.lastDay = S.day || 1;
+        v13.peaks.lastFans = S.fans || 0;
+      }
+    } catch (e) {}
+  }, 1000);
+
+  /* ---- share cards: built to be posted ----
+     Three cards read the live run: the latest song, the moment the
+     career is standing in, and the peak it has reached. Posting
+     fires the share beacon whether the sheet completes or not:
+     the click is the signal. */
+  var shareOv = mkEl("section", "rd-overlay hidden", null);
+  shareOv.id = "rd-share";
+  shareOv.setAttribute("aria-label", "Share cards");
+  shareOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>share cards</h3><p>three cards, cut from the run you are standing in. post one anywhere.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(shareOv);
+  var shareBody = shareOv.querySelector(".rd-panel-body");
+  shareOv.querySelector(".rd-close").addEventListener("click", function () { shareOv.classList.add("hidden"); });
+  shareOv.addEventListener("click", function (e) { if (e.target === shareOv) { shareOv.classList.add("hidden"); } });
+  function sharePost(text) {
+    rdBeacon("share_clicked");
+    function copied() { shoutT("CARD COPIED: POST IT ANYWHERE"); }
+    try {
+      if (navigator.share) {
+        navigator.share({ title: "RAP DREAM", text: text }).then(function () {}, function () {});
+        return;
+      }
+      throw new Error("no native share");
+    } catch (e) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(copied, function () { shoutT("SHARE IS READY WHEN YOU ARE"); });
+          return;
+        }
+      } catch (e2) {}
+      shoutT("SHARE IS READY WHEN YOU ARE");
+    }
+  }
+  function shareCardEl(kind, title, hookLine, lines) {
+    var card = mkEl("div", "rd-share-card", null);
+    card.appendChild(mkEl("h4", null, title));
+    if (hookLine) { card.appendChild(mkEl("p", "rd-share-hook", hookLine)); }
+    lines.forEach(function (L) { card.appendChild(mkEl("p", null, L)); });
+    var b = mkEl("button", "rd-share-post", "post this card");
+    b.type = "button";
+    var text = title + (hookLine ? "\n" + hookLine : "") + "\n" + lines.join("\n") + "\n— RAP DREAM, a rap career in your browser";
+    b.addEventListener("click", function () { sharePost(text); });
+    card.appendChild(b);
+    return card;
+  }
+  function paintShareCards() {
+    shareBody.innerHTML = "";
+    var ss = songs();
+    var latest = ss.length ? ss[ss.length - 1] : null;
+    if (latest) {
+      var hook = (latest.hook && latest.hook[0]) || (latest.bars && latest.bars[0]) || "";
+      shareBody.appendChild(shareCardEl("song",
+        "“" + (latest.title || latest.name || "untitled") + "”",
+        hook ? "“" + hook + "” ×4" : "",
+        [artistName() + " · " + homeRegion() + " · from the songbook, day " + (S.day || 1)]));
+    } else {
+      shareBody.appendChild(shareCardEl("song", "no song yet", "", ["write one in the song writing engine and its card cuts itself here."]));
+    }
+    shareBody.appendChild(shareCardEl("moment",
+      "the moment · day " + (S.day || 1),
+      "",
+      [artistName() + " is standing in it: " + fmtN(S.fans || 0) + " fans, " + money(S.money || 0) + " in hand, rep " + fmtN(S.rep || 0) + ".",
+       ss.length ? ss.length + (ss.length === 1 ? " song" : " songs") + " in the book and the city is listening." : "the book is empty and the city is waiting."]));
+    shareBody.appendChild(shareCardEl("peak",
+      "the peak so far",
+      "",
+      ["peak fans " + fmtN(Math.max(v13.peaks.fans || 0, S.fans || 0)) + " · peak cash " + money(Math.max(v13.peaks.money || 0, S.money || 0)) + " · biggest single-day climb +" + fmtN(v13.peaks.bestGain || 0) + " fans.",
+       "the peak is a receipt, not a promise. it only moves one way."]));
+  }
+  function openShare() {
+    paintShareCards();
+    shareOv.classList.remove("hidden");
+  }
+  window.RapDreamShare = openShare;
+  try {
+    var djBtn2 = gel("rd-open-dj");
+    if (djBtn2 && djBtn2.parentNode) {
+      var shareBtn = mkEl("button", "hints-toggle", "share cards");
+      shareBtn.type = "button";
+      shareBtn.id = "rd-open-share";
+      shareBtn.addEventListener("click", function () { openShare(); });
+      djBtn2.parentNode.insertBefore(shareBtn, djBtn2.nextSibling);
+    }
+  } catch (e) {}
+
+  /* ---- the ratings nudge: one say, at a real milestone ----
+     The first time a run crosses 1,000 fans, if the room is quiet,
+     one small card asks for the thing that helps strangers find
+     the game. Any answer closes it for good on this save. */
+  var rateOv = mkEl("section", "rd-overlay hidden", null);
+  rateOv.id = "rd-rate";
+  rateOv.setAttribute("aria-label", "Rate the game");
+  rateOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>a thousand fans</h3><p>the climb is real, and ratings are how strangers find this game. if rap dream earned it, twenty seconds on itch puts the next thousand in reach.</p></div></div><div class=\"rd-panel-body\"><div class=\"pk-bet-row\"><button type=\"button\" class=\"pk-bet-place rd-rate-yes\">rate it on itch</button><button type=\"button\" class=\"pk-bet-btn rd-rate-no\">not now</button></div></div></div>";
+  document.body.appendChild(rateOv);
+  function closeRate(mark) {
+    rateOv.classList.add("hidden");
+    if (mark) { v13.rated = true; }
+  }
+  rateOv.querySelector(".rd-rate-yes").addEventListener("click", function () {
+    closeRate(true);
+    try { window.open("https://rapdream.itch.io/rap-dream", "_blank"); } catch (e) {}
+  });
+  rateOv.querySelector(".rd-rate-no").addEventListener("click", function () { closeRate(true); });
+  var rateShown = false;
+  setInterval(function () {
+    try {
+      if (rateShown || v13.rated) { return; }
+      if (typeof S === "undefined" || !S || S.over) { return; }
+      var RD = window.RapDreamStart;
+      if (!RD || !RD.picked) { return; }
+      if ((S.fans || 0) < 1000) { return; }
+      if (document.querySelector(".rd-overlay:not(.hidden), #minigame-room:not(.hidden)")) { return; }
+      rateShown = true;
+      rateOv.classList.remove("hidden");
+    } catch (e) {}
+  }, 1500);
+  paintDjTransport();
 
   stackRenderPass();
 })();
