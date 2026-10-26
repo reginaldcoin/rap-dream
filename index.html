@@ -4366,7 +4366,7 @@ syncDoll();
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "C3"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -17693,5 +17693,565 @@ render();
 
 </script>
 
+<script>
+"use strict";
+/* ==================================================================
+   V14: the basement, live battles, and the deck audit.
+   The basement is the party's underside: the spawn point where new
+   rappers surface into the world, and the room where they can be
+   fought. Battles run MUD-style on a ticking clock — the tick is a
+   bar: one bar at the deck's 80 BPM is 3 seconds — and they pay XP
+   into a battle level that lives beside the career stats, never in
+   their place. State rides the one save payload through the
+   RapDreamPersist bridge (extras.v14); both new rooms are plain
+   rd-overlays, so the dialog discipline home owns their Escape and
+   exclusivity like every other room. The deck itself was audited
+   against the V2 spec this build (see RapDreamV14DeckAudit): the
+   cassette body, 8 quantized pads, velocity scrub and bend were
+   already standing from V12/V13, so the deck is verified, not
+   rebuilt.
+   ================================================================== */
+(function () {
+  if (typeof S === "undefined" || !S) { return; }
+  function gel(id) { return document.getElementById(id); }
+  function mkEl(tag, cls, text) { var n = document.createElement(tag); if (cls) { n.className = cls; } if (text != null) { n.textContent = text; } return n; }
+  function tape(text) { try { if (typeof log === "function") { log(text); } } catch (e) {} }
+  function wire(text) { try { if (typeof queueWire === "function") { queueWire(S, text); } } catch (e) {} }
+  function fmtN(n) { try { return formatNumber(n); } catch (e) { return String(n); } }
+  function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function pickOf(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  var BATTLE_ENERGY = 10;      /* the diss price: one live battle, stated up front */
+  var TICK_MS = 3000;          /* one bar at 80 BPM: 4 beats x 0.75s */
+  var POOL_CAP = 6;
+
+  /* ---------------- state (rides extras.v14) ---------------- */
+  function v14Defaults() {
+    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0 };
+  }
+  var v14 = v14Defaults();
+  var v14RestoredAt = 0;
+  window.RapDreamV14 = v14;
+
+  var XP_LEVELS = [0, 60, 160, 320, 560, 900];   /* cumulative XP per battle level 1..6 */
+  function levelOf(xp) {
+    var lv = 1;
+    for (var i = 0; i < XP_LEVELS.length; i += 1) { if ((xp || 0) >= XP_LEVELS[i]) { lv = i + 1; } }
+    return lv;
+  }
+  function xpToNext(xp) {
+    var lv = levelOf(xp);
+    if (lv >= XP_LEVELS.length) { return 0; }
+    return XP_LEVELS[lv] - (xp || 0);
+  }
+  var MOVE_UNLOCK = { 2: "hook", 3: "haymaker", 5: "the closer" };
+  var MOVES = [
+    { id: "bar", name: "light bar", sub: "a quick one. 6 to 11 off their crowd.", level: 1 },
+    { id: "guard", name: "hold the pocket", sub: "guard: halve what lands this bar, win back 6 crowd.", level: 1 },
+    { id: "hook", name: "hook", sub: "a heavier swing. 11 to 17 off their crowd.", level: 2 },
+    { id: "haymaker", name: "haymaker", sub: "17 to 27, but a whiff costs you 5 crowd.", level: 3 },
+    { id: "closer", name: "the closer", sub: "huge when their crowd is nearly gone. your last bar, spent right.", level: 5 }
+  ];
+  function moveUnlocked(m) { return levelOf(v14.xp) >= m.level; }
+
+  /* ---------------- CSS ---------------- */
+  var css = document.createElement("style");
+  css.textContent = ""
+    + ".rd-v14-card{border:2px solid #3d6076;border-radius:14px;background:rgba(5,10,14,.55);padding:10px 12px;margin:0 0 12px}"
+    + ".rd-v14-card h4{margin:0 0 6px;font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.12em;color:#eefbff;text-transform:uppercase}"
+    + ".rd-v14-card p{font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin:3px 0}"
+    + ".rd-v14-row{display:flex;gap:10px;align-items:center;justify-content:space-between;border:2px solid #2a4356;border-radius:12px;background:#0d1620;padding:9px 11px;margin:0 0 8px}"
+    + ".rd-v14-row .rd-v14-who strong{display:block;color:#eefbff;font:800 13px 'Space Grotesk',sans-serif}"
+    + ".rd-v14-row .rd-v14-who small{display:block;color:#9fc6de;font:500 11px 'Space Grotesk',sans-serif;margin-top:2px}"
+    + ".rd-v14-fight-btn{flex:none;padding:10px 12px;background:#ffcf3f;color:#12202c;border:none;border-radius:11px;font:800 11.5px 'Space Grotesk',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}"
+    + ".rd-v14-fight-btn:disabled{opacity:.45;cursor:not-allowed}"
+    + ".rd-v14-meter{height:14px;border:2px solid #3d6076;border-radius:8px;background:#0d1620;overflow:hidden;margin:4px 0 10px}"
+    + ".rd-v14-meter i{display:block;height:100%;background:#ffcf3f;transition:width .45s ease}"
+    + ".rd-v14-meter.them i{background:#7ee0ff}"
+    + ".rd-v14-mlabel{font:800 10.5px 'Space Grotesk',sans-serif;letter-spacing:.1em;color:#9fc6de;text-transform:uppercase}"
+    + ".rd-v14-moves{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}"
+    + ".rd-v14-move{border:2px solid #3d6076;border-radius:12px;background:#12202c;color:#d5efff;padding:9px 10px;text-align:left;cursor:pointer;font:800 12px 'Space Grotesk',sans-serif}"
+    + ".rd-v14-move small{display:block;margin-top:3px;font-weight:500;color:#9fc6de;font-size:10.5px;line-height:1.4}"
+    + ".rd-v14-move.on{border-color:#ffcf3f;color:#ffcf3f;background:#1d2f3d}"
+    + ".rd-v14-move:disabled{opacity:.45;cursor:not-allowed}"
+    + ".rd-v14-log{border:2px solid #2a4356;border-radius:12px;background:#05090d;padding:10px 12px;max-height:190px;overflow-y:auto;font:500 12.5px/1.6 'Space Grotesk',sans-serif;color:#d5efff}"
+    + ".rd-v14-log p{margin:0 0 5px}"
+    + ".rd-v14-log .dim{color:#7d99ac}"
+    + ".rd-v14-stairs{display:block;width:100%;margin:10px 0 2px;padding:11px 12px;background:#12202c;color:#ffcf3f;border:2px solid #3d6076;border-radius:12px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}"
+    + ".rd-v14-note{font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin:0 0 10px}"
+    + ".rd-v14-big{font:800 15px 'Space Grotesk',sans-serif;color:#ffcf3f;margin:2px 0 6px}";
+  document.head.appendChild(css);
+
+  /* ---------------- the spawn: names up the stairs ---------------- */
+  var SPAWN_FIRST = ["Young", "Lil", "Kid", "MC", "DJ", "Sir", "Lady", "King", "Queen", "Prince", "Saint", "Captain", "Doctor", "Baby"];
+  var SPAWN_CORE = ["Cinder", "Metro", "Vandal", "Copper", "Static", "Marble", "Pepper", "Sable", "Tundra", "Velvet", "Onyx", "Harbor", "Juniper", "Cobalt", "Mango", "Fable", "Riot", "Tarmac", "Willow", "Granite"];
+  var SPAWN_TAIL = ["the Riveter", "No Sleep", "Two Phones", "the Locksmith", "Paperwork", "Halfstep", "the Archivist", "the Usher", "the Tenant", "the Night Clerk", "Blue Hour", "the Doorman", "Second Shift", "the Cartographer"];
+  function spawnNameTaken(name) {
+    var i;
+    for (i = 0; i < v14.pool.length; i += 1) { if (v14.pool[i].name === name) { return true; } }
+    for (i = 0; i < v14.gone.length; i += 1) { if (v14.gone[i] === name) { return true; } }
+    if (typeof RD_FEATURED_NAMES !== "undefined" && RD_FEATURED_NAMES.indexOf(name) >= 0) { return true; }
+    var rivals = (typeof S !== "undefined" && S && S.rivals) || [];
+    for (i = 0; i < rivals.length; i += 1) { if (rivals[i] && rivals[i].name === name) { return true; } }
+    return false;
+  }
+  function spawnName() {
+    for (var tries = 0; tries < 40; tries += 1) {
+      var style = Math.random();
+      var name;
+      if (style < 0.4) { name = pickOf(SPAWN_FIRST) + " " + pickOf(SPAWN_CORE); }
+      else if (style < 0.75) { name = pickOf(SPAWN_CORE) + " " + pickOf(SPAWN_TAIL); }
+      else { name = pickOf(SPAWN_CORE) + " " + pickOf(SPAWN_CORE); }
+      if (!spawnNameTaken(name)) { return name; }
+    }
+    return "Basement " + (v14.spawnSeq + 1);
+  }
+  function spawnPower() {
+    var lv = levelOf(v14.xp);
+    var p = rnd(1, 4) + Math.floor(((S && S.day) || 1) / 14);
+    if (lv >= 3) { p += 1; }
+    if (lv >= 5) { p += 1; }
+    return Math.max(1, Math.min(9, p));
+  }
+  var SPAWN_POSTS = [
+    "came up out of the basement tonight. notebook full, stomach empty. remember the name.",
+    "new face, old stairs. the basement sent one up: act accordingly.",
+    "they said post the basement set, so here it is. live from under the party.",
+    "climbed out of the basement with one song and no fear of anybody upstairs."
+  ];
+  function spawnRapper(reason) {
+    if (v14.pool.length >= POOL_CAP) { return null; }
+    var name = spawnName();
+    var rapper = { name: name, power: spawnPower(), day: (S && S.day) || 1 };
+    v14.pool.push(rapper);
+    v14.lastSpawnDay = (S && S.day) || 1;
+    v14.spawnSeq += 1;
+    try {
+      var TL = window.RapDreamTl;
+      if (TL && typeof TL.posts === "function") {
+        var arr = TL.posts();
+        if (Array.isArray(arr)) {
+          arr.unshift({ id: "v14s" + v14.spawnSeq, author: name, text: pickOf(SPAWN_POSTS), day: (S && S.day) || 1, mine: false, waiting: false, stamp: ((S && S.day) || 1) * 1440 + (v14.spawnSeq * 53) % 600 });
+        }
+      }
+    } catch (e) {}
+    wire(name + " surfaced from the basement at the party.");
+    tape(name + " climbed out of the basement: a new face in the building, power " + rapper.power + ".");
+    return rapper;
+  }
+
+  /* ---------------- the basement room ---------------- */
+  var baseOv = mkEl("section", "rd-overlay hidden", null);
+  baseOv.id = "rd-v14-base";
+  baseOv.setAttribute("aria-label", "The basement");
+  baseOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>the basement</h3><p>the stairs under the party. every name upstairs started down here.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(baseOv);
+  var baseBody = baseOv.querySelector(".rd-panel-body");
+  baseOv.querySelector(".rd-close").addEventListener("click", function () { baseOv.classList.add("hidden"); });
+  baseOv.addEventListener("click", function (e) { if (e.target === baseOv) { baseOv.classList.add("hidden"); } });
+
+  function activeRival() {
+    var rivals = (S && S.rivals) || [];
+    var best = null;
+    for (var i = 0; i < rivals.length; i += 1) {
+      var r = rivals[i];
+      if (r && r.active !== false && r.name && (!best || (r.tension || 0) > (best.tension || 0))) { best = r; }
+    }
+    return best;
+  }
+  function fightButton(label, oppName, oppPower, isRival) {
+    var b = mkEl("button", "rd-v14-fight-btn", label);
+    b.type = "button";
+    var e = (S && S.energy) || 0;
+    if (e < BATTLE_ENERGY) {
+      b.disabled = true;
+      b.textContent = "needs " + BATTLE_ENERGY + " energy";
+    }
+    b.addEventListener("click", function () { startFight({ name: oppName, power: oppPower, rival: !!isRival }); });
+    return b;
+  }
+  function paintBasement(note) {
+    baseBody.innerHTML = "";
+    if (note) { baseBody.appendChild(mkEl("p", "rd-v14-note", note)); }
+    if (v14.fights === 0 && (v14.xp || 0) === 0) {
+      baseBody.appendChild(mkEl("p", "rd-v14-note", "you started down here too. everybody did. the only way out of this room is up, and up is earned one battle at a time."));
+    }
+    var card = mkEl("div", "rd-v14-card", null);
+    card.appendChild(mkEl("h4", null, "your name in this room"));
+    var lv = levelOf(v14.xp);
+    var rec = v14.wins + " won · " + v14.losses + " lost" + (v14.walks ? " · " + v14.walks + " walked" : "");
+    card.appendChild(mkEl("p", null, "battle level " + lv + " · " + (v14.xp || 0) + " XP" + (xpToNext(v14.xp) ? " · " + xpToNext(v14.xp) + " XP to level " + (lv + 1) : " · top of the stairs") + " · " + rec));
+    var unlocked = MOVES.filter(moveUnlocked).map(function (m) { return m.name; }).join(", ");
+    var locked = MOVES.filter(function (m) { return !moveUnlocked(m); }).map(function (m) { return m.name + " (level " + m.level + ")"; }).join(", ");
+    card.appendChild(mkEl("p", null, "your moves: " + unlocked + (locked ? " · still locked: " + locked : "")));
+    baseBody.appendChild(card);
+
+    var poolCard = mkEl("div", "rd-v14-card", null);
+    poolCard.appendChild(mkEl("h4", null, "up from the basement"));
+    if (!v14.pool.length) {
+      poolCard.appendChild(mkEl("p", null, "nobody new yet. the stairs are quiet tonight. the basement provides on its own schedule: come back tomorrow."));
+    }
+    v14.pool.forEach(function (r) {
+      var row = mkEl("div", "rd-v14-row", null);
+      var who = mkEl("div", "rd-v14-who", null);
+      who.appendChild(mkEl("strong", null, r.name));
+      who.appendChild(mkEl("small", null, "power " + r.power + " · surfaced day " + r.day + " · still unsigned, still hungry"));
+      row.appendChild(who);
+      row.appendChild(fightButton("battle · " + BATTLE_ENERGY + " energy", r.name, r.power, false));
+      poolCard.appendChild(row);
+    });
+    baseBody.appendChild(poolCard);
+
+    var rival = activeRival();
+    if (rival) {
+      var rv = mkEl("div", "rd-v14-card", null);
+      rv.appendChild(mkEl("h4", null, "in the building tonight"));
+      var row2 = mkEl("div", "rd-v14-row", null);
+      var who2 = mkEl("div", "rd-v14-who", null);
+      who2.appendChild(mkEl("strong", null, rival.name));
+      who2.appendChild(mkEl("small", null, "your beef, settled live down here. the ladder upstairs does not move: this one pays XP and pride only."));
+      row2.appendChild(who2);
+      row2.appendChild(fightButton("battle · " + BATTLE_ENERGY + " energy", rival.name, Math.max(2, Math.min(9, 2 + Math.round((rival.tension || 0) / 18))), true));
+      rv.appendChild(row2);
+      baseBody.appendChild(rv);
+    }
+    var eNow = Math.floor((S && S.energy) || 0);
+    if (eNow < BATTLE_ENERGY) {
+      baseBody.appendChild(mkEl("p", "rd-v14-note", "a live battle takes " + BATTLE_ENERGY + " energy and you have " + eNow + ". rest, then come back down."));
+    }
+  }
+  function openBasement() {
+    if ((S.day || 1) !== v14.lastSpawnDay && v14.pool.length < POOL_CAP) {
+      spawnRapper("room");
+      if (Math.random() < 0.3 && v14.pool.length < POOL_CAP) { spawnRapper("room"); }
+    }
+    paintBasement();
+    baseOv.classList.remove("hidden");
+  }
+  window.RapDreamBasement = openBasement;
+
+  /* the dash door, beside the booth door the same way the booth
+     door sits beside the wall */
+  function plantDoor() {
+    if (gel("rd-open-basement")) { return true; }
+    var anchor = gel("rd-open-dj") || gel("rd-open-wall");
+    if (!anchor || !anchor.parentNode) { return false; }
+    var b = mkEl("button", "hints-toggle", "the basement");
+    b.type = "button";
+    b.id = "rd-open-basement";
+    b.addEventListener("click", function () { openBasement(); });
+    anchor.parentNode.insertBefore(b, anchor.nextSibling);
+    return true;
+  }
+  if (!plantDoor()) {
+    var doorTries = 0;
+    var doorTimer = setInterval(function () { doorTries += 1; if (plantDoor() || doorTries > 12) { clearInterval(doorTimer); } }, 900);
+  }
+
+  /* the stairs inside the party: a door painted under the map
+     whenever the party paints its rooms */
+  var partyOvEl = gel("rdn-party");
+  if (partyOvEl) {
+    var stairsQueued = false;
+    new MutationObserver(function () {
+      if (stairsQueued) { return; }
+      stairsQueued = true;
+      setTimeout(function () {
+        stairsQueued = false;
+        try {
+          if (partyOvEl.classList.contains("hidden")) { return; }
+          var body = partyOvEl.querySelector(".room-body") || partyOvEl.querySelector(".rd-panel-body");
+          if (!body || !body.querySelector(".rdn-party-map")) { return; }
+          if (body.querySelector(".rd-v14-stairs")) { return; }
+          var b = mkEl("button", "rd-v14-stairs", "the basement · down the stairs");
+          b.type = "button";
+          b.addEventListener("click", function () { openBasement(); });
+          body.appendChild(b);
+        } catch (e) {}
+      }, 60);
+    }).observe(partyOvEl, { childList: true, subtree: true });
+  }
+
+  /* ---------------- live battles: the tick is a bar ---------------- */
+  var fightOv = mkEl("section", "rd-overlay hidden", null);
+  fightOv.id = "rd-v14-fight";
+  fightOv.setAttribute("aria-label", "Live battle");
+  fightOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>live battle</h3><p>bar by bar, in real time: one bar is 3 seconds, the deck's own tempo. pick your move before the bar turns, or your mouth runs a light bar on its own.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(fightOv);
+  var fightBody = fightOv.querySelector(".rd-panel-body");
+  fightOv.querySelector(".rd-close").addEventListener("click", function () {
+    if (fight && !fight.over) { endFight("walk"); }
+    fightOv.classList.add("hidden");
+  });
+  fightOv.addEventListener("click", function (e) { if (e.target === fightOv) { if (fight && !fight.over) { endFight("walk"); } fightOv.classList.add("hidden"); } });
+
+  var fight = null;
+  var YOUR_LINES = {
+    bar: ["a light bar, clean and quick", "a quick one off the top", "short, sharp, gone"],
+    hook: ["the hook lands heavy", "the hook: the whole room leans in", "a hook with weight behind it"],
+    haymaker: ["HAYMAKER. the room felt that one", "the haymaker lands and the circle goes quiet", "everything on one swing, and it lands"],
+    closer: ["THE CLOSER. the last bar, spent on the kill", "the closer: no wasted motion", "you end it the way closers end it"]
+  };
+  var THEIR_LINES = ["answers with a sharp one", "throws back without blinking", "comes over the top with a quick one", "answers bar for bar", "swings from the pocket"];
+
+  function oppMove(f) {
+    var r = Math.random();
+    var ps = 0.75 + f.power * 0.07;
+    if (r < 0.45) { return { dmg: Math.round(rnd(5, 10) * ps), line: pickOf(THEIR_LINES) }; }
+    if (r < 0.72) { return f.power >= 2 ? { dmg: Math.round(rnd(9, 15) * ps), line: "throws a hook of their own" } : { dmg: Math.round(rnd(5, 10) * ps), line: pickOf(THEIR_LINES) }; }
+    if (r < 0.86) { return { dmg: 0, guard: true, line: "falls back and guards" }; }
+    return f.power >= 4 ? { dmg: Math.round(rnd(14, 22) * ps), line: "loads up a haymaker" } : { dmg: Math.round(rnd(9, 15) * ps), line: "throws a hook of their own" };
+  }
+  function yourDamage(f, mv) {
+    if (mv === "hook") { return { dmg: rnd(11, 17), line: pickOf(YOUR_LINES.hook) }; }
+    if (mv === "haymaker") {
+      if (Math.random() < 0.25) { return { dmg: 0, whiff: true, line: "the haymaker swings at air" }; }
+      return { dmg: rnd(17, 27), line: pickOf(YOUR_LINES.haymaker) };
+    }
+    if (mv === "closer") {
+      return f.them <= 35 ? { dmg: rnd(20, 30), line: pickOf(YOUR_LINES.closer) } : { dmg: rnd(8, 12), line: "the closer comes early and lands light" };
+    }
+    return { dmg: rnd(6, 11), line: pickOf(YOUR_LINES.bar) };
+  }
+  function fightLog(f, text, dim) {
+    f.log.unshift({ text: text, dim: !!dim });
+    if (f.log.length > 42) { f.log.length = 42; }
+  }
+  function resolveBar() {
+    var f = fight;
+    if (!f || f.over) { return; }
+    f.bar += 1;
+    var mv = f.pick || "bar";
+    var youGuard = mv === "guard";
+    var om = oppMove(f);
+    var themGuard = !!om.guard;
+    /* your swing */
+    if (youGuard) {
+      f.you = Math.min(100, f.you + 6);
+      fightLog(f, "bar " + f.bar + ": you hold the pocket and let the room breathe. (+6 your crowd)");
+    } else {
+      var yd = yourDamage(f, mv);
+      var dealt = themGuard ? Math.max(1, Math.round(yd.dmg / 2)) : yd.dmg;
+      if (yd.whiff) {
+        f.you = Math.max(0, f.you - 5);
+        fightLog(f, "bar " + f.bar + ": " + yd.line + ". the recoil stings. (-5 your crowd)");
+      } else {
+        f.them = Math.max(0, f.them - dealt);
+        fightLog(f, "bar " + f.bar + ": you: " + yd.line + ". (-" + dealt + " their crowd" + (themGuard ? ", halved by their guard" : "") + ")");
+      }
+    }
+    if (f.them <= 0) { endFight("win"); paintFight(); return; }
+    /* their swing */
+    if (themGuard) {
+      f.them = Math.min(f.themMax, f.them + 5);
+      fightLog(f, "bar " + f.bar + ": " + f.name + " " + om.line + ". (+5 their crowd)", true);
+    } else {
+      var taken = youGuard ? Math.max(1, Math.round(om.dmg / 2)) : om.dmg;
+      f.you = Math.max(0, f.you - taken);
+      fightLog(f, "bar " + f.bar + ": " + f.name + " " + om.line + ". (-" + taken + " your crowd" + (youGuard ? ", halved by your guard" : "") + ")", true);
+    }
+    f.pick = "bar";
+    if (f.you <= 0) { endFight("loss"); paintFight(); return; }
+    paintFight();
+  }
+  function endFight(result) {
+    var f = fight;
+    if (!f || f.over) { return; }
+    f.over = true;
+    f.result = result;
+    if (f.timer) { clearInterval(f.timer); f.timer = 0; }
+    var xp = 4;
+    if (result === "win") { xp = 26 + f.power * 3; v14.wins += 1; }
+    else if (result === "loss") { xp = 8; v14.losses += 1; }
+    else { v14.walks += 1; }
+    v14.fights += 1;
+    var before = levelOf(v14.xp);
+    v14.xp += xp;
+    var after = levelOf(v14.xp);
+    f.xpGain = xp;
+    f.levelUp = after > before ? after : 0;
+    if (result === "win" && !f.rival) {
+      for (var i = 0; i < v14.pool.length; i += 1) {
+        if (v14.pool[i].name === f.name) { v14.gone.push(f.name); v14.pool.splice(i, 1); break; }
+      }
+    }
+    if (result === "win") {
+      tape("live battle: you took the room from " + f.name + " in " + f.bar + " bars. +" + xp + " XP.");
+      wire("a live battle in the basement: " + f.name + " got walked in " + f.bar + " bars.");
+    } else if (result === "loss") {
+      tape("live battle: " + f.name + " took the room in " + f.bar + " bars. +" + xp + " XP for standing in.");
+    } else {
+      tape("live battle: you walked off from " + f.name + " at bar " + f.bar + ". +" + xp + " XP for showing up.");
+    }
+    try { render(); } catch (e) {}
+  }
+  function paintFight() {
+    var f = fight;
+    if (!f) { return; }
+    fightBody.innerHTML = "";
+    fightBody.appendChild(mkEl("p", "rd-v14-big", "you vs " + f.name + " · power " + f.power + (f.rival ? " · the beef, live" : " · up from the basement")));
+    fightBody.appendChild(mkEl("div", "rd-v14-mlabel", "your crowd · " + Math.max(0, Math.round(f.you))));
+    var m1 = mkEl("div", "rd-v14-meter", null); var i1 = mkEl("i", null, null); i1.style.width = Math.max(0, f.you) + "%"; m1.appendChild(i1); fightBody.appendChild(m1);
+    fightBody.appendChild(mkEl("div", "rd-v14-mlabel", "their crowd · " + Math.max(0, Math.round(f.them))));
+    var m2 = mkEl("div", "rd-v14-meter them", null); var i2 = mkEl("i", null, null); i2.style.width = Math.max(0, (f.them / f.themMax) * 100) + "%"; m2.appendChild(i2); fightBody.appendChild(m2);
+    if (f.over) {
+      var verdict = f.result === "win" ? "the room is yours. " + f.name + " fades back down the stairs."
+        : f.result === "loss" ? f.name + " takes the room. the stairs down are not the stairs up: climb again."
+        : "you walk off mid-bar. the room respects a clean exit, barely.";
+      fightBody.appendChild(mkEl("p", "rd-v14-big", verdict));
+      fightBody.appendChild(mkEl("p", "rd-v14-note", "+" + f.xpGain + " XP · battle level " + levelOf(v14.xp) + (f.levelUp ? " · LEVEL UP: level " + f.levelUp + (MOVE_UNLOCK[f.levelUp] ? " unlocks " + MOVE_UNLOCK[f.levelUp] : "") : "")));
+      var back = mkEl("button", "rd-v14-fight-btn", "back to the basement");
+      back.type = "button";
+      back.addEventListener("click", function () { fightOv.classList.add("hidden"); openBasement(); });
+      fightBody.appendChild(back);
+    } else {
+      fightBody.appendChild(mkEl("p", "rd-v14-note", "bar " + (f.bar + 1) + " is ticking. the energy is spent either way: " + BATTLE_ENERGY + " down, the room watching."));
+      var moves = mkEl("div", "rd-v14-moves", null);
+      MOVES.forEach(function (m) {
+        var b = mkEl("button", "rd-v14-move" + (f.pick === m.id ? " on" : ""), null);
+        b.type = "button";
+        b.appendChild(document.createTextNode(m.name));
+        var lockedWhy = !moveUnlocked(m);
+        b.appendChild(mkEl("small", null, lockedWhy ? "locked · opens at battle level " + m.level : m.sub));
+        if (lockedWhy) { b.disabled = true; }
+        b.setAttribute("data-move", m.id);
+        b.addEventListener("click", function () { if (fight && !fight.over) { fight.pick = m.id; paintFight(); } });
+        moves.appendChild(b);
+      });
+      fightBody.appendChild(moves);
+      var walk = mkEl("button", "rd-v14-fight-btn", "walk off");
+      walk.type = "button";
+      walk.addEventListener("click", function () { endFight("walk"); paintFight(); });
+      fightBody.appendChild(walk);
+    }
+    var logBox = mkEl("div", "rd-v14-log", null);
+    if (!f.log.length) {
+      logBox.appendChild(mkEl("p", "dim", "the circle forms. the first bar is coming."));
+    }
+    f.log.forEach(function (L) { logBox.appendChild(mkEl("p", L.dim ? "dim" : null, L.text)); });
+    fightBody.appendChild(logBox);
+  }
+  function startFight(opp) {
+    if ((S.energy || 0) < BATTLE_ENERGY) {
+      paintBasement("a live battle takes " + BATTLE_ENERGY + " energy and you have " + Math.floor(S.energy || 0) + ". rest, then come back down.");
+      return;
+    }
+    S.energy = Math.max(0, (S.energy || 0) - BATTLE_ENERGY);
+    baseOv.classList.add("hidden");
+    fight = {
+      name: opp.name, power: opp.power, rival: !!opp.rival,
+      you: 100, them: 80 + opp.power * 8, themMax: 80 + opp.power * 8,
+      bar: 0, pick: "bar", over: false, result: null, log: [], timer: 0, xpGain: 0, levelUp: 0
+    };
+    fightLog(fight, "the circle forms around you and " + opp.name + ". the entry was " + BATTLE_ENERGY + " energy, stated before the first bar.", true);
+    fightOv.classList.remove("hidden");
+    paintFight();
+    fight.timer = setInterval(resolveBar, TICK_MS);
+    try { render(); } catch (e) {}
+  }
+  /* if the room is swept away mid-fight by another door, the fight
+     ends the way walking off ends it */
+  setInterval(function () {
+    try {
+      if (fight && !fight.over && fightOv.classList.contains("hidden")) { endFight("walk"); }
+    } catch (e) {}
+  }, 600);
+
+  /* ---------------- persistence: the Persist chain grows a v14 ---------------- */
+  (function v14Persist() {
+    var P = window.RapDreamPersist;
+    if (!P || typeof P.collect !== "function" || typeof P.restore !== "function") { return; }
+    var collect0 = P.collect, restore0 = P.restore;
+    P.collect = function () {
+      var base = null;
+      try { base = collect0(); } catch (e) {}
+      if (!base || typeof base !== "object") { base = {}; }
+      base.v14 = {
+        xp: v14.xp, wins: v14.wins, losses: v14.losses, walks: v14.walks, fights: v14.fights,
+        pool: v14.pool, gone: v14.gone.slice(-40), lastSpawnDay: v14.lastSpawnDay, spawnSeq: v14.spawnSeq
+      };
+      return base;
+    };
+    P.restore = function (x) {
+      try { restore0(x); } catch (e) {}
+      try {
+        if (x && x.v14 && typeof x.v14 === "object") {
+          var d = v14Defaults(), v = x.v14;
+          if (typeof v.xp === "number") { d.xp = v.xp; }
+          if (typeof v.wins === "number") { d.wins = v.wins; }
+          if (typeof v.losses === "number") { d.losses = v.losses; }
+          if (typeof v.walks === "number") { d.walks = v.walks; }
+          if (typeof v.fights === "number") { d.fights = v.fights; }
+          if (Array.isArray(v.pool)) { d.pool = v.pool.filter(function (r) { return r && typeof r.name === "string" && typeof r.power === "number"; }); }
+          if (Array.isArray(v.gone)) { d.gone = v.gone.filter(function (n) { return typeof n === "string"; }); }
+          if (typeof v.lastSpawnDay === "number") { d.lastSpawnDay = v.lastSpawnDay; }
+          if (typeof v.spawnSeq === "number") { d.spawnSeq = v.spawnSeq; }
+          v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
+          v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq;
+          v14RestoredAt = Date.now();
+        }
+      } catch (e) {}
+    };
+  })();
+
+  /* ---------------- run watch: fresh careers, new days ---------------- */
+  var v14LastS = (typeof S !== "undefined") ? S : null;
+  var v14DaySeen = (typeof S !== "undefined" && S) ? (S.day || 1) : 1;
+  function resetV14() {
+    var d = v14Defaults();
+    v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
+    v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq;
+    if (fight && fight.timer) { clearInterval(fight.timer); }
+    fight = null;
+  }
+  function v14RenderPass() {
+    if (typeof S === "undefined" || !S) { return; }
+    if (v14LastS !== S) {
+      v14LastS = S;
+      v14DaySeen = S.day || 1;
+      if (Date.now() - v14RestoredAt > 800) {
+        resetV14();
+        tape("every career in this city starts in the basement.");
+      }
+      return;
+    }
+    if ((S.day || 1) !== v14DaySeen) {
+      v14DaySeen = S.day || 1;
+      if (Math.random() < 0.35) { spawnRapper("day"); }
+    }
+  }
+  if (typeof render === "function") {
+    var prevRender14 = render;
+    render = function () {
+      var out = prevRender14.apply(this, arguments);
+      try { v14RenderPass(); } catch (e) {}
+      return out;
+    };
+  }
+
+  /* ---------------- deck audit hooks (V2 spec, verified this build) ---------------- */
+  window.RapDreamV14DeckAudit = {
+    pads: function () { try { return document.querySelectorAll(".rd-dj-pad").length; } catch (e) { return -1; } },
+    bpm: 80,
+    tickMs: TICK_MS
+  };
+  window.RapDreamV14Probe = {
+    state: v14,
+    levelOf: levelOf,
+    xpToNext: xpToNext,
+    tickMs: TICK_MS,
+    battleEnergy: BATTLE_ENERGY,
+    openBasement: openBasement,
+    spawnNow: function () { return spawnRapper("probe"); },
+    startFight: function (name) {
+      for (var i = 0; i < v14.pool.length; i += 1) { if (v14.pool[i].name === name) { startFight(v14.pool[i]); return true; } }
+      return false;
+    },
+    fight: function () { return fight; },
+    forceBar: function () { resolveBar(); },
+    endFight: endFight
+  };
+})();
+</script>
 </body>
 </html>
