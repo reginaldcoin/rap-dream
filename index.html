@@ -17727,7 +17727,7 @@ render();
 
   /* ---------------- state (rides extras.v14) ---------------- */
   function v14Defaults() {
-    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0 };
+    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0, hist: {} };
   }
   var v14 = v14Defaults();
   var v14RestoredAt = 0;
@@ -17744,15 +17744,31 @@ render();
     if (lv >= XP_LEVELS.length) { return 0; }
     return XP_LEVELS[lv] - (xp || 0);
   }
-  var MOVE_UNLOCK = { 2: "hook", 3: "haymaker", 5: "the closer" };
+  var MOVE_UNLOCK = { 2: "nameflip", 3: "scheme and gun bar", 4: "personal", 5: "rebuttal and the closer" };
+  /* the move list is his bar-count taxonomy, weights rolled from the
+     charts themselves (see the stack entry, 2026-10-26 evening):
+     reference ran 9 bars and never dipped under 2; nameflip and
+     personal live at 2.6; a rebuttal only ever charted at 3;
+     multis ate air (0, 1, 0, 0); scheme bars are pieces of one
+     long bar, so they chart small until the payoff. */
   var MOVES = [
-    { id: "bar", name: "light bar", sub: "a quick one. 6 to 11 off their crowd.", level: 1 },
-    { id: "guard", name: "hold the pocket", sub: "guard: halve what lands this bar, win back 6 crowd.", level: 1 },
-    { id: "hook", name: "hook", sub: "a heavier swing. 11 to 17 off their crowd.", level: 2 },
-    { id: "haymaker", name: "haymaker", sub: "17 to 27, but a whiff costs you 5 crowd.", level: 3 },
-    { id: "closer", name: "the closer", sub: "huge when their crowd is nearly gone. your last bar, spent right.", level: 5 }
+    { id: "punch", name: "punch", sub: "the honest swing. charts: 1 to 3, averages 2.", level: 1, weights: [1, 2, 2, 3] },
+    { id: "wordplay", name: "wordplay", sub: "steady craft. charts: 1.5 to 3, averages 2.25.", level: 1, weights: [1.5, 2, 2.5, 3] },
+    { id: "reference", name: "reference", sub: "pressure that never dips. charts: 9 bars, never under 2.", level: 1, weights: [2, 2, 2, 3] },
+    { id: "humor", name: "humor", sub: "a flat 2 in the charts, and the room laughs 4 crowd back to you.", level: 1, weights: [2] },
+    { id: "multis", name: "multis", sub: "three quick ones. the charts say they eat air: 0s and 1s.", level: 1, weights: null },
+    { id: "nameflip", name: "nameflip", sub: "2s and 3s. against a featured name it lands a tier harder.", level: 2, weights: [2, 3, 3] },
+    { id: "scheme", name: "scheme", sub: "three bars building to one payoff. a 3-weight bar from them breaks it.", level: 3, weights: [1, 1.5, 2] },
+    { id: "gunbar", name: "gun bar", sub: "flat and heavy in the charts: 2, 2. here it can spike to 3.", level: 3, weights: [2, 2, 3] },
+    { id: "personal", name: "personal", sub: "2s and 3s, and heavier every time you have met them before.", level: 4, weights: [2, 3, 3] },
+    { id: "rebuttal", name: "rebuttal", sub: "answers their last bar at a full 3. only open right after they land one.", level: 5, weights: [3] },
+    { id: "closer", name: "the closer", sub: "his charts end rounds on it. only live when their crowd is nearly gone.", level: 5, weights: [3] }
   ];
   function moveUnlocked(m) { return levelOf(v14.xp) >= m.level; }
+  function moveById(id) { for (var i = 0; i < MOVES.length; i += 1) { if (MOVES[i].id === id) { return MOVES[i]; } } return null; }
+  function rollW(list) { return list[Math.floor(Math.random() * list.length)]; }
+  function dmgFor(w) { return w <= 0 ? 0 : Math.max(1, Math.round(w * 6.5 + rnd(-2, 2))); }
+  var NATURE_COLORS = { bar: "#9fc6de", punch: "#ffd23f", wordplay: "#7ee0ff", reference: "#b5ff20", nameflip: "#ff9f1c", personal: "#ff5d8f", rebuttal: "#c77dff", scheme: "#4cc9f0", topical: "#90e0a8", "gun bar": "#ef476f", humor: "#ffe66d", multis: "#8ecae6", closer: "#ffffff", "sus bar": "#6c757d", "bad bar": "#495057", choke: "#343a40" };
 
   /* ---------------- CSS ---------------- */
   var css = document.createElement("style");
@@ -17779,7 +17795,38 @@ render();
     + ".rd-v14-log .dim{color:#7d99ac}"
     + ".rd-v14-stairs{display:block;width:100%;margin:10px 0 2px;padding:11px 12px;background:#12202c;color:#ffcf3f;border:2px solid #3d6076;border-radius:12px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}"
     + ".rd-v14-note{font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin:0 0 10px}"
-    + ".rd-v14-big{font:800 15px 'Space Grotesk',sans-serif;color:#ffcf3f;margin:2px 0 6px}";
+    + ".rd-v14-big{font:800 15px 'Space Grotesk',sans-serif;color:#ffcf3f;margin:2px 0 6px}"
+    + ".rd-v14-beat{height:10px;border:2px solid #3d6076;border-radius:7px;background:#0d1620;overflow:hidden;margin:8px 0 4px}"
+    + ".rd-v14-beat i{display:block;height:100%;width:0;background:#7ee0ff}"
+    + ".rd-v14-beat.hit{border-color:#ffcf3f}.rd-v14-beat.hit i{background:#ffcf3f}"
+    + ".rd-v14-window{font:600 11.5px 'Space Grotesk',sans-serif;color:#9fc6de;margin:0 0 6px}"
+    + ".rd-v14-move.live{border-color:#69bdff}"
+    + ".rd-v14-move.live.open{border-color:#ffcf3f;background:#2a2110;animation:rd14pulse 1s ease-in-out infinite}"
+    + ".rd-v14-move.lag{opacity:.42}"
+    + ".rd-v14-move.lag.on{opacity:.85;border-color:#ffcf3f}"
+    + ".rd-v14-move.shut{opacity:.55;border-style:dashed}"
+    + ".rd-v14-move.nope{animation:rd14shake .32s ease}"
+    + "@keyframes rd14shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}"
+    + "@keyframes rd14pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,207,63,0)}50%{box-shadow:0 0 10px 1px rgba(255,207,63,.55)}}"
+    + ".rd-v14-viz{border:2px solid #2a4356;border-radius:12px;background:#070d13;padding:12px 12px 10px;margin:0 0 10px}"
+    + ".rd-v14-face{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-top:16px}"
+    + ".rd-v14-fighter{text-align:center;width:38%}"
+    + ".rd-v14-fig{width:42px;height:54px;margin:0 auto;border:2px solid #7ee0ff;border-radius:20px 20px 9px 9px;background:#12202c;position:relative}"
+    + ".rd-v14-fig:before{content:\"\";position:absolute;left:50%;top:-15px;width:22px;height:22px;margin-left:-11px;border:2px solid #7ee0ff;border-radius:50%;background:#12202c}"
+    + ".rd-v14-fighter.you .rd-v14-fig{border-color:#ffcf3f}.rd-v14-fighter.you .rd-v14-fig:before{border-color:#ffcf3f}"
+    + ".rd-v14-fighter span{display:block;margin-top:20px;font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.06em;color:#d5efff;text-transform:uppercase}"
+    + ".rd-v14-vs{align-self:center;font:800 13px 'Space Grotesk',sans-serif;color:#ffcf3f}"
+    + ".rd-v14-fighter.hit{animation:rd14shake .3s ease}"
+    + ".rd-v14-fighter.heavy{animation:rd14shake .5s ease;filter:brightness(1.8)}"
+    + ".rd-v14-fighter.stumble{transform:rotate(-8deg) translateY(4px);transition:transform .25s ease}"
+    + ".rd-v14-fighter.glow .rd-v14-fig{box-shadow:0 0 12px 2px rgba(76,201,240,.6)}"
+    + ".rd-v14-strip{overflow-x:auto;overflow-y:hidden;height:70px;border:2px solid #2a4356;border-radius:10px;background:#05090d;position:relative;margin-top:10px;background-image:linear-gradient(transparent 33px,#1b2f42 33px,#1b2f42 34px,transparent 34px)}"
+    + ".rd-v14-strip-in{position:relative;height:100%}"
+    + ".rd-v14-bub{position:absolute;border-radius:50%;display:block}"
+    + ".rd-v14-bub.you{outline:2px solid rgba(255,207,63,.9);outline-offset:-2px}"
+    + ".rd-v14-legend{display:flex;flex-wrap:wrap;gap:6px 10px;margin:6px 0 2px}"
+    + ".rd-v14-legend span{font:600 10.5px 'Space Grotesk',sans-serif;color:#9fc6de}"
+    + ".rd-v14-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}";
   document.head.appendChild(css);
 
   /* ---------------- the spawn: names up the stairs ---------------- */
@@ -17819,10 +17866,26 @@ render();
     "they said post the basement set, so here it is. live from under the party.",
     "climbed out of the basement with one song and no fear of anybody upstairs."
   ];
+  /* opponent shapes, read off his charted rounds: the staircase
+     (Spazz rd3: 22 bars, no gaps, ~2 a bar), the ramp (Trill's third
+     table: small early, 3s stacked late), the front-loader (Chino
+     rd1: one huge opener, then scatter and chokes), the technician
+     (Lux vs Hollow, partial: schemes and multis at mid weight,
+     occasional 0-weight whiff). */
+  var SHAPES = ["the staircase", "the ramp", "the front-loader", "the technician"];
+  function shapeFor(power, name, isRival) {
+    if (isRival) { return "the ramp"; }
+    var h = 0, i;
+    for (i = 0; i < String(name || "").length; i += 1) { h = (h * 31 + String(name).charCodeAt(i)) >>> 0; }
+    if (power <= 2) { return h % 2 ? "the front-loader" : "the technician"; }
+    if (power <= 4) { return h % 2 ? "the staircase" : "the technician"; }
+    return h % 2 ? "the staircase" : "the ramp";
+  }
   function spawnRapper(reason) {
     if (v14.pool.length >= POOL_CAP) { return null; }
     var name = spawnName();
     var rapper = { name: name, power: spawnPower(), day: (S && S.day) || 1 };
+    rapper.shape = shapeFor(rapper.power, rapper.name, false);
     v14.pool.push(rapper);
     v14.lastSpawnDay = (S && S.day) || 1;
     v14.spawnSeq += 1;
@@ -17859,7 +17922,7 @@ render();
     }
     return best;
   }
-  function fightButton(label, oppName, oppPower, isRival) {
+  function fightButton(label, oppName, oppPower, isRival, shape) {
     var b = mkEl("button", "rd-v14-fight-btn", label);
     b.type = "button";
     var e = (S && S.energy) || 0;
@@ -17867,7 +17930,7 @@ render();
       b.disabled = true;
       b.textContent = "needs " + BATTLE_ENERGY + " energy";
     }
-    b.addEventListener("click", function () { startFight({ name: oppName, power: oppPower, rival: !!isRival }); });
+    b.addEventListener("click", function () { startFight({ name: oppName, power: oppPower, rival: !!isRival, shape: shape || shapeFor(oppPower, oppName, !!isRival) }); });
     return b;
   }
   function paintBasement(note) {
@@ -17895,9 +17958,9 @@ render();
       var row = mkEl("div", "rd-v14-row", null);
       var who = mkEl("div", "rd-v14-who", null);
       who.appendChild(mkEl("strong", null, r.name));
-      who.appendChild(mkEl("small", null, "power " + r.power + " · surfaced day " + r.day + " · still unsigned, still hungry"));
+      who.appendChild(mkEl("small", null, "power " + r.power + " · fights like " + (r.shape || shapeFor(r.power, r.name, false)) + " · surfaced day " + r.day));
       row.appendChild(who);
-      row.appendChild(fightButton("battle · " + BATTLE_ENERGY + " energy", r.name, r.power, false));
+      row.appendChild(fightButton("battle · " + BATTLE_ENERGY + " energy", r.name, r.power, false, r.shape));
       poolCard.appendChild(row);
     });
     baseBody.appendChild(poolCard);
@@ -17911,7 +17974,7 @@ render();
       who2.appendChild(mkEl("strong", null, rival.name));
       who2.appendChild(mkEl("small", null, "your beef, settled live down here. the ladder upstairs does not move: this one pays XP and pride only."));
       row2.appendChild(who2);
-      row2.appendChild(fightButton("battle · " + BATTLE_ENERGY + " energy", rival.name, Math.max(2, Math.min(9, 2 + Math.round((rival.tension || 0) / 18))), true));
+      row2.appendChild(fightButton("battle · " + BATTLE_ENERGY + " energy", rival.name, Math.max(2, Math.min(9, 2 + Math.round((rival.tension || 0) / 18))), true, "the ramp"));
       rv.appendChild(row2);
       baseBody.appendChild(rv);
     }
@@ -17963,7 +18026,7 @@ render();
           var body = partyOvEl.querySelector(".room-body") || partyOvEl.querySelector(".rd-panel-body");
           if (!body || !body.querySelector(".rdn-party-map")) { return; }
           if (body.querySelector(".rd-v14-stairs")) { return; }
-          var b = mkEl("button", "rd-v14-stairs", "the basement · down the stairs");
+          var b = mkEl("button", "rd-v14-stairs", "▼ down · the basement");
           b.type = "button";
           b.addEventListener("click", function () { openBasement(); });
           body.appendChild(b);
@@ -17976,7 +18039,7 @@ render();
   var fightOv = mkEl("section", "rd-overlay hidden", null);
   fightOv.id = "rd-v14-fight";
   fightOv.setAttribute("aria-label", "Live battle");
-  fightOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>live battle</h3><p>bar by bar, in real time: one bar is 3 seconds, the deck's own tempo. pick your move before the bar turns, or your mouth runs a light bar on its own.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  fightOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>live battle</h3><p>bar by bar, in real time: one bar is 3 seconds, the deck's own tempo. pick your move before the bar turns, or your mouth runs a plain bar on its own.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
   document.body.appendChild(fightOv);
   var fightBody = fightOv.querySelector(".rd-panel-body");
   fightOv.querySelector(".rd-close").addEventListener("click", function () {
@@ -17986,72 +18049,269 @@ render();
   fightOv.addEventListener("click", function (e) { if (e.target === fightOv) { if (fight && !fight.over) { endFight("walk"); } fightOv.classList.add("hidden"); } });
 
   var fight = null;
-  var YOUR_LINES = {
-    bar: ["a light bar, clean and quick", "a quick one off the top", "short, sharp, gone"],
-    hook: ["the hook lands heavy", "the hook: the whole room leans in", "a hook with weight behind it"],
-    haymaker: ["HAYMAKER. the room felt that one", "the haymaker lands and the circle goes quiet", "everything on one swing, and it lands"],
-    closer: ["THE CLOSER. the last bar, spent on the kill", "the closer: no wasted motion", "you end it the way closers end it"]
-  };
-  var THEIR_LINES = ["answers with a sharp one", "throws back without blinking", "comes over the top with a quick one", "answers bar for bar", "swings from the pocket"];
 
-  function oppMove(f) {
-    var r = Math.random();
-    var ps = 0.75 + f.power * 0.07;
-    if (r < 0.45) { return { dmg: Math.round(rnd(5, 10) * ps), line: pickOf(THEIR_LINES) }; }
-    if (r < 0.72) { return f.power >= 2 ? { dmg: Math.round(rnd(9, 15) * ps), line: "throws a hook of their own" } : { dmg: Math.round(rnd(5, 10) * ps), line: pickOf(THEIR_LINES) }; }
-    if (r < 0.86) { return { dmg: 0, guard: true, line: "falls back and guards" }; }
-    return f.power >= 4 ? { dmg: Math.round(rnd(14, 22) * ps), line: "loads up a haymaker" } : { dmg: Math.round(rnd(9, 15) * ps), line: "throws a hook of their own" };
+  /* ---------- battle SFX: procedural, the booth's family ---------- */
+  var bCtx = null, bNoiseBuf = null;
+  var sfxCounts = { press: 0, hit: 0, whiff: 0, hurt: 0, denied: 0, choke: 0, win: 0, lose: 0 };
+  function bAudio() {
+    try {
+      if (!bCtx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) { return null; }
+        bCtx = new AC();
+        var len = Math.max(1, Math.floor(bCtx.sampleRate * 0.3));
+        bNoiseBuf = bCtx.createBuffer(1, len, bCtx.sampleRate);
+        var d = bNoiseBuf.getChannelData(0);
+        for (var i = 0; i < len; i += 1) { d[i] = Math.random() * 2 - 1; }
+      }
+      if (bCtx.state === "suspended") { bCtx.resume(); }
+      return bCtx;
+    } catch (e) { return null; }
   }
-  function yourDamage(f, mv) {
-    if (mv === "hook") { return { dmg: rnd(11, 17), line: pickOf(YOUR_LINES.hook) }; }
-    if (mv === "haymaker") {
-      if (Math.random() < 0.25) { return { dmg: 0, whiff: true, line: "the haymaker swings at air" }; }
-      return { dmg: rnd(17, 27), line: pickOf(YOUR_LINES.haymaker) };
-    }
-    if (mv === "closer") {
-      return f.them <= 35 ? { dmg: rnd(20, 30), line: pickOf(YOUR_LINES.closer) } : { dmg: rnd(8, 12), line: "the closer comes early and lands light" };
-    }
-    return { dmg: rnd(6, 11), line: pickOf(YOUR_LINES.bar) };
+  function bTone(type, f0, f1, dur, vol, delay) {
+    var ctx = bAudio(); if (!ctx) { return; }
+    try {
+      var t = ctx.currentTime + (delay || 0);
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, t);
+      if (f1) { o.frequency.exponentialRampToValueAtTime(Math.max(24, f1), t + dur); }
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + dur + 0.03);
+    } catch (e) {}
   }
+  function bNoise(dur, fType, freq, vol, delay) {
+    var ctx = bAudio(); if (!ctx) { return; }
+    try {
+      var t = ctx.currentTime + (delay || 0);
+      var src = ctx.createBufferSource(); src.buffer = bNoiseBuf;
+      var fl = ctx.createBiquadFilter(); fl.type = fType; fl.frequency.value = freq;
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(fl); fl.connect(g); g.connect(ctx.destination);
+      src.start(t); src.stop(t + dur + 0.02);
+    } catch (e) {}
+  }
+  function bsfx(kind) {
+    if (typeof sfxCounts[kind] === "number") { sfxCounts[kind] += 1; }
+    try {
+      if (kind === "press") { bTone("square", 620, 330, 0.06, 0.045); }
+      else if (kind === "hit") { bNoise(0.09, "lowpass", 900, 0.16); bTone("sine", 170, 55, 0.14, 0.16); }
+      else if (kind === "whiff") { bNoise(0.12, "highpass", 2400, 0.05); }
+      else if (kind === "hurt") { bTone("sawtooth", 130, 52, 0.16, 0.11); bNoise(0.07, "lowpass", 500, 0.1); }
+      else if (kind === "denied") { bTone("square", 190, 150, 0.05, 0.06); bTone("square", 150, 120, 0.06, 0.06, 0.07); }
+      else if (kind === "choke") { bTone("sine", 220, 60, 0.22, 0.1); }
+      else if (kind === "win") { bTone("triangle", 523, 0, 0.11, 0.1); bTone("triangle", 659, 0, 0.11, 0.1, 0.09); bTone("triangle", 784, 0, 0.16, 0.11, 0.18); }
+      else if (kind === "lose") { bTone("triangle", 330, 0, 0.14, 0.1); bTone("triangle", 196, 0, 0.22, 0.1, 0.12); }
+    } catch (e) {}
+  }
+
+  /* ---------- the chart strip: one renderer, two homes ----------
+     the live visualizer strip and the post-battle chart are the
+     same picture at two moments: x is the bar (time runs on the
+     tick), the lane is the fighter, bubble size is weight, color
+     is nature, the gold ring is you. his plotting rules. */
+  function chartStrip(entries) {
+    var wrap = mkEl("div", "rd-v14-strip", null);
+    var inner = mkEl("div", "rd-v14-strip-in", null);
+    var maxN = 1;
+    entries.forEach(function (e) { if (e.n > maxN) { maxN = e.n; } });
+    inner.style.width = Math.max(240, maxN * 17 + 26) + "px";
+    entries.forEach(function (e) {
+      var b = mkEl("span", "rd-v14-bub " + (e.side === "you" ? "you" : "them"), null);
+      var size = 5 + e.w * 4.5;
+      b.style.width = size + "px";
+      b.style.height = size + "px";
+      b.style.left = (10 + (e.n - 1) * 17 - size / 2) + "px";
+      b.style.top = (e.side === "you" ? 17 : 52) - size / 2 + "px";
+      b.style.background = NATURE_COLORS[e.nature] || "#9fc6de";
+      b.title = "bar " + e.n + " · " + (e.side === "you" ? "you" : "them") + " · " + e.nature + " · weight " + e.w;
+      inner.appendChild(b);
+    });
+    wrap.appendChild(inner);
+    return wrap;
+  }
+  function chartLegend(entries) {
+    var seen = [], leg = mkEl("div", "rd-v14-legend", null);
+    entries.forEach(function (e) { if (seen.indexOf(e.nature) < 0) { seen.push(e.nature); } });
+    seen.forEach(function (n) {
+      var sp = mkEl("span", null, null);
+      var dot = mkEl("i", null, null);
+      dot.style.background = NATURE_COLORS[n] || "#9fc6de";
+      sp.appendChild(dot);
+      sp.appendChild(document.createTextNode(n));
+      leg.appendChild(sp);
+    });
+    return leg;
+  }
+  function fighterFig(cls, label, fx) {
+    var w = mkEl("div", "rd-v14-fighter " + cls + (fx ? " " + fx : ""), null);
+    w.appendChild(mkEl("div", "rd-v14-fig", null));
+    w.appendChild(mkEl("span", null, label));
+    return w;
+  }
+
+  /* ---------- the beat: the lag, made visible ---------- */
+  var beatRaf = 0;
+  function kickBeat() { if (!beatRaf) { beatRaf = requestAnimationFrame(beatLoop); } }
+  function beatLoop() {
+    beatRaf = 0;
+    if (!fight || fight.over || fightOv.classList.contains("hidden")) { return; }
+    var fill = fightBody.querySelector(".rd-v14-beat i");
+    if (fill && fight.barStart) {
+      var pc = Math.min(1, (Date.now() - fight.barStart) / TICK_MS);
+      fill.style.width = (pc * 100).toFixed(1) + "%";
+    }
+    beatRaf = requestAnimationFrame(beatLoop);
+  }
+
   function fightLog(f, text, dim) {
-    f.log.unshift({ text: text, dim: !!dim });
-    if (f.log.length > 42) { f.log.length = 42; }
+    f.log.push({ text: text, dim: !!dim });
+    if (f.log.length > 60) { f.log.splice(0, f.log.length - 60); }
+  }
+
+  var YOUR_LINES = {
+    bar: ["a plain bar, clean and quick", "one off the top, no wasted motion"],
+    punch: ["a clean punch, right on the chin of the beat", "the punch lands plain and true"],
+    wordplay: ["wordplay: it bends twice and still lands", "a wordplay bar, folded and unfolded"],
+    reference: ["a reference the whole room catches at once", "the reference lands: every head nods"],
+    humor: ["a humor bar: the laugh does the damage", "the joke lands harder than a punch would"],
+    nameflip: ["the nameflip: their own name handed back wrong", "a nameflip with teeth in it"],
+    gunbar: ["a gun bar, flat and final", "the gun bar clears its throat"],
+    personal: ["a personal: that one was not for the room, it was for them", "the personal lands quiet and deep"],
+    rebuttal: ["the rebuttal: answered before the echo died", "a rebuttal, bar for bar, no daylight between"],
+    closer: ["THE CLOSER. the last bar, spent on the kill", "the closer: no wasted motion, none"]
+  };
+  var THEIR_LINES = ["throws a bar with their whole chest", "comes off the ropes swinging", "lets one fly from the pocket", "steps in and throws", "answers with a bar of their own"];
+
+  function moveState(f, m) {
+    if (m.id === "rebuttal" && !f.rebuttalOpen) { return { ok: false, why: "shut: a rebuttal answers their last bar" }; }
+    if (m.id === "closer" && f.them > 30) { return { ok: false, why: "too early: the closer needs their crowd at 30 or under" }; }
+    return { ok: true, why: m.sub };
+  }
+  function denyMove(btn, why) {
+    bsfx("denied");
+    if (btn) {
+      btn.classList.add("nope");
+      setTimeout(function () { try { btn.classList.remove("nope"); } catch (e) {} }, 360);
+    }
+    var w = fightBody.querySelector(".rd-v14-window");
+    if (w) { w.textContent = why; }
+  }
+  function pickMove(m, btn) {
+    var f = fight;
+    if (!f || f.over) { return; }
+    if (f.committed || f.scheme) {
+      denyMove(btn, f.scheme ? "the scheme is running. it does not take new orders." : "that bar is already thrown. the next window opens when this one turns.");
+      return;
+    }
+    var st = moveState(f, m);
+    if (!st.ok) { denyMove(btn, st.why + ". that one did not register."); return; }
+    f.pick = m.id;
+    f.committed = true;
+    if (m.id === "scheme") { f.scheme = { step: 0, sum: 0 }; }
+    if (m.id === "rebuttal") { f.rebuttalOpen = false; }
+    bsfx("press");
+    paintFight();
+  }
+  function yourBar(f, mvId) {
+    if (mvId === "multis") {
+      var tot = 0, i;
+      for (i = 0; i < 3; i += 1) { tot += rollW([0, 0, 1, 1]); }
+      return { nature: "multis", w: tot, dmg: dmgFor(tot), line: tot === 0 ? "multis, and every one of them eats air" : "multis: the little ones add up to " + tot, note: "" };
+    }
+    if (mvId === "bar") {
+      var bw = rollW([1, 2, 2.5, 3]);
+      return { nature: "bar", w: bw, dmg: dmgFor(bw), line: pickOf(YOUR_LINES.bar), note: "" };
+    }
+    var m = moveById(mvId) || moveById("punch");
+    var w = rollW(m.weights), bonus = 0, note = "";
+    if (mvId === "nameflip" && f.named) { bonus = 4; note = "a featured name: the flip lands twice as hard"; }
+    if (mvId === "personal") {
+      var hb = Math.min(6, (f.histCount || 0) * 2);
+      if (hb > 0) { bonus = hb; note = "history: " + f.histCount + " meeting" + (f.histCount === 1 ? "" : "s") + " deep, and it shows"; }
+    }
+    if (mvId === "humor") { f.you = Math.min(100, f.you + 4); note = "the room laughs 4 crowd back to you"; }
+    return { nature: m.name, w: w, dmg: dmgFor(w) + bonus, line: pickOf(YOUR_LINES[mvId] || YOUR_LINES.punch), note: note };
+  }
+  var SHAPE_CYCLES = {
+    "the staircase": [{ w: 2, n: "reference" }, { w: 2, n: "punch" }, { w: 3, n: "wordplay" }, { w: 2, n: "reference" }],
+    "the technician": [{ w: 2, n: "scheme" }, { w: 1.5, n: "scheme" }, { w: 2, n: "scheme" }, { w: 0, n: "multis" }, { w: 1, n: "multis" }, { w: 2, n: "punch" }]
+  };
+  function oppBar(f) {
+    var pf = 0.8 + f.power * 0.06;
+    var bar = f.bar;
+    function std(w, n, line) { return { w: w, n: n, dmg: Math.round(dmgFor(w) * pf), line: line || pickOf(THEIR_LINES), choke: false }; }
+    if (f.shape === "the front-loader") {
+      if (bar === 1) { return { w: 3, n: "personal", dmg: Math.round(dmgFor(3) * pf * 1.15), line: "opens with everything: a personal at full weight", choke: false }; }
+      if (bar >= 7 && bar % 3 === 1) { return { w: 0, n: "choke", dmg: 0, line: "gasses out and chokes on the bar", choke: true }; }
+      if (bar >= 5 && bar % 2 === 0) { var mess = pickOf(["sus bar", "bad bar"]); return { w: 0.5, n: mess, dmg: dmgFor(0.5), line: "throws a " + mess + ", scattered and late", choke: false }; }
+      return std(rollW([1, 1.5, 2]), pickOf(["punch", "wordplay", "reference"]));
+    }
+    if (f.shape === "the ramp") {
+      if (f.them > f.themMax * 0.66) { return std(rollW([1, 1.5, 2]), pickOf(["reference", "wordplay"])); }
+      if (f.them > f.themMax * 0.36) { return std(rollW([2, 2.5]), pickOf(["punch", "wordplay", "nameflip"])); }
+      return std(rollW([2.5, 3, 3]), pickOf(["personal", "nameflip", "punch"]), "the ramp arrives: the heavy ones were saved for late");
+    }
+    if (f.power <= 2 && bar % 5 === 4) { var low = pickOf(["sus bar", "bad bar"]); return { w: 0.5, n: low, dmg: dmgFor(0.5), line: "throws a " + low + ", barely a bar at all", choke: false }; }
+    if (f.power <= 2 && bar % 7 === 6) { return { w: 0, n: "choke", dmg: 0, line: "chokes: the bar never comes out", choke: true }; }
+    var cyc = SHAPE_CYCLES[f.shape] || SHAPE_CYCLES["the staircase"];
+    var step = cyc[(bar - 1) % cyc.length];
+    return std(step.w, step.n);
   }
   function resolveBar() {
     var f = fight;
     if (!f || f.over) { return; }
     f.bar += 1;
-    var mv = f.pick || "bar";
-    var youGuard = mv === "guard";
-    var om = oppMove(f);
-    var themGuard = !!om.guard;
-    /* your swing */
-    if (youGuard) {
-      f.you = Math.min(100, f.you + 6);
-      fightLog(f, "bar " + f.bar + ": you hold the pocket and let the room breathe. (+6 your crowd)");
-    } else {
-      var yd = yourDamage(f, mv);
-      var dealt = themGuard ? Math.max(1, Math.round(yd.dmg / 2)) : yd.dmg;
-      if (yd.whiff) {
-        f.you = Math.max(0, f.you - 5);
-        fightLog(f, "bar " + f.bar + ": " + yd.line + ". the recoil stings. (-5 your crowd)");
+    f.lastFx = { you: "", them: "" };
+    var yb, schemeDone = false;
+    if (f.scheme) {
+      f.scheme.step += 1;
+      if (f.scheme.step < 3) {
+        var sw = rollW([1, 1.5, 2]);
+        f.scheme.sum += sw;
+        yb = { nature: "scheme", w: sw, dmg: dmgFor(sw), line: "the scheme builds, piece " + f.scheme.step + " of 3", note: "" };
+        f.lastFx.you = "glow";
       } else {
-        f.them = Math.max(0, f.them - dealt);
-        fightLog(f, "bar " + f.bar + ": you: " + yd.line + ". (-" + dealt + " their crowd" + (themGuard ? ", halved by their guard" : "") + ")");
+        var pay = Math.max(3, Math.round(f.scheme.sum));
+        yb = { nature: "scheme", w: 3, dmg: dmgFor(pay) + 4, line: "the scheme lands whole: every piece at once", note: "" };
+        schemeDone = true;
       }
-    }
-    if (f.them <= 0) { endFight("win"); paintFight(); return; }
-    /* their swing */
-    if (themGuard) {
-      f.them = Math.min(f.themMax, f.them + 5);
-      fightLog(f, "bar " + f.bar + ": " + f.name + " " + om.line + ". (+5 their crowd)", true);
     } else {
-      var taken = youGuard ? Math.max(1, Math.round(om.dmg / 2)) : om.dmg;
-      f.you = Math.max(0, f.you - taken);
-      fightLog(f, "bar " + f.bar + ": " + f.name + " " + om.line + ". (-" + taken + " your crowd" + (youGuard ? ", halved by your guard" : "") + ")", true);
+      yb = yourBar(f, f.committed && f.pick ? f.pick : "bar");
     }
-    f.pick = "bar";
-    if (f.you <= 0) { endFight("loss"); paintFight(); return; }
+    f.them = Math.max(0, f.them - yb.dmg);
+    f.chart.push({ n: f.bar, side: "you", nature: yb.nature, w: yb.w });
+    fightLog(f, "bar " + f.bar + " · you: " + yb.line + " [" + yb.nature + " " + yb.w + "] (-" + yb.dmg + " their crowd)" + (yb.note ? " — " + yb.note : ""));
+    if (yb.dmg > 0) { bsfx("hit"); f.lastFx.them = yb.w >= 3 ? "heavy" : "hit"; } else { bsfx("whiff"); }
+    if (schemeDone) { f.scheme = null; }
+    f.committed = false;
+    f.pick = null;
+    f.barStart = Date.now();
+    f.justTurned = true;
+    if (f.them <= 0) { endFight("win"); return; }
+    var ob = oppBar(f);
+    f.chart.push({ n: f.bar, side: "them", nature: ob.n, w: ob.w });
+    if (ob.choke) {
+      bsfx("choke");
+      f.lastFx.them = "stumble";
+      fightLog(f, "bar " + f.bar + " · " + f.name + ": " + ob.line + " [choke]", true);
+    } else {
+      f.you = Math.max(0, f.you - ob.dmg);
+      fightLog(f, "bar " + f.bar + " · " + f.name + ": " + ob.line + " [" + ob.n + " " + ob.w + "] (-" + ob.dmg + " your crowd)", true);
+      if (ob.dmg > 0) { bsfx("hurt"); f.lastFx.you = ob.w >= 3 ? "heavy" : "hit"; }
+    }
+    if (f.scheme && ob.w >= 3) {
+      f.scheme = null;
+      fightLog(f, "their heavy bar breaks the scheme mid-build. the payoff is gone.", true);
+    }
+    f.rebuttalOpen = !ob.choke && ob.w >= 2 && ob.dmg > 0;
+    f.barStart = Date.now();
+    if (f.you <= 0) { endFight("loss"); return; }
     paintFight();
   }
   function endFight(result) {
@@ -18061,10 +18321,11 @@ render();
     f.result = result;
     if (f.timer) { clearInterval(f.timer); f.timer = 0; }
     var xp = 4;
-    if (result === "win") { xp = 26 + f.power * 3; v14.wins += 1; }
-    else if (result === "loss") { xp = 8; v14.losses += 1; }
+    if (result === "win") { xp = 26 + f.power * 3; v14.wins += 1; bsfx("win"); }
+    else if (result === "loss") { xp = 8; v14.losses += 1; bsfx("lose"); }
     else { v14.walks += 1; }
     v14.fights += 1;
+    v14.hist[f.name] = (v14.hist[f.name] || 0) + 1;
     var before = levelOf(v14.xp);
     v14.xp += xp;
     var after = levelOf(v14.xp);
@@ -18083,53 +18344,96 @@ render();
     } else {
       tape("live battle: you walked off from " + f.name + " at bar " + f.bar + ". +" + xp + " XP for showing up.");
     }
+    /* persistence rides the bridge on the next core save, as in V14 */
     try { render(); } catch (e) {}
+    paintFight();
   }
   function paintFight() {
     var f = fight;
     if (!f) { return; }
     fightBody.innerHTML = "";
-    fightBody.appendChild(mkEl("p", "rd-v14-big", "you vs " + f.name + " · power " + f.power + (f.rival ? " · the beef, live" : " · up from the basement")));
-    fightBody.appendChild(mkEl("div", "rd-v14-mlabel", "your crowd · " + Math.max(0, Math.round(f.you))));
-    var m1 = mkEl("div", "rd-v14-meter", null); var i1 = mkEl("i", null, null); i1.style.width = Math.max(0, f.you) + "%"; m1.appendChild(i1); fightBody.appendChild(m1);
-    fightBody.appendChild(mkEl("div", "rd-v14-mlabel", "their crowd · " + Math.max(0, Math.round(f.them))));
-    var m2 = mkEl("div", "rd-v14-meter them", null); var i2 = mkEl("i", null, null); i2.style.width = Math.max(0, (f.them / f.themMax) * 100) + "%"; m2.appendChild(i2); fightBody.appendChild(m2);
+    fightBody.appendChild(mkEl("p", "rd-v14-big", "you vs " + f.name + " · power " + f.power + " · fights like " + f.shape));
+    var viz = mkEl("div", "rd-v14-viz", null);
+    viz.id = "rd-v14-viz";
+    var face = mkEl("div", "rd-v14-face", null);
+    face.appendChild(fighterFig("you", "you", f.lastFx ? f.lastFx.you : ""));
+    face.appendChild(mkEl("div", "rd-v14-vs", "VS"));
+    face.appendChild(fighterFig("them", f.name, f.lastFx ? f.lastFx.them : ""));
+    viz.appendChild(face);
+    viz.appendChild(mkEl("div", "rd-v14-mlabel", "your crowd · " + Math.max(0, Math.round(f.you))));
+    var m1 = mkEl("div", "rd-v14-meter", null); var i1 = mkEl("i", null, null); i1.style.width = Math.max(0, f.you) + "%"; m1.appendChild(i1); viz.appendChild(m1);
+    viz.appendChild(mkEl("div", "rd-v14-mlabel", f.name + " crowd · " + Math.max(0, Math.round(f.them))));
+    var m2 = mkEl("div", "rd-v14-meter them", null); var i2 = mkEl("i", null, null); i2.style.width = Math.max(0, (f.them / f.themMax) * 100) + "%"; m2.appendChild(i2); viz.appendChild(m2);
+    viz.appendChild(chartStrip(f.chart));
+    fightBody.appendChild(viz);
+    var beat = mkEl("div", "rd-v14-beat" + (f.justTurned ? " hit" : ""), null);
+    beat.appendChild(mkEl("i", null, null));
+    fightBody.appendChild(beat);
+    f.justTurned = false;
+    var winText = "";
+    if (!f.over) {
+      if (f.scheme) { winText = "bar " + (f.bar + 1) + ": the scheme is running, piece " + (f.scheme.step + 1) + " of 3. it does not take new orders."; }
+      else if (f.committed) { winText = "bar " + (f.bar + 1) + ": thrown. it lands when the bar turns."; }
+      else if (f.rebuttalOpen) { winText = "bar " + (f.bar + 1) + " is live: the rebuttal window is OPEN. answer their bar now, or spend the turn another way."; }
+      else { winText = "bar " + (f.bar + 1) + " is live: pick your move before it turns."; }
+    }
+    fightBody.appendChild(mkEl("p", "rd-v14-window", winText));
     if (f.over) {
-      var verdict = f.result === "win" ? "the room is yours. " + f.name + " fades back down the stairs."
-        : f.result === "loss" ? f.name + " takes the room. the stairs down are not the stairs up: climb again."
-        : "you walk off mid-bar. the room respects a clean exit, barely.";
-      fightBody.appendChild(mkEl("p", "rd-v14-big", verdict));
-      fightBody.appendChild(mkEl("p", "rd-v14-note", "+" + f.xpGain + " XP · battle level " + levelOf(v14.xp) + (f.levelUp ? " · LEVEL UP: level " + f.levelUp + (MOVE_UNLOCK[f.levelUp] ? " unlocks " + MOVE_UNLOCK[f.levelUp] : "") : "")));
-      var back = mkEl("button", "rd-v14-fight-btn", "back to the basement");
+      fightBody.appendChild(mkEl("p", "rd-v14-dim", f.result === "win" ? f.name + "'s crowd is gone. the basement saw it, and the basement talks." : f.result === "loss" ? "your crowd is gone. no shame in the record: the bars are the record." : "you keep your breath and your record clean. the stairs are right there."));
+      fightBody.appendChild(mkEl("p", "rd-v14-dim", "+" + f.xpGain + " battle XP · battle level " + levelOf(v14.xp) + (f.levelUp ? " · LEVEL UP: level " + f.levelUp + " unlocks " + (MOVE_UNLOCK[f.levelUp] || "new bars") : "")));
+      var chartBox = mkEl("div", null, null);
+      chartBox.appendChild(mkEl("h4", null, "the round, charted"));
+      var full = chartStrip(f.chart);
+      full.classList.add("rd-v14-chart");
+      chartBox.appendChild(full);
+      chartBox.appendChild(chartLegend(f.chart));
+      chartBox.appendChild(mkEl("p", "rd-v14-dim", "bar number runs left to right, one bar a tick. bubble size is weight, color is nature, the gold ring is you. the same picture you watched form, kept."));
+      fightBody.appendChild(chartBox);
+      var back = mkEl("button", "rd-v14-close", "back to the basement");
       back.type = "button";
       back.addEventListener("click", function () { fightOv.classList.add("hidden"); openBasement(); });
       fightBody.appendChild(back);
     } else {
-      fightBody.appendChild(mkEl("p", "rd-v14-note", "bar " + (f.bar + 1) + " is ticking. the energy is spent either way: " + BATTLE_ENERGY + " down, the room watching."));
-      var moves = mkEl("div", "rd-v14-moves", null);
+      var grid = mkEl("div", "rd-v14-moves", null);
       MOVES.forEach(function (m) {
-        var b = mkEl("button", "rd-v14-move" + (f.pick === m.id ? " on" : ""), null);
+        var unlocked = moveUnlocked(m);
+        var st = unlocked ? moveState(f, m) : { ok: false, why: "" };
+        var cls = "rd-v14-move", smallText;
+        if (!unlocked) { smallText = "opens at battle level " + m.level; }
+        else if (f.committed || f.scheme) {
+          cls += " lag";
+          if (f.pick === m.id) { cls += " on"; }
+          smallText = f.pick === m.id ? "thrown: it lands when the bar turns" : m.sub;
+        } else {
+          cls += " live";
+          if (m.id === "rebuttal" && f.rebuttalOpen) { cls += " open"; }
+          if (!st.ok) { cls += " shut"; }
+          smallText = st.ok ? m.sub : st.why;
+        }
+        var b = mkEl("button", cls, null);
         b.type = "button";
-        b.appendChild(document.createTextNode(m.name));
-        var lockedWhy = !moveUnlocked(m);
-        b.appendChild(mkEl("small", null, lockedWhy ? "locked · opens at battle level " + m.level : m.sub));
-        if (lockedWhy) { b.disabled = true; }
         b.setAttribute("data-move", m.id);
-        b.addEventListener("click", function () { if (fight && !fight.over) { fight.pick = m.id; paintFight(); } });
-        moves.appendChild(b);
+        b.appendChild(mkEl("strong", null, m.name));
+        b.appendChild(mkEl("small", null, smallText));
+        if (!unlocked) { b.disabled = true; }
+        b.addEventListener("click", function () { pickMove(m, b); });
+        grid.appendChild(b);
       });
-      fightBody.appendChild(moves);
-      var walk = mkEl("button", "rd-v14-fight-btn", "walk off");
-      walk.type = "button";
-      walk.addEventListener("click", function () { endFight("walk"); paintFight(); });
-      fightBody.appendChild(walk);
+      fightBody.appendChild(grid);
+      var surrender = mkEl("button", "rd-v14-close", "walk off (+" + 4 + " XP for showing up)");
+      surrender.type = "button";
+      surrender.addEventListener("click", function () { bsfx("press"); endFight("walk"); });
+      fightBody.appendChild(surrender);
     }
     var logBox = mkEl("div", "rd-v14-log", null);
-    if (!f.log.length) {
-      logBox.appendChild(mkEl("p", "dim", "the circle forms. the first bar is coming."));
-    }
-    f.log.forEach(function (L) { logBox.appendChild(mkEl("p", L.dim ? "dim" : null, L.text)); });
+    logBox.appendChild(mkEl("strong", null, "the story so far"));
+    f.log.slice(-42).forEach(function (line) {
+      logBox.appendChild(mkEl("span", line.dim ? "dim" : null, line.text));
+    });
     fightBody.appendChild(logBox);
+    var stripEl = fightBody.querySelector(".rd-v14-strip");
+    if (stripEl) { stripEl.scrollLeft = 99999; }
+    if (!f.over) { kickBeat(); }
   }
   function startFight(opp) {
     if ((S.energy || 0) < BATTLE_ENERGY) {
@@ -18140,15 +18444,21 @@ render();
     baseOv.classList.add("hidden");
     fight = {
       name: opp.name, power: opp.power, rival: !!opp.rival,
+      shape: opp.shape || shapeFor(opp.power, opp.name, !!opp.rival),
+      named: (typeof RD_FEATURED_NAMES !== "undefined" && RD_FEATURED_NAMES.indexOf(opp.name) >= 0),
+      histCount: v14.hist[opp.name] || 0,
       you: 100, them: 80 + opp.power * 8, themMax: 80 + opp.power * 8,
-      bar: 0, pick: "bar", over: false, result: null, log: [], timer: 0, xpGain: 0, levelUp: 0
+      bar: 0, pick: null, committed: false, scheme: null, rebuttalOpen: false,
+      chart: [], lastFx: { you: "", them: "" }, barStart: Date.now(), justTurned: false,
+      over: false, result: null, log: [], timer: 0, xpGain: 0, levelUp: 0
     };
-    fightLog(fight, "the circle forms around you and " + opp.name + ". the entry was " + BATTLE_ENERGY + " energy, stated before the first bar.", true);
+    fightLog(fight, "the circle forms around you and " + opp.name + ". they fight like " + fight.shape + ". the entry was " + BATTLE_ENERGY + " energy, stated before the first bar.", true);
     fightOv.classList.remove("hidden");
     paintFight();
     fight.timer = setInterval(resolveBar, TICK_MS);
     try { render(); } catch (e) {}
   }
+
   /* if the room is swept away mid-fight by another door, the fight
      ends the way walking off ends it */
   setInterval(function () {
@@ -18156,6 +18466,75 @@ render();
       if (fight && !fight.over && fightOv.classList.contains("hidden")) { endFight("walk"); }
     } catch (e) {}
   }, 600);
+
+  /* ---------------- the battle door on the dash ----------------
+     geometry is inherited: a button inside #actions is a door.
+     it opens the basement straight onto the fight picker; the
+     basement keeps the spawn. energy under the entry cost follows
+     the locked-with-reasons convention. */
+  var battleCard = null, battleCardSmall = null, battleCardPlaced = false;
+  function plantBattleCard() {
+    var actions = gel("actions");
+    if (!actions) { return false; }
+    if (!battleCard) {
+      battleCard = document.createElement("button");
+      battleCard.type = "button";
+      battleCard.setAttribute("data-act", "battle");
+      battleCard.appendChild(mkEl("span", "key", "D"));
+      battleCard.appendChild(mkEl("b", null, "battle"));
+      battleCardSmall = mkEl("small", null, "");
+      battleCardSmall.id = "rd-battle-status";
+      battleCard.appendChild(battleCardSmall);
+      battleCard.addEventListener("click", function () { openBasement(); });
+    }
+    if (!battleCardPlaced || battleCard.parentNode !== actions) {
+      var beef = actions.querySelector('[data-act="beef"]');
+      if (beef && beef.parentNode === actions) { actions.insertBefore(battleCard, beef.nextSibling); }
+      else { actions.appendChild(battleCard); }
+      battleCardPlaced = true;
+    }
+    var e = Math.floor((S && S.energy) || 0);
+    if (e < BATTLE_ENERGY) {
+      battleCard.disabled = true;
+      battleCardSmall.textContent = "live battles downstairs · needs " + BATTLE_ENERGY + " energy · rest up";
+    } else {
+      battleCard.disabled = false;
+      battleCardSmall.textContent = "live battles in the basement · " + BATTLE_ENERGY + " energy · battle level " + levelOf(v14.xp);
+    }
+    return true;
+  }
+  document.addEventListener("keydown", function (ev) {
+    try {
+      if (!ev || ev.defaultPrevented || ev.metaKey || ev.ctrlKey || ev.altKey) { return; }
+      if (String(ev.key || "").toLowerCase() !== "d") { return; }
+      var t = ev.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) { return; }
+      if (document.querySelector(".rd-overlay:not(.hidden), .overlay:not(.hidden), .modal:not(.hidden)")) { return; }
+      if (!(window.RapDreamStart && window.RapDreamStart.picked)) { return; }
+      if (battleCard && !battleCard.disabled && battleCard.parentNode) { battleCard.click(); }
+    } catch (e) {}
+  });
+
+  /* ---------------- room side: down to the basement ---------------- */
+  function paintRoomDown() {
+    var room = gel("rd-room");
+    if (!room || room.classList.contains("hidden")) { return; }
+    if (room.querySelector(".rd-v14-roomdown")) { return; }
+    var panel = room.querySelector(".rd-panel") || room;
+    var b = mkEl("button", "rd-v14-stairs rd-v14-roomdown", "▼ down · the basement");
+    b.type = "button";
+    b.addEventListener("click", function () { room.classList.add("hidden"); openBasement(); });
+    panel.appendChild(b);
+  }
+  var roomObs = gel("rd-room");
+  if (roomObs && window.MutationObserver) {
+    new MutationObserver(function () { paintRoomDown(); }).observe(roomObs, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  }
+  setInterval(function () {
+    try { plantBattleCard(); } catch (e) {}
+    try { paintRoomDown(); } catch (e) {}
+  }, 1500);
+  try { plantBattleCard(); } catch (e) {}
 
   /* ---------------- persistence: the Persist chain grows a v14 ---------------- */
   (function v14Persist() {
@@ -18168,7 +18547,7 @@ render();
       if (!base || typeof base !== "object") { base = {}; }
       base.v14 = {
         xp: v14.xp, wins: v14.wins, losses: v14.losses, walks: v14.walks, fights: v14.fights,
-        pool: v14.pool, gone: v14.gone.slice(-40), lastSpawnDay: v14.lastSpawnDay, spawnSeq: v14.spawnSeq
+        pool: v14.pool, gone: v14.gone.slice(-40), lastSpawnDay: v14.lastSpawnDay, spawnSeq: v14.spawnSeq, hist: v14.hist
       };
       return base;
     };
@@ -18186,8 +18565,9 @@ render();
           if (Array.isArray(v.gone)) { d.gone = v.gone.filter(function (n) { return typeof n === "string"; }); }
           if (typeof v.lastSpawnDay === "number") { d.lastSpawnDay = v.lastSpawnDay; }
           if (typeof v.spawnSeq === "number") { d.spawnSeq = v.spawnSeq; }
+          if (v.hist && typeof v.hist === "object") { for (var hk in v.hist) { if (typeof v.hist[hk] === "number") { d.hist[hk] = v.hist[hk]; } } }
           v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
-          v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq;
+          v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist;
           v14RestoredAt = Date.now();
         }
       } catch (e) {}
@@ -18200,7 +18580,7 @@ render();
   function resetV14() {
     var d = v14Defaults();
     v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
-    v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq;
+    v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist;
     if (fight && fight.timer) { clearInterval(fight.timer); }
     fight = null;
   }
@@ -18249,7 +18629,15 @@ render();
     },
     fight: function () { return fight; },
     forceBar: function () { resolveBar(); },
-    endFight: endFight
+    endFight: endFight,
+    startFightObj: function (opp) { startFight(opp); return !!fight && !fight.over; },
+    sfx: sfxCounts,
+    chart: function () { return fight ? fight.chart : null; },
+    pickMove: function (id) {
+      var b = fightBody.querySelector('[data-move="' + id + '"]');
+      if (b) { b.click(); return true; }
+      return false;
+    }
   };
 })();
 </script>
