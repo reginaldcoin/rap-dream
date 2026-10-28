@@ -4366,7 +4366,7 @@ syncDoll();
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "C3"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -17573,13 +17573,15 @@ render();
 
   /* ---- share cards: built to be posted ----
      Three cards read the live run: the latest song, the moment the
-     career is standing in, and the peak it has reached. Posting
+     career is standing in, and the peak it has reached. A fourth
+     joins when a battle is on the record: the finished chart,
+     drawn by the battle module's own renderer. Posting
      fires the share beacon whether the sheet completes or not:
      the click is the signal. */
   var shareOv = mkEl("section", "rd-overlay hidden", null);
   shareOv.id = "rd-share";
   shareOv.setAttribute("aria-label", "Share cards");
-  shareOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>share cards</h3><p>three cards, cut from the run you are standing in. post one anywhere.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  shareOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>share cards</h3><p>cards cut from the run you are standing in. post one anywhere.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
   document.body.appendChild(shareOv);
   var shareBody = shareOv.querySelector(".rd-panel-body");
   shareOv.querySelector(".rd-close").addEventListener("click", function () { shareOv.classList.add("hidden"); });
@@ -17638,6 +17640,23 @@ render();
       "",
       ["peak fans " + fmtN(Math.max(v13.peaks.fans || 0, S.fans || 0)) + " · peak cash " + money(Math.max(v13.peaks.money || 0, S.money || 0)) + " · biggest single-day climb +" + fmtN(v13.peaks.bestGain || 0) + " fans.",
        "the peak is a receipt, not a promise. it only moves one way."]));
+    var lc = null;
+    try { lc = window.RapDreamV14 && window.RapDreamV14.lastChart; } catch (e) {}
+    if (lc && lc.chart && lc.chart.length && typeof window.RapDreamV14ChartNode === "function") {
+      var resLine = lc.result === "win" ? "you took the room" : lc.result === "loss" ? "they took the room" : "you walked off";
+      var bcard = shareCardEl("battle",
+        "the chart · vs " + lc.name,
+        "",
+        ["you vs " + lc.name + ", day " + (lc.day || 1) + ": " + resLine + " in " + (lc.bars || lc.chart.length) + " bars.",
+         "every bubble is a bar. size is weight, color is nature, the gold ring is you."]);
+      var cnode = null;
+      try { cnode = window.RapDreamV14ChartNode(); } catch (e) {}
+      if (cnode) {
+        var postBtn = bcard.querySelector(".rd-share-post");
+        if (postBtn) { bcard.insertBefore(cnode, postBtn); } else { bcard.appendChild(cnode); }
+      }
+      shareBody.appendChild(bcard);
+    }
   }
   function openShare() {
     paintShareCards();
@@ -17710,6 +17729,11 @@ render();
    cassette body, 8 quantized pads, velocity scrub and bend were
    already standing from V12/V13, so the deck is verified, not
    rebuilt.
+   V15: SkyTier Northwest is the league on the card (picker,
+   battle header, results chart), the finished chart cuts a
+   share card in the V13 share home through RapDreamV14ChartNode,
+   and the registry record for C3 reads Caesar III: pre-V15
+   saves fold the old name into the new one at restore.
    ================================================================== */
 (function () {
   if (typeof S === "undefined" || !S) { return; }
@@ -17727,7 +17751,7 @@ render();
 
   /* ---------------- state (rides extras.v14) ---------------- */
   function v14Defaults() {
-    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0, hist: {} };
+    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0, hist: {}, lastChart: null };
   }
   var v14 = v14Defaults();
   var v14RestoredAt = 0;
@@ -17907,7 +17931,7 @@ render();
   var baseOv = mkEl("section", "rd-overlay hidden", null);
   baseOv.id = "rd-v14-base";
   baseOv.setAttribute("aria-label", "The basement");
-  baseOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>the basement</h3><p>the stairs under the party. every name upstairs started down here.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  baseOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>the basement</h3><p>the stairs under the party. every name upstairs started down here. SkyTier Northwest runs the card.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
   document.body.appendChild(baseOv);
   var baseBody = baseOv.querySelector(".rd-panel-body");
   baseOv.querySelector(".rd-close").addEventListener("click", function () { baseOv.classList.add("hidden"); });
@@ -18039,7 +18063,7 @@ render();
   var fightOv = mkEl("section", "rd-overlay hidden", null);
   fightOv.id = "rd-v14-fight";
   fightOv.setAttribute("aria-label", "Live battle");
-  fightOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>live battle</h3><p>bar by bar, in real time: one bar is 3 seconds, the deck's own tempo. pick your move before the bar turns, or your mouth runs a plain bar on its own.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  fightOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>live battle</h3><p>SkyTier Northwest presents the card. bar by bar, in real time: one bar is 3 seconds, the deck's own tempo. pick your move before the bar turns, or your mouth runs a plain bar on its own.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
   document.body.appendChild(fightOv);
   var fightBody = fightOv.querySelector(".rd-panel-body");
   fightOv.querySelector(".rd-close").addEventListener("click", function () {
@@ -18148,6 +18172,17 @@ render();
     });
     return leg;
   }
+  /* the share home (V13) cuts a card from the last finished
+     battle: the chart it shows is this module's own renderer,
+     the same strip the room watched form. */
+  window.RapDreamV14ChartNode = function () {
+    var lc = v14.lastChart;
+    if (!lc || !lc.chart || !lc.chart.length) { return null; }
+    var box = mkEl("div", null, null);
+    box.appendChild(chartStrip(lc.chart));
+    box.appendChild(chartLegend(lc.chart));
+    return box;
+  };
   function fighterFig(cls, label, fx) {
     var w = mkEl("div", "rd-v14-fighter " + cls + (fx ? " " + fx : ""), null);
     w.appendChild(mkEl("div", "rd-v14-fig", null));
@@ -18326,6 +18361,9 @@ render();
     else { v14.walks += 1; }
     v14.fights += 1;
     v14.hist[f.name] = (v14.hist[f.name] || 0) + 1;
+    if (f.chart && f.chart.length) {
+      v14.lastChart = { name: f.name, result: result, bars: f.bar, day: (S && S.day) || 1, chart: f.chart.map(function (e) { return { n: e.n, side: e.side, nature: e.nature, w: e.w }; }) };
+    }
     var before = levelOf(v14.xp);
     v14.xp += xp;
     var after = levelOf(v14.xp);
@@ -18382,7 +18420,7 @@ render();
       fightBody.appendChild(mkEl("p", "rd-v14-dim", f.result === "win" ? f.name + "'s crowd is gone. the basement saw it, and the basement talks." : f.result === "loss" ? "your crowd is gone. no shame in the record: the bars are the record." : "you keep your breath and your record clean. the stairs are right there."));
       fightBody.appendChild(mkEl("p", "rd-v14-dim", "+" + f.xpGain + " battle XP · battle level " + levelOf(v14.xp) + (f.levelUp ? " · LEVEL UP: level " + f.levelUp + " unlocks " + (MOVE_UNLOCK[f.levelUp] || "new bars") : "")));
       var chartBox = mkEl("div", null, null);
-      chartBox.appendChild(mkEl("h4", null, "the round, charted"));
+      chartBox.appendChild(mkEl("h4", null, "the round, charted · SkyTier Northwest"));
       var full = chartStrip(f.chart);
       full.classList.add("rd-v14-chart");
       chartBox.appendChild(full);
@@ -18547,7 +18585,7 @@ render();
       if (!base || typeof base !== "object") { base = {}; }
       base.v14 = {
         xp: v14.xp, wins: v14.wins, losses: v14.losses, walks: v14.walks, fights: v14.fights,
-        pool: v14.pool, gone: v14.gone.slice(-40), lastSpawnDay: v14.lastSpawnDay, spawnSeq: v14.spawnSeq, hist: v14.hist
+        pool: v14.pool, gone: v14.gone.slice(-40), lastSpawnDay: v14.lastSpawnDay, spawnSeq: v14.spawnSeq, hist: v14.hist, lastChart: v14.lastChart
       };
       return base;
     };
@@ -18566,8 +18604,14 @@ render();
           if (typeof v.lastSpawnDay === "number") { d.lastSpawnDay = v.lastSpawnDay; }
           if (typeof v.spawnSeq === "number") { d.spawnSeq = v.spawnSeq; }
           if (v.hist && typeof v.hist === "object") { for (var hk in v.hist) { if (typeof v.hist[hk] === "number") { d.hist[hk] = v.hist[hk]; } } }
+          /* V15: C3 is Caesar III now. a pre-V15 record under the old
+             name folds into the new one, nothing orphaned. */
+          if (typeof d.hist["C3"] === "number") { d.hist["Caesar III"] = (d.hist["Caesar III"] || 0) + d.hist["C3"]; delete d.hist["C3"]; }
+          d.pool.forEach(function (r) { if (r.name === "C3") { r.name = "Caesar III"; } });
+          d.gone = d.gone.map(function (n) { return n === "C3" ? "Caesar III" : n; });
+          if (v.lastChart && typeof v.lastChart === "object" && Array.isArray(v.lastChart.chart) && v.lastChart.chart.length) { d.lastChart = v.lastChart; }
           v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
-          v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist;
+          v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist; v14.lastChart = d.lastChart;
           v14RestoredAt = Date.now();
         }
       } catch (e) {}
@@ -18580,7 +18624,7 @@ render();
   function resetV14() {
     var d = v14Defaults();
     v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
-    v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist;
+    v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist; v14.lastChart = d.lastChart;
     if (fight && fight.timer) { clearInterval(fight.timer); }
     fight = null;
   }
