@@ -4366,7 +4366,7 @@ syncDoll();
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206", "PAPERM8"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206", "PAPERM8", "elite"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -17734,6 +17734,18 @@ render();
    share card in the V13 share home through RapDreamV14ChartNode,
    and the registry record for C3 reads Caesar III: pre-V15
    saves fold the old name into the new one at restore.
+   V16: the battle mode grows its spine. The registry reads as a
+   record (seen / beaten, counted in the basement), the four
+   classes fight on a style chart with on-style heat, stages run
+   basement / league / legend off the battle level you already
+   earn, SkyTier Northwest posts a five-rung league run ending
+   at an ace, a beaten basement name can be offered a deal
+   instead of a finish (signing is catching: they join a roster
+   of six and tag in mid-battle), and the meters read what they
+   always were: composure, with pen, poise, flow and hook power
+   stated on the card. League matches take no walk-offs: leaving
+   one goes down as a loss. All of it rides the same v14 state
+   and the same Persist chain; nothing here is a second system.
    ================================================================== */
 (function () {
   if (typeof S === "undefined" || !S) { return; }
@@ -17751,7 +17763,7 @@ render();
 
   /* ---------------- state (rides extras.v14) ---------------- */
   function v14Defaults() {
-    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0, hist: {}, lastChart: null };
+    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0, hist: {}, lastChart: null, dex: {}, roster: [], leagueStep: 0, leagueDone: false };
   }
   var v14 = v14Defaults();
   var v14RestoredAt = 0;
@@ -17791,8 +17803,38 @@ render();
   function moveUnlocked(m) { return levelOf(v14.xp) >= m.level; }
   function moveById(id) { for (var i = 0; i < MOVES.length; i += 1) { if (MOVES[i].id === id) { return MOVES[i]; } } return null; }
   function rollW(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+  /* ---------------- V16: styles, stages, the record ----------------
+     the four classes are the styles. the chart is a clean cycle:
+     trap over rnb, rnb over experimental, experimental over
+     drill, drill over trap. a move that matches your class runs
+     on-style and hits hotter. stats are the numbers the room
+     already kept, named: composure is the meter, pen and poise
+     and flow ride level and power, hook power rides hype. */
+  var BATTLE_STYLES = ["trap", "drill", "rnb", "experimental"];
+  var STYLE_BEATS = { trap: "rnb", rnb: "experimental", experimental: "drill", drill: "trap" };
+  var MOVE_STYLE = { punch: "trap", gunbar: "trap", reference: "rnb", humor: "rnb", personal: "rnb", nameflip: "drill", multis: "drill", closer: "drill", wordplay: "experimental", scheme: "experimental", rebuttal: "experimental" };
+  function hashName(s) { var h = 0; for (var i = 0; i < String(s || "").length; i += 1) { h = (h * 31 + String(s).charCodeAt(i)) >>> 0; } return h; }
+  function styleForName(name) { return BATTLE_STYLES[hashName(name) % 4]; }
+  function playerStyle() { try { var cr = window.RapDreamClassRegion; if (cr && cr.cls && BATTLE_STYLES.indexOf(cr.cls) >= 0) { return cr.cls; } } catch (e) {} return "trap"; }
+  function typeMult(att, def) { if (STYLE_BEATS[att] === def) { return 1.25; } if (STYLE_BEATS[def] === att) { return 0.8; } return 1; }
+  var STAGE_NAMES = { 1: "basement form", 2: "league form", 3: "legend form" };
+  function stageOfLevel(lv) { return lv >= 5 ? 3 : lv >= 3 ? 2 : 1; }
+  function stageOfPlayer() { return stageOfLevel(levelOf(v14.xp)); }
+  function stageOfPower(p) { return p >= 7 ? 3 : p >= 4 ? 2 : 1; }
+  function hookOfPlayer() { return 25 + Math.min(55, Math.floor(((typeof S !== "undefined" && S && S.hype) || 0) / 3)) + (stageOfPlayer() - 1) * 6; }
+  function statsOfPlayer() { var lv = levelOf(v14.xp), st = stageOfPlayer(); return { pen: 30 + lv * 6 + (st - 1) * 8, poise: 30 + lv * 4 + (st - 1) * 10, flow: 40 + lv * 5 + (st - 1) * 5, hook: hookOfPlayer() }; }
+  function statsOfOpp(power) { var st = stageOfPower(power); return { pen: 24 + power * 7 + (st - 1) * 6, poise: 26 + power * 6 + (st - 1) * 8, flow: 34 + power * 5, hook: 20 + power * 6 + (st - 1) * 5 }; }
+  function dexCounts() { var seen = 0, beaten = 0; for (var k in v14.dex) { if (v14.dex[k] && v14.dex[k].seen) { seen += 1; } if (v14.dex[k] && v14.dex[k].beaten) { beaten += 1; } } return { seen: seen, beaten: beaten, total: (typeof RD_FEATURED_NAMES !== "undefined" ? RD_FEATURED_NAMES.length : 0) }; }
+  var LEAGUE_CARD = [
+    { name: "Dugg", power: 4 },
+    { name: "jukebox", power: 5 },
+    { name: "Geo Definite", power: 6 },
+    { name: "Caesar III", power: 7 },
+    { name: "Heretic the Heathen", power: 9 }
+  ];
   function dmgFor(w) { return w <= 0 ? 0 : Math.max(1, Math.round(w * 6.5 + rnd(-2, 2))); }
-  var NATURE_COLORS = { bar: "#9fc6de", punch: "#ffd23f", wordplay: "#7ee0ff", reference: "#b5ff20", nameflip: "#ff9f1c", personal: "#ff5d8f", rebuttal: "#c77dff", scheme: "#4cc9f0", topical: "#90e0a8", "gun bar": "#ef476f", humor: "#ffe66d", multis: "#8ecae6", closer: "#ffffff", "sus bar": "#6c757d", "bad bar": "#495057", choke: "#343a40" };
+  var NATURE_COLORS = { bar: "#9fc6de", punch: "#ffd23f", wordplay: "#7ee0ff", reference: "#b5ff20", nameflip: "#ff9f1c", personal: "#ff5d8f", rebuttal: "#c77dff", scheme: "#4cc9f0", topical: "#90e0a8", "gun bar": "#ef476f", humor: "#ffe66d", multis: "#8ecae6", closer: "#ffffff", breath: "#69bdff", tag: "#ffd23f", "sus bar": "#6c757d", "bad bar": "#495057", choke: "#343a40" };
 
   /* ---------------- CSS ---------------- */
   var css = document.createElement("style");
@@ -17946,7 +17988,7 @@ render();
     }
     return best;
   }
-  function fightButton(label, oppName, oppPower, isRival, shape) {
+  function fightButton(label, oppName, oppPower, isRival, shape, fromPool) {
     var b = mkEl("button", "rd-v14-fight-btn", label);
     b.type = "button";
     var e = (S && S.energy) || 0;
@@ -17954,7 +17996,15 @@ render();
       b.disabled = true;
       b.textContent = "needs " + BATTLE_ENERGY + " energy";
     }
-    b.addEventListener("click", function () { startFight({ name: oppName, power: oppPower, rival: !!isRival, shape: shape || shapeFor(oppPower, oppName, !!isRival) }); });
+    b.addEventListener("click", function () { startFight({ name: oppName, power: oppPower, rival: !!isRival, shape: shape || shapeFor(oppPower, oppName, !!isRival), pool: !!fromPool }); });
+    return b;
+  }
+  function leagueButton(rung) {
+    var b = mkEl("button", "rd-v14-fight-btn", "climb · " + BATTLE_ENERGY + " energy");
+    b.type = "button";
+    var e = (S && S.energy) || 0;
+    if (e < BATTLE_ENERGY) { b.disabled = true; b.textContent = "needs " + BATTLE_ENERGY + " energy"; }
+    b.addEventListener("click", function () { startFight({ name: rung.name, power: rung.power, rival: false, shape: shapeFor(rung.power, rung.name, false), league: true, rung: v14.leagueStep, pool: false }); });
     return b;
   }
   function paintBasement(note) {
@@ -17971,7 +18021,43 @@ render();
     var unlocked = MOVES.filter(moveUnlocked).map(function (m) { return m.name; }).join(", ");
     var locked = MOVES.filter(function (m) { return !moveUnlocked(m); }).map(function (m) { return m.name + " (level " + m.level + ")"; }).join(", ");
     card.appendChild(mkEl("p", null, "your moves: " + unlocked + (locked ? " · still locked: " + locked : "")));
+    var pst = statsOfPlayer();
+    card.appendChild(mkEl("p", null, "you fight " + playerStyle() + " · " + STAGE_NAMES[stageOfPlayer()] + " · pen " + pst.pen + " · poise " + pst.poise + " · flow " + pst.flow + " · hook power " + pst.hook));
+    var dc = dexCounts();
+    card.appendChild(mkEl("p", null, "the record: seen " + dc.seen + " of " + dc.total + " names · beaten " + dc.beaten + " of " + dc.total + (v14.roster.length ? " · roster " + v14.roster.length + " of 6 riding with you" : "")));
     baseBody.appendChild(card);
+
+    var leagueCard = mkEl("div", "rd-v14-card", null);
+    leagueCard.appendChild(mkEl("h4", null, "SkyTier Northwest · the league run"));
+    if (v14.leagueDone) {
+      leagueCard.appendChild(mkEl("p", null, "credential earned. you climbed the whole card and took the ace's room: the league knows your name now. the card stays open for pride and XP."));
+    } else {
+      var rung = LEAGUE_CARD[v14.leagueStep];
+      leagueCard.appendChild(mkEl("p", null, "five rungs up the league's own card, one credential at the top. league matches take no walk-offs: leaving one goes down as a loss. rung " + (v14.leagueStep + 1) + " of " + LEAGUE_CARD.length + (v14.leagueStep === LEAGUE_CARD.length - 1 ? " · the ace" : "") + ":"));
+      var lrow = mkEl("div", "rd-v14-row", null);
+      var lwho = mkEl("div", "rd-v14-who", null);
+      lwho.appendChild(mkEl("strong", null, rung.name));
+      lwho.appendChild(mkEl("small", null, "power " + rung.power + " · " + styleForName(rung.name) + " style · " + STAGE_NAMES[stageOfPower(rung.power)] + " · fights like " + shapeFor(rung.power, rung.name, false)));
+      lrow.appendChild(lwho);
+      lrow.appendChild(leagueButton(rung));
+      leagueCard.appendChild(lrow);
+    }
+    baseBody.appendChild(leagueCard);
+
+    if (v14.roster.length) {
+      var rosCard = mkEl("div", "rd-v14-card", null);
+      rosCard.appendChild(mkEl("h4", null, "your roster · signed out of the basement"));
+      v14.roster.forEach(function (m) {
+        var rrow = mkEl("div", "rd-v14-row", null);
+        var rwho = mkEl("div", "rd-v14-who", null);
+        rwho.appendChild(mkEl("strong", null, m.name));
+        rwho.appendChild(mkEl("small", null, "power " + m.power + " · " + m.style + " style · " + STAGE_NAMES[m.stage || stageOfPower(m.power)] + " · composure " + Math.round(m.comp) + " of " + m.compMax + (m.comp < 15 ? " · resting: a day brings them back" : "")));
+        rrow.appendChild(rwho);
+        rosCard.appendChild(rrow);
+      });
+      rosCard.appendChild(mkEl("p", null, "tag them in from the battle room: the switch runs on their composure and their style, not yours."));
+      baseBody.appendChild(rosCard);
+    }
 
     var poolCard = mkEl("div", "rd-v14-card", null);
     poolCard.appendChild(mkEl("h4", null, "up from the basement"));
@@ -17982,9 +18068,9 @@ render();
       var row = mkEl("div", "rd-v14-row", null);
       var who = mkEl("div", "rd-v14-who", null);
       who.appendChild(mkEl("strong", null, r.name));
-      who.appendChild(mkEl("small", null, "power " + r.power + " · fights like " + (r.shape || shapeFor(r.power, r.name, false)) + " · surfaced day " + r.day));
+      who.appendChild(mkEl("small", null, "power " + r.power + " · " + styleForName(r.name) + " style · " + STAGE_NAMES[stageOfPower(r.power)] + " · fights like " + (r.shape || shapeFor(r.power, r.name, false)) + " · surfaced day " + r.day));
       row.appendChild(who);
-      row.appendChild(fightButton("battle · " + BATTLE_ENERGY + " energy", r.name, r.power, false, r.shape));
+      row.appendChild(fightButton("battle · " + BATTLE_ENERGY + " energy", r.name, r.power, false, r.shape, true));
       poolCard.appendChild(row);
     });
     baseBody.appendChild(poolCard);
@@ -18225,7 +18311,7 @@ render();
 
   function moveState(f, m) {
     if (m.id === "rebuttal" && !f.rebuttalOpen) { return { ok: false, why: "shut: a rebuttal answers their last bar" }; }
-    if (m.id === "closer" && f.them > 30) { return { ok: false, why: "too early: the closer needs their crowd at 30 or under" }; }
+    if (m.id === "closer" && f.them > 30) { return { ok: false, why: "too early: the closer needs their composure at 30 or under" }; }
     return { ok: true, why: m.sub };
   }
   function denyMove(btn, why) {
@@ -18253,15 +18339,30 @@ render();
     bsfx("press");
     paintFight();
   }
+  function activeStyle(f) { return f.member ? f.member.style : playerStyle(); }
+  function styleHeat(f, mvId, dmg, note) {
+    var aStyle = activeStyle(f);
+    var tm = typeMult(aStyle, f.oppStyle);
+    var stab = MOVE_STYLE[mvId] === aStyle ? 1.2 : 1;
+    var fac = (f.member ? (0.8 + f.member.power * 0.05) : (1 + (stageOfPlayer() - 1) * 0.07));
+    var out = Math.max(0, Math.round(dmg * tm * stab * fac));
+    var bits = [];
+    if (stab > 1) { bits.push("on-style: a " + aStyle + " move from a " + aStyle + " fighter runs hotter"); }
+    if (tm > 1) { bits.push("style edge: " + aStyle + " cuts " + f.oppStyle); }
+    if (tm < 1) { bits.push("bad matchup: " + f.oppStyle + " smothers " + aStyle); }
+    return { dmg: out, note: note || bits.join(" · ") };
+  }
   function yourBar(f, mvId) {
     if (mvId === "multis") {
       var tot = 0, i;
       for (i = 0; i < 3; i += 1) { tot += rollW([0, 0, 1, 1]); }
-      return { nature: "multis", w: tot, dmg: dmgFor(tot), line: tot === 0 ? "multis, and every one of them eats air" : "multis: the little ones add up to " + tot, note: "" };
+      var mh = styleHeat(f, "multis", dmgFor(tot), "");
+      return { nature: "multis", w: tot, dmg: mh.dmg, line: tot === 0 ? "multis, and every one of them eats air" : "multis: the little ones add up to " + tot, note: mh.note };
     }
     if (mvId === "bar") {
       var bw = rollW([1, 2, 2.5, 3]);
-      return { nature: "bar", w: bw, dmg: dmgFor(bw), line: pickOf(YOUR_LINES.bar), note: "" };
+      var bh = styleHeat(f, "bar", dmgFor(bw), "");
+      return { nature: "bar", w: bw, dmg: bh.dmg, line: pickOf(YOUR_LINES.bar), note: bh.note };
     }
     var m = moveById(mvId) || moveById("punch");
     var w = rollW(m.weights), bonus = 0, note = "";
@@ -18270,15 +18371,16 @@ render();
       var hb = Math.min(6, (f.histCount || 0) * 2);
       if (hb > 0) { bonus = hb; note = "history: " + f.histCount + " meeting" + (f.histCount === 1 ? "" : "s") + " deep, and it shows"; }
     }
-    if (mvId === "humor") { f.you = Math.min(100, f.you + 4); note = "the room laughs 4 crowd back to you"; }
-    return { nature: m.name, w: w, dmg: dmgFor(w) + bonus, line: pickOf(YOUR_LINES[mvId] || YOUR_LINES.punch), note: note };
+    if (mvId === "humor") { f.you = Math.min(f.youMax || 100, f.you + 4); note = "the room laughs 4 composure back to you"; }
+    var hh = styleHeat(f, mvId, dmgFor(w) + bonus, "");
+    return { nature: m.name, w: w, dmg: hh.dmg, line: pickOf(YOUR_LINES[mvId] || YOUR_LINES.punch), note: note || hh.note };
   }
   var SHAPE_CYCLES = {
     "the staircase": [{ w: 2, n: "reference" }, { w: 2, n: "punch" }, { w: 3, n: "wordplay" }, { w: 2, n: "reference" }],
     "the technician": [{ w: 2, n: "scheme" }, { w: 1.5, n: "scheme" }, { w: 2, n: "scheme" }, { w: 0, n: "multis" }, { w: 1, n: "multis" }, { w: 2, n: "punch" }]
   };
   function oppBar(f) {
-    var pf = 0.8 + f.power * 0.06;
+    var pf = (0.8 + f.power * 0.06) * typeMult(f.oppStyle, activeStyle(f)) * (1 + (stageOfPower(f.power) - 1) * 0.05);
     var bar = f.bar;
     function std(w, n, line) { return { w: w, n: n, dmg: Math.round(dmgFor(w) * pf), line: line || pickOf(THEIR_LINES), choke: false }; }
     if (f.shape === "the front-loader") {
@@ -18298,13 +18400,83 @@ render();
     var step = cyc[(bar - 1) % cyc.length];
     return std(step.w, step.n);
   }
+  function pickSpecial(kind, arg, btn) {
+    var f = fight;
+    if (!f || f.over) { return; }
+    if (f.committed || f.scheme) {
+      denyMove(btn, f.scheme ? "the scheme is running. it does not take new orders." : "that bar is already thrown. the next window opens when this one turns.");
+      return;
+    }
+    if (kind === "item") {
+      if (f.items <= 0) { denyMove(btn, "the bottle is empty. two breaths a fight, that was the deal."); return; }
+      f.pick = "__item"; f.committed = true;
+    } else if (kind === "switch") {
+      if (arg === "you") {
+        if (!f.member) { denyMove(btn, "you are already the one in the circle."); return; }
+      } else {
+        var mm = null;
+        for (var i = 0; i < v14.roster.length; i += 1) { if (v14.roster[i].name === arg) { mm = v14.roster[i]; } }
+        if (!mm) { return; }
+        if (f.member && f.member.name === arg) { denyMove(btn, mm.name + " is already in the circle."); return; }
+        if (mm.comp < 15) { denyMove(btn, mm.name + " is resting. a day brings them back."); return; }
+      }
+      f.pick = "__switch"; f.switchName = arg; f.committed = true;
+    }
+    bsfx("press");
+    paintFight();
+  }
+  function offerOpen(f) {
+    return !f.over && !f.rival && !f.league && f.fromPool && !f.offerUsed && v14.roster.length < 6 && f.them > 0 && f.them <= f.themMax * 0.3;
+  }
+  function offerDeal() {
+    var f = fight;
+    if (!f || !offerOpen(f)) { return false; }
+    f.offerUsed = true;
+    var chance = 45 + (f.them <= f.themMax * 0.15 ? 20 : 0) + Math.min(20, Math.floor(((typeof S !== "undefined" && S && S.rep) || 0) / 5)) + (((typeof S !== "undefined" && S && S.money) || 0) >= 500 ? 10 : ((typeof S !== "undefined" && S && S.money) || 0) >= 100 ? 5 : 0);
+    if (Math.random() * 100 < chance) {
+      endFight("signed");
+      return true;
+    }
+    f.them = Math.min(f.themMax, f.them + 12);
+    fightLog(f, "you float the deal mid-battle. " + f.name + " laughs it off and finds a second wind (+12 composure). the offer is spent.", true);
+    bsfx("denied");
+    paintFight();
+    return false;
+  }
   function resolveBar() {
     var f = fight;
     if (!f || f.over) { return; }
     f.bar += 1;
     f.lastFx = { you: "", them: "" };
     var yb, schemeDone = false;
-    if (f.scheme) {
+    if (f.committed && f.pick === "__item") {
+      f.items = Math.max(0, f.items - 1);
+      f.you = Math.min(f.youMax || 100, f.you + 20);
+      yb = { nature: "breath", w: 0, dmg: 0, line: "you catch your breath: water, air, +20 composure", note: "" };
+      f.lastFx.you = "glow";
+    } else if (f.committed && f.pick === "__switch") {
+      var outName = f.member ? f.member.name : "you";
+      if (f.member) { f.member.comp = Math.max(0, Math.min(f.member.compMax, f.you)); }
+      else { f.youStored = f.you; }
+      if (f.switchName === "you") {
+        f.member = null;
+        f.youMax = 100 + (stageOfPlayer() - 1) * 20;
+        f.you = (typeof f.youStored === "number") ? f.youStored : f.youMax;
+        yb = { nature: "tag", w: 0, dmg: 0, line: "tag: you step back into the circle yourself", note: "" };
+      } else {
+        var inm = null;
+        for (var si = 0; si < v14.roster.length; si += 1) { if (v14.roster[si].name === f.switchName) { inm = v14.roster[si]; } }
+        if (inm) {
+          f.member = inm;
+          f.youMax = inm.compMax;
+          f.you = inm.comp;
+          yb = { nature: "tag", w: 0, dmg: 0, line: "tag: " + inm.name + " steps in (" + inm.style + " style, " + STAGE_NAMES[inm.stage || stageOfPower(inm.power)] + ")", note: "" };
+        } else {
+          yb = { nature: "bar", w: 1, dmg: dmgFor(1), line: "a plain bar, clean and quick", note: "" };
+        }
+      }
+      f.lastFx.you = "glow";
+    } else if (f.scheme) {
       f.scheme.step += 1;
       if (f.scheme.step < 3) {
         var sw = rollW([1, 1.5, 2]);
@@ -18321,11 +18493,12 @@ render();
     }
     f.them = Math.max(0, f.them - yb.dmg);
     f.chart.push({ n: f.bar, side: "you", nature: yb.nature, w: yb.w });
-    fightLog(f, "bar " + f.bar + " · you: " + yb.line + " [" + yb.nature + " " + yb.w + "] (-" + yb.dmg + " their crowd)" + (yb.note ? " — " + yb.note : ""));
+    fightLog(f, "bar " + f.bar + " · you: " + yb.line + " [" + yb.nature + " " + yb.w + "] (-" + yb.dmg + " their composure)" + (yb.note ? " — " + yb.note : ""));
     if (yb.dmg > 0) { bsfx("hit"); f.lastFx.them = yb.w >= 3 ? "heavy" : "hit"; } else { bsfx("whiff"); }
     if (schemeDone) { f.scheme = null; }
     f.committed = false;
     f.pick = null;
+    f.switchName = null;
     f.barStart = Date.now();
     f.justTurned = true;
     if (f.them <= 0) { endFight("win"); return; }
@@ -18337,7 +18510,7 @@ render();
       fightLog(f, "bar " + f.bar + " · " + f.name + ": " + ob.line + " [choke]", true);
     } else {
       f.you = Math.max(0, f.you - ob.dmg);
-      fightLog(f, "bar " + f.bar + " · " + f.name + ": " + ob.line + " [" + ob.n + " " + ob.w + "] (-" + ob.dmg + " your crowd)", true);
+      fightLog(f, "bar " + f.bar + " · " + f.name + ": " + ob.line + " [" + ob.n + " " + ob.w + "] (-" + ob.dmg + " your composure)", true);
       if (ob.dmg > 0) { bsfx("hurt"); f.lastFx.you = ob.w >= 3 ? "heavy" : "hit"; }
     }
     if (f.scheme && ob.w >= 3) {
@@ -18352,12 +18525,15 @@ render();
   function endFight(result) {
     var f = fight;
     if (!f || f.over) { return; }
+    if (f.league && result === "walk") { result = "loss"; f.leagueForfeit = true; }
     f.over = true;
     f.result = result;
     if (f.timer) { clearInterval(f.timer); f.timer = 0; }
+    if (f.member) { f.member.comp = Math.max(0, Math.min(f.member.compMax, f.you)); }
     var xp = 4;
     if (result === "win") { xp = 26 + f.power * 3; v14.wins += 1; bsfx("win"); }
     else if (result === "loss") { xp = 8; v14.losses += 1; bsfx("lose"); }
+    else if (result === "signed") { xp = 14; bsfx("win"); }
     else { v14.walks += 1; }
     v14.fights += 1;
     v14.hist[f.name] = (v14.hist[f.name] || 0) + 1;
@@ -18369,11 +18545,34 @@ render();
     var after = levelOf(v14.xp);
     f.xpGain = xp;
     f.levelUp = after > before ? after : 0;
-    if (result === "win" && !f.rival) {
+    if ((result === "win" || result === "signed") && !f.rival) {
       for (var i = 0; i < v14.pool.length; i += 1) {
         if (v14.pool[i].name === f.name) { v14.gone.push(f.name); v14.pool.splice(i, 1); break; }
       }
     }
+    if (result === "signed") {
+      var compMax = 70 + f.power * 8;
+      v14.roster.push({ name: f.name, power: f.power, shape: f.shape, style: f.oppStyle, stage: stageOfPower(f.power), comp: compMax, compMax: compMax });
+      if (v14.roster.length > 6) { v14.roster.length = 6; }
+      tape("signed out of the basement: " + f.name + " rides with your roster now. +" + xp + " XP.");
+      wire(f.name + " signed to a rising label straight off the basement floor.");
+    }
+    if (f.named) {
+      if (!v14.dex[f.name]) { v14.dex[f.name] = { seen: true, beaten: false }; }
+      if (result === "win") { v14.dex[f.name].beaten = true; }
+    }
+    if (f.league && result === "win" && f.rung === v14.leagueStep) {
+      v14.leagueStep += 1;
+      if (f.rung >= LEAGUE_CARD.length - 1) {
+        v14.leagueDone = true;
+        if (typeof S !== "undefined" && S && typeof S.fans === "number") { S.fans += 250; }
+        tape("the SkyTier Northwest credential is yours: the whole card climbed, the ace answered. +250 fans carry the news.");
+        wire("a new name holds the SkyTier Northwest credential tonight.");
+      } else {
+        tape("league run: rung " + (f.rung + 1) + " cleared. " + (LEAGUE_CARD[v14.leagueStep].name) + " waits at rung " + (v14.leagueStep + 1) + ".");
+      }
+    }
+    if (f.leagueForfeit) { tape("league matches take no walk-offs: leaving the card goes down as a loss."); }
     if (result === "win") {
       tape("live battle: you took the room from " + f.name + " in " + f.bar + " bars. +" + xp + " XP.");
       wire("a live battle in the basement: " + f.name + " got walked in " + f.bar + " bars.");
@@ -18390,7 +18589,12 @@ render();
     var f = fight;
     if (!f) { return; }
     fightBody.innerHTML = "";
-    fightBody.appendChild(mkEl("p", "rd-v14-big", "you vs " + f.name + " · power " + f.power + " · fights like " + f.shape));
+    var aSt = activeStyle(f);
+    var yStats = f.member ? { pen: Math.round(24 + f.member.power * 7), poise: Math.round(26 + f.member.power * 6), flow: Math.round(34 + f.member.power * 5), hook: Math.round(20 + f.member.power * 6) } : statsOfPlayer();
+    var oStats = statsOfOpp(f.power);
+    fightBody.appendChild(mkEl("p", "rd-v14-big", (f.member ? f.member.name + " (tagged in) vs " : "you vs ") + f.name + " · power " + f.power + " · fights like " + f.shape + (f.league ? " · league rung " + (f.rung + 1) + " of " + LEAGUE_CARD.length : "")));
+    fightBody.appendChild(mkEl("p", "rd-v14-note", "your corner: " + aSt + " style · " + (f.member ? STAGE_NAMES[f.member.stage || stageOfPower(f.member.power)] : STAGE_NAMES[stageOfPlayer()]) + " · pen " + yStats.pen + " · poise " + yStats.poise + " · flow " + yStats.flow + " · hook power " + yStats.hook));
+    fightBody.appendChild(mkEl("p", "rd-v14-note", "their corner: " + f.oppStyle + " style · " + STAGE_NAMES[stageOfPower(f.power)] + " · pen " + oStats.pen + " · poise " + oStats.poise + " · flow " + oStats.flow + " · hook power " + oStats.hook + (STYLE_BEATS[aSt] === f.oppStyle ? " · your style cuts theirs" : STYLE_BEATS[f.oppStyle] === aSt ? " · their style cuts yours" : "")));
     var viz = mkEl("div", "rd-v14-viz", null);
     viz.id = "rd-v14-viz";
     var face = mkEl("div", "rd-v14-face", null);
@@ -18398,9 +18602,9 @@ render();
     face.appendChild(mkEl("div", "rd-v14-vs", "VS"));
     face.appendChild(fighterFig("them", f.name, f.lastFx ? f.lastFx.them : ""));
     viz.appendChild(face);
-    viz.appendChild(mkEl("div", "rd-v14-mlabel", "your crowd · " + Math.max(0, Math.round(f.you))));
+    viz.appendChild(mkEl("div", "rd-v14-mlabel", (f.member ? f.member.name + " composure" : "your composure") + " · " + Math.max(0, Math.round(f.you)) + " of " + Math.round(f.youMax || 100)));
     var m1 = mkEl("div", "rd-v14-meter", null); var i1 = mkEl("i", null, null); i1.style.width = Math.max(0, f.you) + "%"; m1.appendChild(i1); viz.appendChild(m1);
-    viz.appendChild(mkEl("div", "rd-v14-mlabel", f.name + " crowd · " + Math.max(0, Math.round(f.them))));
+    viz.appendChild(mkEl("div", "rd-v14-mlabel", f.name + " composure · " + Math.max(0, Math.round(f.them)) + " of " + Math.round(f.themMax)));
     var m2 = mkEl("div", "rd-v14-meter them", null); var i2 = mkEl("i", null, null); i2.style.width = Math.max(0, (f.them / f.themMax) * 100) + "%"; m2.appendChild(i2); viz.appendChild(m2);
     viz.appendChild(chartStrip(f.chart));
     fightBody.appendChild(viz);
@@ -18417,7 +18621,7 @@ render();
     }
     fightBody.appendChild(mkEl("p", "rd-v14-window", winText));
     if (f.over) {
-      fightBody.appendChild(mkEl("p", "rd-v14-dim", f.result === "win" ? f.name + "'s crowd is gone. the basement saw it, and the basement talks." : f.result === "loss" ? "your crowd is gone. no shame in the record: the bars are the record." : "you keep your breath and your record clean. the stairs are right there."));
+      fightBody.appendChild(mkEl("p", "rd-v14-dim", f.result === "win" ? f.name + "'s composure is gone. the basement saw it, and the basement talks." + (f.league ? (v14.leagueDone && f.rung >= LEAGUE_CARD.length - 1 ? " the credential is yours." : " rung cleared: the run climbs.") : "") : f.result === "signed" ? f.name + " took the deal mid-battle. the basement's loss is the label's gain: " + f.name + " rides with your roster now, and tags in on their own composure." : f.result === "loss" ? "your composure is gone. no shame in the record: the bars are the record." + (f.leagueForfeit ? " and league matches take no walk-offs: leaving the card goes down as a loss." : "") : "you keep your breath and your record clean. the stairs are right there."));
       fightBody.appendChild(mkEl("p", "rd-v14-dim", "+" + f.xpGain + " battle XP · battle level " + levelOf(v14.xp) + (f.levelUp ? " · LEVEL UP: level " + f.levelUp + " unlocks " + (MOVE_UNLOCK[f.levelUp] || "new bars") : "")));
       var chartBox = mkEl("div", null, null);
       chartBox.appendChild(mkEl("h4", null, "the round, charted · SkyTier Northwest"));
@@ -18458,7 +18662,37 @@ render();
         grid.appendChild(b);
       });
       fightBody.appendChild(grid);
-      var surrender = mkEl("button", "rd-v14-close", "walk off (+" + 4 + " XP for showing up)");
+      var corner = mkEl("div", "rd-v14-moves", null);
+      var itemBtn = mkEl("button", "rd-v14-move" + (f.items > 0 ? " live" : " shut"), null);
+      itemBtn.type = "button";
+      itemBtn.appendChild(mkEl("strong", null, "catch your breath"));
+      itemBtn.appendChild(mkEl("small", null, f.items > 0 ? "water and air: +20 composure, costs the bar · " + f.items + " left this fight" : "the bottle is empty. two breaths a fight."));
+      if (f.items <= 0) { itemBtn.disabled = true; }
+      itemBtn.addEventListener("click", function () { pickSpecial("item", null, itemBtn); });
+      corner.appendChild(itemBtn);
+      if (offerOpen(f)) {
+        var offerBtn = mkEl("button", "rd-v14-move live open", null);
+        offerBtn.type = "button";
+        offerBtn.appendChild(mkEl("strong", null, "offer the deal"));
+        offerBtn.appendChild(mkEl("small", null, f.name + " is wobbling at " + Math.round((f.them / f.themMax) * 100) + "% composure. sign them to the roster instead of finishing them: six seats, one offer a fight."));
+        offerBtn.addEventListener("click", function () { bsfx("press"); offerDeal(); });
+        corner.appendChild(offerBtn);
+      }
+      function cornerBtn(name, label, sub) {
+        var b = mkEl("button", "rd-v14-move live", null);
+        b.type = "button";
+        b.appendChild(mkEl("strong", null, label));
+        b.appendChild(mkEl("small", null, sub));
+        b.addEventListener("click", function () { pickSpecial("switch", name, b); });
+        return b;
+      }
+      if (f.member) { corner.appendChild(cornerBtn("you", "tag yourself back in", "your own composure waits where you left it: " + Math.round(typeof f.youStored === "number" ? f.youStored : (f.youMax || 100)))); }
+      v14.roster.forEach(function (m) {
+        if (f.member && f.member.name === m.name) { return; }
+        corner.appendChild(cornerBtn(m.name, "tag in " + m.name, m.comp < 15 ? m.name + " is resting: a day brings them back" : m.style + " style · " + STAGE_NAMES[m.stage || stageOfPower(m.power)] + " · composure " + Math.round(m.comp) + " of " + m.compMax));
+      });
+      if (corner.children.length) { fightBody.appendChild(corner); }
+      var surrender = mkEl("button", "rd-v14-close", f.league ? "forfeit the rung (league takes no walk-offs: it goes down as a loss)" : "run · walk off (+" + 4 + " XP for showing up)");
       surrender.type = "button";
       surrender.addEventListener("click", function () { bsfx("press"); endFight("walk"); });
       fightBody.appendChild(surrender);
@@ -18480,17 +18714,23 @@ render();
     }
     S.energy = Math.max(0, (S.energy || 0) - BATTLE_ENERGY);
     baseOv.classList.add("hidden");
+    var youMax0 = 100 + (stageOfPlayer() - 1) * 20;
     fight = {
       name: opp.name, power: opp.power, rival: !!opp.rival,
       shape: opp.shape || shapeFor(opp.power, opp.name, !!opp.rival),
       named: (typeof RD_FEATURED_NAMES !== "undefined" && RD_FEATURED_NAMES.indexOf(opp.name) >= 0),
       histCount: v14.hist[opp.name] || 0,
-      you: 100, them: 80 + opp.power * 8, themMax: 80 + opp.power * 8,
+      league: !!opp.league, rung: (typeof opp.rung === "number" ? opp.rung : -1), fromPool: !!opp.pool, leagueForfeit: false,
+      oppStyle: styleForName(opp.name), member: null, youStored: null, youMax: youMax0,
+      items: 2, offerUsed: false, switchName: null,
+      you: youMax0, them: 80 + opp.power * 8, themMax: 80 + opp.power * 8,
       bar: 0, pick: null, committed: false, scheme: null, rebuttalOpen: false,
       chart: [], lastFx: { you: "", them: "" }, barStart: Date.now(), justTurned: false,
       over: false, result: null, log: [], timer: 0, xpGain: 0, levelUp: 0
     };
-    fightLog(fight, "the circle forms around you and " + opp.name + ". they fight like " + fight.shape + ". the entry was " + BATTLE_ENERGY + " energy, stated before the first bar.", true);
+    if (fight.named && !v14.dex[fight.name]) { v14.dex[fight.name] = { seen: true, beaten: false }; }
+    else if (fight.named) { v14.dex[fight.name].seen = true; }
+    fightLog(fight, "the circle forms around you and " + opp.name + ". they fight like " + fight.shape + ", " + fight.oppStyle + " style, " + STAGE_NAMES[stageOfPower(opp.power)] + ". the entry was " + BATTLE_ENERGY + " energy, stated before the first bar.", true);
     fightOv.classList.remove("hidden");
     paintFight();
     fight.timer = setInterval(resolveBar, TICK_MS);
@@ -18585,7 +18825,8 @@ render();
       if (!base || typeof base !== "object") { base = {}; }
       base.v14 = {
         xp: v14.xp, wins: v14.wins, losses: v14.losses, walks: v14.walks, fights: v14.fights,
-        pool: v14.pool, gone: v14.gone.slice(-40), lastSpawnDay: v14.lastSpawnDay, spawnSeq: v14.spawnSeq, hist: v14.hist, lastChart: v14.lastChart
+        pool: v14.pool, gone: v14.gone.slice(-40), lastSpawnDay: v14.lastSpawnDay, spawnSeq: v14.spawnSeq, hist: v14.hist, lastChart: v14.lastChart,
+        dex: v14.dex, roster: v14.roster, leagueStep: v14.leagueStep, leagueDone: v14.leagueDone
       };
       return base;
     };
@@ -18610,8 +18851,18 @@ render();
           d.pool.forEach(function (r) { if (r.name === "C3") { r.name = "Caesar III"; } });
           d.gone = d.gone.map(function (n) { return n === "C3" ? "Caesar III" : n; });
           if (v.lastChart && typeof v.lastChart === "object" && Array.isArray(v.lastChart.chart) && v.lastChart.chart.length) { d.lastChart = v.lastChart; }
+          if (v.dex && typeof v.dex === "object") { for (var dk in v.dex) { if (v.dex[dk] && typeof v.dex[dk] === "object") { d.dex[dk] = { seen: !!v.dex[dk].seen, beaten: !!v.dex[dk].beaten }; } } }
+          if (Array.isArray(v.roster)) {
+            d.roster = v.roster.filter(function (m) { return m && typeof m.name === "string" && typeof m.power === "number"; }).slice(0, 6).map(function (m) {
+              var cm = (typeof m.compMax === "number" && m.compMax > 0) ? m.compMax : 70 + m.power * 8;
+              return { name: m.name, power: m.power, shape: (typeof m.shape === "string" ? m.shape : shapeFor(m.power, m.name, false)), style: (typeof m.style === "string" ? m.style : styleForName(m.name)), stage: (typeof m.stage === "number" ? m.stage : stageOfPower(m.power)), comp: Math.max(0, Math.min(cm, (typeof m.comp === "number" ? m.comp : cm))), compMax: cm };
+            });
+          }
+          if (typeof v.leagueStep === "number") { d.leagueStep = Math.max(0, Math.min(LEAGUE_CARD.length - 1, Math.floor(v.leagueStep))); }
+          if (typeof v.leagueDone === "boolean") { d.leagueDone = v.leagueDone; }
           v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
           v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist; v14.lastChart = d.lastChart;
+          v14.dex = d.dex; v14.roster = d.roster; v14.leagueStep = d.leagueStep; v14.leagueDone = d.leagueDone;
           v14RestoredAt = Date.now();
         }
       } catch (e) {}
@@ -18625,6 +18876,7 @@ render();
     var d = v14Defaults();
     v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
     v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist; v14.lastChart = d.lastChart;
+    v14.dex = d.dex; v14.roster = d.roster; v14.leagueStep = d.leagueStep; v14.leagueDone = d.leagueDone;
     if (fight && fight.timer) { clearInterval(fight.timer); }
     fight = null;
   }
@@ -18641,6 +18893,7 @@ render();
     }
     if ((S.day || 1) !== v14DaySeen) {
       v14DaySeen = S.day || 1;
+      v14.roster.forEach(function (m) { m.comp = Math.min(m.compMax, m.comp + Math.ceil(m.compMax * 0.4)); });
       if (Math.random() < 0.35) { spawnRapper("day"); }
     }
   }
@@ -18681,7 +18934,373 @@ render();
       var b = fightBody.querySelector('[data-move="' + id + '"]');
       if (b) { b.click(); return true; }
       return false;
+    },
+    offerDeal: function () { return offerDeal(); },
+    offerOpen: function () { return fight ? offerOpen(fight) : false; },
+    useItem: function () { pickSpecial("item", null, null); return !!fight && fight.committed && fight.pick === "__item"; },
+    switchTo: function (name) { pickSpecial("switch", name, null); return !!fight && fight.committed && fight.pick === "__switch"; },
+    dexCounts: dexCounts,
+    league: function () { return { step: v14.leagueStep, done: v14.leagueDone, card: LEAGUE_CARD.map(function (r) { return r.name; }) }; }
+  };
+  window.RapDreamV16Battle = {
+    styles: BATTLE_STYLES.slice(),
+    typeMult: typeMult,
+    styleForName: styleForName,
+    playerStyle: playerStyle,
+    moveStyle: MOVE_STYLE,
+    stageOfPlayer: stageOfPlayer,
+    stageOfPower: stageOfPower,
+    stageNames: STAGE_NAMES,
+    statsOfPlayer: statsOfPlayer,
+    statsOfOpp: statsOfOpp
+  };
+})();
+</script>
+
+<script>
+"use strict";
+/* ==================================================================
+   V16: the press in the building, and the video game room.
+   The party grows its first annex room (his naming, 2026-10-29):
+   the video game room, a door off the party floor. And the media
+   moves in: girl journalists with stage names of their own, in
+   the house at half the rate of the rappers (a pool of 16 against
+   the registry's 31), scattered through the rooms the same way
+   the crowd is. Work with one and her coverage carries your name
+   out of the building; freeze enough of them out and the whole
+   press goes quiet: the island, where interviews dry up and no
+   story travels. Same-tier journalists keep score of each other:
+   feeding one cools her rivals. The top tier starts annoyed at a
+   nobody's presence and only thaws as his standing grows.
+   Dispositions are per-journalist and ride the save. The island
+   surfaces where the press already lives in this game: the party
+   floor and BA's interview room. Nothing here is a second
+   economy: coverage pays in the fans the core already counts.
+   ================================================================== */
+(function () {
+  if (typeof S === "undefined" || !S) { return; }
+  function gel(id) { return document.getElementById(id); }
+  function mkEl(tag, cls, text) { var n = document.createElement(tag); if (cls) { n.className = cls; } if (text != null) { n.textContent = text; } return n; }
+  function tape(text) { try { if (typeof log === "function") { log(text); } } catch (e) {} }
+  function wire(text) { try { if (typeof queueWire === "function") { queueWire(S, text); } } catch (e) {} }
+  function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function hashName(s) { var h = 0; for (var i = 0; i < String(s || "").length; i += 1) { h = (h * 31 + String(s).charCodeAt(i)) >>> 0; } return h; }
+
+  var JOURNOS = [
+    { name: "Penny Press", tier: 1 }, { name: "Honey Scoop", tier: 1 }, { name: "Dulce Daily", tier: 1 },
+    { name: "Mika MicDrop", tier: 1 }, { name: "Rina Rumor", tier: 1 }, { name: "Lola Lens", tier: 1 },
+    { name: "Velvet Vee", tier: 2 }, { name: "Miss Behave", tier: 2 }, { name: "Nia NoFilter", tier: 2 },
+    { name: "Pearl Presspass", tier: 2 }, { name: "Goldie Gram", tier: 2 }, { name: "Tessa Telltale", tier: 2 },
+    { name: "Lady Byline", tier: 3 }, { name: "Queen Quill", tier: 3 }, { name: "Sable Starr", tier: 3 }, { name: "Vivi Vivid", tier: 3 }
+  ];
+  var TIER_LINE = { 1: "a phone, a page, and nerve", 2: "an outlet with a real desk", 3: "a platform: the big chair, the long reach" };
+  var CELL_NAMES = ["the porch", "the door", "the yard", "the kitchen", "the center of it all", "the music corner", "the bathroom line", "the couch", "the circle"];
+
+  function v16Defaults() { return { disp: {}, workedDay: 0, worked: {}, island: false, wiredDay: 0, setDay: 0 }; }
+  var v16 = v16Defaults();
+  var v16RestoredAt = 0;
+  window.RapDreamV16MediaState = v16;
+
+  function dispOf(j) { return (typeof v16.disp[j.name] === "number") ? v16.disp[j.name] : 0; }
+  function statusScore() { return ((typeof S !== "undefined" && S && S.fans) || 0) + ((typeof S !== "undefined" && S && S.rep) || 0) * 25; }
+  function gateOf(j) {
+    var sc = statusScore();
+    if (j.tier === 3 && sc < 2500) { return "annoyed"; }
+    if (j.tier === 2 && sc < 300) { return "annoyed"; }
+    return "open";
+  }
+  function bandOf(j) {
+    var d = dispOf(j);
+    if (gateOf(j) === "annoyed" && d < 15) { return "annoyed you are in her light"; }
+    if (d <= -60) { return "done with you"; }
+    if (d <= -40) { return "frozen out"; }
+    if (d < -10) { return "cold"; }
+    if (d < 15) { return "watching you"; }
+    if (d < 50) { return "warm"; }
+    return "in your corner";
+  }
+  function roomOf(j, day) { return hashName((day || 1) + "|" + j.name) % 10; }
+  function inRoom(roomIdx) { var day = (typeof S !== "undefined" && S && S.day) || 1; return JOURNOS.filter(function (j) { return roomOf(j, day) === roomIdx; }); }
+  function computeIsland() { var n = 0; JOURNOS.forEach(function (j) { if (dispOf(j) <= -40) { n += 1; } }); return n >= 3; }
+  function refreshIsland() {
+    var was = v16.island;
+    v16.island = computeIsland();
+    if (v16.island && !was && v16.wiredDay !== ((S && S.day) || 1)) {
+      v16.wiredDay = (S && S.day) || 1;
+      wire("the press has gone quiet: three bylines frozen out, and the rest took the hint.");
+      tape("the island: coverage stops until you mend fences with the press.");
     }
+  }
+  function ensureDay() {
+    var day = (typeof S !== "undefined" && S && S.day) || 1;
+    if (v16.workedDay !== day) { v16.workedDay = day; v16.worked = {}; }
+  }
+  function workWith(j) {
+    ensureDay();
+    if (v16.worked[j.name]) { return { ok: false, why: "already worked her tonight" }; }
+    v16.worked[j.name] = "with";
+    refreshIsland();
+    if (gateOf(j) === "annoyed") {
+      v16.disp[j.name] = Math.min(100, dispOf(j) + 4);
+      tape(j.name + " lets the pitch finish out of professional boredom. your name is not big enough for her chair yet.");
+      return { ok: true, covered: 0 };
+    }
+    v16.disp[j.name] = Math.min(100, dispOf(j) + 12);
+    var jealous = [];
+    JOURNOS.forEach(function (o) {
+      if (o !== j && o.tier === j.tier && dispOf(o) > -100) { v16.disp[o.name] = Math.max(-100, dispOf(o) - 6); jealous.push(o.name); }
+    });
+    var covered = 0;
+    if (dispOf(j) >= 15 && !v16.island && typeof S !== "undefined" && S && typeof S.fans === "number") {
+      covered = j.tier * 30 + rnd(0, j.tier * 20);
+      S.fans += covered;
+      tape("coverage: " + j.name + " runs the story and your name travels. +" + covered + " fans.");
+    } else if (v16.island) {
+      tape(j.name + " hears you out, but the island is the island: nothing she writes travels right now.");
+    } else {
+      tape(j.name + " takes the story under consideration. warm her up and it runs.");
+    }
+    if (jealous.length) { tape("the room keeps score: " + jealous.slice(0, 2).join(" and ") + " noticed who got fed. same-tier jealousy is real."); }
+    try { render(); } catch (e) {}
+    return { ok: true, covered: covered };
+  }
+  function freezeOut(j) {
+    ensureDay();
+    if (v16.worked[j.name]) { return { ok: false, why: "already played her tonight" }; }
+    v16.worked[j.name] = "froze";
+    v16.disp[j.name] = Math.max(-100, dispOf(j) - 18);
+    tape("you freeze " + j.name + " out in front of the room. she writes that down too.");
+    refreshIsland();
+    try { render(); } catch (e) {}
+    return { ok: true };
+  }
+  function journoByName(name) { for (var i = 0; i < JOURNOS.length; i += 1) { if (JOURNOS[i].name === name) { return JOURNOS[i]; } } return null; }
+
+  /* ---------------- styling ---------------- */
+  var css = document.createElement("style");
+  css.textContent = ""
+    + ".rd-v16-media{border:2px solid #3d6076;border-radius:14px;background:rgba(5,10,14,.55);padding:10px 12px;margin:12px 0 0}"
+    + ".rd-v16-media h4{margin:0 0 6px;font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.12em;color:#eefbff;text-transform:uppercase}"
+    + ".rd-v16-media p{font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin:3px 0}"
+    + ".rd-v16-jrow{display:flex;gap:10px;align-items:center;justify-content:space-between;border:2px solid #2a4356;border-radius:12px;background:#0d1620;padding:9px 11px;margin:0 0 8px}"
+    + ".rd-v16-jrow .who strong{display:block;color:#eefbff;font:800 13px 'Space Grotesk',sans-serif}"
+    + ".rd-v16-jrow .who small{display:block;color:#9fc6de;font:500 11px 'Space Grotesk',sans-serif;margin-top:2px}"
+    + ".rd-v16-btns{display:flex;gap:6px;flex:none}"
+    + ".rd-v16-btn{padding:8px 10px;background:#12202c;color:#ffcf3f;border:2px solid #3d6076;border-radius:11px;font:800 11px 'Space Grotesk',sans-serif;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}"
+    + ".rd-v16-btn.cold{color:#7ee0ff}"
+    + ".rd-v16-door{display:block;width:100%;margin:10px 0 2px;padding:11px 12px;background:#12202c;color:#ffcf3f;border:2px solid #3d6076;border-radius:12px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}";
+  document.head.appendChild(css);
+
+  function mediaBox(roomIdx) {
+    var here = inRoom(roomIdx);
+    var box = mkEl("div", "rd-v16-media", null);
+    box.setAttribute("data-v16-room", String(roomIdx));
+    box.appendChild(mkEl("h4", null, "the press, in this room"));
+    if (v16.island) { box.appendChild(mkEl("p", null, "the island: the press has gone quiet on you. no story travels until at least one frozen byline thaws.")); }
+    if (!here.length) { box.appendChild(mkEl("p", null, "no bylines in this room tonight. the press drifts like everybody else: check the other rooms.")); return box; }
+    ensureDay();
+    here.forEach(function (j) {
+      var row = mkEl("div", "rd-v16-jrow", null);
+      var who = mkEl("div", "who", null);
+      who.appendChild(mkEl("strong", null, j.name));
+      who.appendChild(mkEl("small", null, TIER_LINE[j.tier] + " · " + bandOf(j) + " (" + dispOf(j) + ")"));
+      row.appendChild(who);
+      if (!v16.worked[j.name]) {
+        var btns = mkEl("div", "rd-v16-btns", null);
+        var b1 = mkEl("button", "rd-v16-btn", "give her the story");
+        b1.type = "button";
+        b1.addEventListener("click", function () { workWith(j); repaintMedia(); });
+        var b2 = mkEl("button", "rd-v16-btn cold", "freeze her out");
+        b2.type = "button";
+        b2.addEventListener("click", function () { freezeOut(j); repaintMedia(); });
+        btns.appendChild(b1); btns.appendChild(b2);
+        row.appendChild(btns);
+      } else {
+        row.appendChild(mkEl("small", null, v16.worked[j.name] === "with" ? "worked tonight" : "froze her tonight"));
+      }
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  /* ---------------- the video game room ---------------- */
+  var gameOv = mkEl("section", "rd-overlay hidden", null);
+  gameOv.id = "rd-v16-gameroom";
+  gameOv.setAttribute("aria-label", "The video game room");
+  gameOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>the video game room</h3><p>a TV older than everybody standing in front of it, two controllers with strong opinions, and a fighting game the whole house has history with. the high score on this machine is a local office: it can be campaigned for.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(gameOv);
+  var gameBody = gameOv.querySelector(".rd-panel-body");
+  gameOv.querySelector(".rd-close").addEventListener("click", function () { gameOv.classList.add("hidden"); });
+  gameOv.addEventListener("click", function (e) { if (e.target === gameOv) { gameOv.classList.add("hidden"); } });
+  var SET_LINES = [
+    { win: "you run the set clean and the room makes the noise it makes. your initials go up on a machine older than half the party.", net: 3 },
+    { win: "last round, last pixel, your pick. the couch ref calls it the greatest injustice since the last set. your name still goes up.", net: 3 },
+    { win: "the room's champion hands you the second controller like a deed transfer. the sticks respect you now.", net: 2 }
+  ];
+  var SET_LOSSES = [
+    "you get washed on stream for the room and the room is gentle about it, which is worse. the machine keeps the champion's name.",
+    "your character never finds the floor. somebody pats your shoulder with genuine pity. the set is the set.",
+    "a child of the house, maybe nine, takes your last stock and asks if you want a rematch or a juice box. you take both lessons."
+  ];
+  function paintGameRoom(note) {
+    gameBody.innerHTML = "";
+    if (note) { gameBody.appendChild(mkEl("p", "rd-v14-note", note)); }
+    var day = (typeof S !== "undefined" && S && S.day) || 1;
+    if (v16.setDay === day) {
+      gameBody.appendChild(mkEl("p", "rd-v14-note", "the machine is spoken for the rest of the night. your set is on the record; tomorrow it can be taken from you."));
+    } else {
+      var b = mkEl("button", "rd-v16-btn", "run a set for the high score");
+      b.type = "button";
+      b.addEventListener("click", function () {
+        v16.setDay = (typeof S !== "undefined" && S && S.day) || 1;
+        if (Math.random() < 0.45) {
+          var w = SET_LINES[Math.floor(Math.random() * SET_LINES.length)];
+          if (typeof S !== "undefined" && S && typeof S.network === "number") { S.network += w.net; }
+          tape("the video game room: " + w.win);
+          paintGameRoom(w.win + " (+" + w.net + " network: the room repeats it)");
+        } else {
+          var l = SET_LOSSES[Math.floor(Math.random() * SET_LOSSES.length)];
+          tape("the video game room: a set lost in front of witnesses.");
+          paintGameRoom(l);
+        }
+        try { render(); } catch (e) {}
+      });
+      gameBody.appendChild(b);
+    }
+    gameBody.appendChild(mediaBox(9));
+  }
+  function openGameRoom() { paintGameRoom(); gameOv.classList.remove("hidden"); }
+  window.RapDreamGameRoom = openGameRoom;
+
+  function repaintMedia() {
+    try {
+      if (!gameOv.classList.contains("hidden")) { paintGameRoom(); }
+      var party = gel("rdn-party");
+      if (party && !party.classList.contains("hidden")) { paintPartyMedia(true); }
+    } catch (e) {}
+  }
+
+  /* ---------------- party floor integration ---------------- */
+  function currentCellIdx() {
+    var party = gel("rdn-party");
+    if (!party) { return -1; }
+    var w = party.querySelector(".rdn-party-where");
+    if (!w) { return -1; }
+    var idx = CELL_NAMES.indexOf((w.textContent || "").trim());
+    return idx;
+  }
+  function paintPartyMedia(force) {
+    var party = gel("rdn-party");
+    if (!party || party.classList.contains("hidden")) { return; }
+    var body = party.querySelector(".rd-panel-body");
+    if (!body) { return; }
+    if (!body.querySelector(".rd-v14-stairs") && !body.querySelector(".rdn-party-map")) { return; }
+    if (!body.querySelector(".rd-v16-door")) {
+      var door = mkEl("button", "rd-v16-door", "▶ side · the video game room");
+      door.type = "button";
+      door.addEventListener("click", function () { openGameRoom(); });
+      body.appendChild(door);
+    }
+    var idx = currentCellIdx();
+    if (idx < 0) { return; }
+    var existing = body.querySelector(".rd-v16-media");
+    if (existing && existing.getAttribute("data-v16-room") === String(idx) && !force) { return; }
+    if (existing) { existing.parentNode.removeChild(existing); }
+    body.appendChild(mediaBox(idx));
+  }
+  var partyEl = gel("rdn-party");
+  if (partyEl && window.MutationObserver) {
+    var queued = false;
+    new MutationObserver(function () {
+      if (queued) { return; }
+      queued = true;
+      setTimeout(function () { queued = false; try { paintPartyMedia(false); } catch (e) {} }, 80);
+    }).observe(partyEl, { childList: true, subtree: true });
+  }
+
+  /* the island, surfaced in BA's interview room */
+  var nwEl = gel("nw-interview");
+  if (nwEl && window.MutationObserver) {
+    new MutationObserver(function () {
+      try {
+        if (nwEl.classList.contains("hidden")) { return; }
+        var body = nwEl.querySelector(".rd-panel-body") || nwEl;
+        if (body.querySelector(".rd-v16-island-note")) { return; }
+        refreshIsland();
+        var p = mkEl("p", "rd-v16-island-note", null);
+        p.style.cssText = "font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin:8px 0 0";
+        if (v16.island) { p.textContent = "around the interview, the word is quiet: the press is not returning calls. you are on the island until some fences get mended at the party."; }
+        else {
+          var corner = JOURNOS.filter(function (j) { return dispOf(j) >= 50; });
+          if (!corner.length) { return; }
+          p.textContent = "around the interview: " + corner[0].name + " is in your corner, and her version of events travels. the press remembers how it gets treated.";
+        }
+        body.appendChild(p);
+      } catch (e) {}
+    }).observe(nwEl, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  }
+
+  /* ---------------- persistence + career watch ---------------- */
+  (function v16Persist() {
+    var P = window.RapDreamPersist;
+    if (!P || typeof P.collect !== "function" || typeof P.restore !== "function") { return; }
+    var collect0 = P.collect, restore0 = P.restore;
+    P.collect = function () {
+      var base = null;
+      try { base = collect0(); } catch (e) {}
+      if (!base || typeof base !== "object") { base = {}; }
+      base.v16 = { disp: v16.disp, workedDay: v16.workedDay, worked: v16.worked, island: v16.island, wiredDay: v16.wiredDay, setDay: v16.setDay };
+      return base;
+    };
+    P.restore = function (x) {
+      try { restore0(x); } catch (e) {}
+      try {
+        if (x && x.v16 && typeof x.v16 === "object") {
+          var v = x.v16, d = v16Defaults();
+          if (v.disp && typeof v.disp === "object") { for (var k in v.disp) { if (typeof v.disp[k] === "number") { d.disp[k] = Math.max(-100, Math.min(100, v.disp[k])); } } }
+          if (typeof v.workedDay === "number") { d.workedDay = v.workedDay; }
+          if (v.worked && typeof v.worked === "object") { d.worked = v.worked; }
+          if (typeof v.island === "boolean") { d.island = v.island; }
+          if (typeof v.wiredDay === "number") { d.wiredDay = v.wiredDay; }
+          if (typeof v.setDay === "number") { d.setDay = v.setDay; }
+          v16.disp = d.disp; v16.workedDay = d.workedDay; v16.worked = d.worked; v16.island = d.island; v16.wiredDay = d.wiredDay; v16.setDay = d.setDay;
+          v16RestoredAt = Date.now();
+        }
+      } catch (e) {}
+    };
+  })();
+  var v16LastS = (typeof S !== "undefined") ? S : null;
+  if (typeof render === "function") {
+    var prevRender16 = render;
+    render = function () {
+      var out = prevRender16.apply(this, arguments);
+      try {
+        if (typeof S !== "undefined" && S && v16LastS !== S) {
+          v16LastS = S;
+          if (Date.now() - v16RestoredAt > 800) {
+            var d = v16Defaults();
+            v16.disp = d.disp; v16.workedDay = d.workedDay; v16.worked = d.worked; v16.island = d.island; v16.wiredDay = d.wiredDay; v16.setDay = d.setDay;
+          }
+        }
+        refreshIsland();
+      } catch (e) {}
+      return out;
+    };
+  }
+
+  window.RapDreamV16Media = {
+    pool: JOURNOS,
+    state: v16,
+    dispOf: dispOf,
+    bandOf: bandOf,
+    gateOf: gateOf,
+    roomOf: function (name) { var j = journoByName(name); return j ? roomOf(j, (typeof S !== "undefined" && S && S.day) || 1) : -1; },
+    inRoom: inRoom,
+    workWith: function (name) { var j = journoByName(name); return j ? workWith(j) : null; },
+    freezeOut: function (name) { var j = journoByName(name); return j ? freezeOut(j) : null; },
+    island: function () { refreshIsland(); return v16.island; },
+    openGameRoom: openGameRoom,
+    paintPartyMedia: paintPartyMedia
   };
 })();
 </script>
