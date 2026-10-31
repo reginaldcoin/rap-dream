@@ -3279,8 +3279,24 @@ function syncDoll() {
   } catch (e) { /* wardrobe never blocks the game */ }
 }
 if (typeof render === "function") {
-  var renderBeforeWardrobe = render;
-  render = function () { renderBeforeWardrobe(); syncDoll(); };
+  window.RapDreamRenderPipe = { links: [], names: [], pre: [], post: [], core: render };
+  (function () {
+    var pipe = window.RapDreamRenderPipe;
+    function compose() {
+      var fn = pipe.core;
+      for (var i = 0; i < pipe.links.length; i += 1) { fn = pipe.links[i](fn); }
+      render = function () {
+        for (var a = pipe.pre.length - 1; a >= 0; a -= 1) { try { pipe.pre[a](); } catch (e) {} }
+        var out = fn.apply(this, arguments);
+        for (var b = 0; b < pipe.post.length; b += 1) { try { pipe.post[b](); } catch (e) {} }
+        return out;
+      };
+    }
+    pipe.link = function (name, factory) { pipe.names.push(name); pipe.links.push(factory); compose(); };
+    pipe.compose = compose;
+    compose();
+  })();
+  window.RapDreamRenderPipe.link("wardrobe", function (renderBeforeWardrobe) { return function () { renderBeforeWardrobe(); syncDoll(); }; });
 }
 syncDoll();
 </script>
@@ -4129,8 +4145,7 @@ syncDoll();
     }
   }
   if (typeof render === "function") {
-    var renderBeforeTerm = render;
-    render = function () { noteRunIdentity(); renderBeforeTerm(); syncBtn(); };
+    window.RapDreamRenderPipe.link("terminal", function (renderBeforeTerm) { return function () { noteRunIdentity(); renderBeforeTerm(); syncBtn(); }; });
   }
 
   function scrollLog() { logEl.scrollTop = logEl.scrollHeight; }
@@ -4900,8 +4915,7 @@ startMemeCannon = function () {
 
 /* Render hook: run detection, milestones, wire painting, radar aliases. */
 if (typeof render === "function") {
-  var rdRenderBefore = render;
-  render = function () {
+  window.RapDreamRenderPipe.link("headlines", function (rdRenderBefore) { return function () {
     var newRun = rdLastState !== S;
     if (newRun) { rdResetTracking(S); }
     rdRenderBefore();
@@ -4912,7 +4926,7 @@ if (typeof render === "function") {
       rdPaintWire();
       rdAliasRadar();
     } catch (e) { /* render extras never block the game */ }
-  };
+  }; });
 }
 rdResetTracking(S);
 try { rdBuildHeadlines(S.day); } catch (e) { /* wire builds on first render */ }
@@ -5503,6 +5517,14 @@ render();
       { t: "The catalog. Records make fans, and fans make everything else cheaper.", note: "said catalog-first · +rep", fx: { rep: 3 } },
       { t: "Whatever pays tonight. The bag has never once lied to me.", note: "said bag-first · +hype", fx: { hype: 3 } },
       { t: "The room. More hands shaken, more doors already open when I arrive.", note: "said network-first · +network", fx: { network: 4 } } ] });
+    try {
+      if (window.RapDreamV14Probe && window.RapDreamV14Probe.league().done) {
+        qs.unshift({ q: "BA: The SkyTier Northwest credential has your name on it: the whole basement card, climbed. What does the basement teach that the booth never could?", a: [
+          { t: "That the room decides before the record does. Down there you are only ever your last bar.", note: "said basement-true · +rep", fx: { rep: 4 } },
+          { t: "Stamina. Anybody can be great for one record. The card makes you be great five rooms deep.", note: "said earned · +hype", fx: { hype: 3 } },
+          { t: "That a credential is a rumor with paperwork. I keep both current.", note: "said certified · +network", fx: { network: 3 } } ] });
+      }
+    } catch (e) { /* the credential never blocks the interview */ }
     qs = qs.slice(0, 3);
     try {
       var cmts = ivCommentators();
@@ -6062,8 +6084,7 @@ render();
     syncTasteBtn();
   }
   if (typeof render === "function") {
-    var nwBaseRender = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("northwest", function (nwBaseRender) { return function () {
       var fresh = nwState !== S;
       if (fresh) { nwState = S; resetRun(); }
       nwBaseRender();
@@ -6078,10 +6099,23 @@ render();
         syncFeatStatus();
         maybeInterview();
       } catch (e) { /* extras never block the game */ }
-    };
+    }; });
   }
   syncFeatStatus();
   syncTasteBtn();
+  /* V17: the board, reachable: hook power reads peaks here, and
+     press coverage can bend a fresh debut exactly once. */
+  window.RapDreamChartApi = {
+    entries: function () { return nwChart.map(function (e) { return { n: e.n, peak: e.peak, pos: e.pos, daysOn: e.daysOn, active: !!e.active, song: e.song || null, pressBent: !!e.pressBent }; }); },
+    bendLatest: function () {
+      for (var i = nwChart.length - 1; i >= 0; i -= 1) {
+        var e = nwChart[i];
+        if (e.active && !e.pressBent && e.daysOn <= 3) { e.pressBent = true; e.pos = Math.max(1, e.pos - 1); if (e.pos < e.peak) { e.peak = e.pos; } chartCheckPeaks(e); return true; }
+      }
+      return false;
+    },
+    simulateRelease: function (quality, songName) { chartOnRelease(quality, { song: songName || null }); return nwChart.length; }
+  };
 })();
 </script>
 <script>
@@ -8285,8 +8319,7 @@ render();
     try { if (typeof rdPaintWire === "function") { rdPaintWire(); } } catch (e) {}
   }
   if (typeof render === "function") {
-    var myPrevRender = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("extras", function (myPrevRender) { return function () {
       var fresh = myState !== S;
       if (fresh) { myState = S; resetMine(); }
       myPrevRender();
@@ -8296,7 +8329,7 @@ render();
         paintStudioGate();
         paintFeedStrip();
       } catch (e) { /* extras never block the game */ }
-    };
+    }; });
   }
   window.RapDreamTl = { posts: function () { return tl.posts; }, open: openTimeline, rel: tlRel, handle: tlHandle };
   /* V11: the songbook, the timeline, the sports desk and the travel
@@ -8337,7 +8370,7 @@ render();
         if (x.demoMix && typeof x.demoMix === "object") { myDemoMix = x.demoMix; }
         if (x.lastReleaseMix && typeof x.lastReleaseMix === "object") { myLastReleaseMix = x.lastReleaseMix; }
         paintPlaces();
-      } catch (e) { /* a partial restore never blocks the run */ }
+      } catch (e) { try { if (window.RapDreamErr) { window.RapDreamErr.log("restore", String((e && e.message) || e)); } } catch (e2) {} }
     }
   };
   window.RapDreamApps = { menu: openMenu, writing: openWriting, sports: openSports, travel: openTravel };
@@ -8922,11 +8955,10 @@ render();
     paintClassLine();
   }
   if (typeof render === "function") {
-    var rdPrevRender = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("bigsystems", function (rdPrevRender) { return function () {
       rdPrevRender();
       try { rdRenderHook(); } catch (e) { /* big systems never block the game */ }
-    };
+    }; });
   }
   rdState = S;
   resetRD();
@@ -9931,6 +9963,10 @@ render();
   }
   function offerArtist(day) {
     try {
+      var ros17 = (window.RapDreamV14Probe && window.RapDreamV14Probe.state.roster) || [];
+      if (ros17.length && Math.random() < 0.35) { return ros17[Math.floor(Math.random() * ros17.length)].name; }
+    } catch (e) {}
+    try {
       var names = (window.RapDreamFeaturedNames && window.RapDreamFeaturedNames.names) || [];
       if (names.length && Math.random() < 0.01) { return pick(names); }
     } catch (e) {}
@@ -9946,7 +9982,9 @@ render();
     var st = rivalState(name);
     if (st && typeof st.scale === "number") { power = Math.max(1, Math.min(10, Math.round(st.scale))); }
     else if (idx >= 0) { power = Math.max(1, Math.min(10, idx + 1)); }
-    return Math.round(250 * Math.pow(power, 1.7));
+    var price = Math.round(250 * Math.pow(power, 1.7));
+    try { if (window.RapDreamV14Probe && window.RapDreamV14Probe.league().done) { price = Math.round(price * 0.85); } } catch (e) {}
+    return price;
   }
   var offerOv = makePanel("rd-offer", "Feature offer");
   function paintOffer() {
@@ -10221,8 +10259,7 @@ render();
 
   /* ---------- render hook: resets, legend landing, morning machinery ---------- */
   if (typeof render === "function") {
-    var rdPrevRender2 = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("extrasx", function (rdPrevRender2) { return function () {
       var fresh = X.state !== S;
       if (fresh) { X.state = S; resetX(); }
       rdPrevRender2();
@@ -10271,7 +10308,7 @@ render();
         paintShopBtn();
         if (!X.morningBusy && X.morningQueue.length) { showNextMorning(); }
       } catch (e) { /* the evening build never blocks the game */ }
-    };
+    }; });
   }
   X.state = S;
   resetX();
@@ -10794,11 +10831,10 @@ render();
   }
   try {
     if (typeof render === "function") {
-      var rdPrevRender = render;
-      render = function () {
+      window.RapDreamRenderPipe.link("latestack", function (rdPrevRender) { return function () {
         rdPrevRender();
         try { rdAfterRender(); } catch (e) {}
-      };
+      }; });
     }
   } catch (e) { /* the render hook never blocks the game */ }
 
@@ -12984,8 +13020,7 @@ render();
 
   /* ============ render wrap: tiles + expectations =================== */
   var pkRunSeen = null;
-  var prevRender9 = render;
-  render = function () {
+  window.RapDreamRenderPipe.link("park", function (prevRender9) { return function () {
     var out = prevRender9.apply(this, arguments);
     try { ensureStatTiles(); } catch (e) {}
     try { evalExpectations(); } catch (e) {}
@@ -12999,7 +13034,7 @@ render();
       }
     } catch (e) {}
     return out;
-  };
+  }; });
   try { ensureStatTiles(); } catch (e) {}
 })();
 </script>
@@ -13035,7 +13070,17 @@ render();
     try {
       var raw = ls.getItem(SAVE_KEY);
       if (!raw) { return null; }
-      var d = JSON.parse(raw);
+      var d = null;
+      try { d = JSON.parse(raw); } catch (e0) {
+        /* V17 hardening: a corrupt main save falls back to the backup
+           copy before it falls back to a fresh start, and the fault
+           lands in the ledger instead of vanishing. */
+        try { if (window.RapDreamErr) { window.RapDreamErr.log("load", String((e0 && e0.message) || e0)); } } catch (e1) {}
+        var bak = null;
+        try { bak = ls.getItem(SAVE_KEY + ".bak"); } catch (e2) {}
+        if (bak) { try { d = JSON.parse(bak); } catch (e3) { d = null; } }
+        if (!d) { return null; }
+      }
       if (!d || d.v !== 1 || !d.state || typeof d.state !== "object") { return null; }
       var st = d.state;
       if (typeof st.money !== "number" || typeof st.day !== "number" || typeof st.fans !== "number") { return null; }
@@ -13089,19 +13134,18 @@ render();
         rd: { cls: RD.cls, region: RD.region, channel: RD.channel, words: RD.words, nickname: RD.nickname, deeds: RD.deeds, emphasis: (window.RapDreamEmphasis && window.RapDreamEmphasis.get) ? window.RapDreamEmphasis.get() : null }
       };
       var txt = safeStringify(payload);
-      if (txt) { ls.setItem(SAVE_KEY, txt); }
-    } catch (e) { /* storage failure: the run just plays unsaved */ }
+      if (txt) { ls.setItem(SAVE_KEY, txt); try { ls.setItem(SAVE_KEY + ".bak", txt); } catch (e2) {} }
+    } catch (e) { try { if (window.RapDreamErr) { window.RapDreamErr.log("save", String((e && e.message) || e)); } } catch (e3) {} }
   }
   /* autosave: renders mark the run dirty; a slow tick writes it out, and
      hiding the tab writes it immediately. */
   var dirty = false;
   if (typeof render === "function") {
-    var prevRender10 = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("autosave", function (prevRender10) { return function () {
       var out = prevRender10.apply(this, arguments);
       dirty = true;
       return out;
-    };
+    }; });
   }
   setInterval(function () { if (dirty) { dirty = false; writeSave(); } }, 1200);
   try { document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { writeSave(); } }); } catch (e) {}
@@ -13395,12 +13439,11 @@ render();
     } catch (e) {}
   }
   if (typeof render === "function") {
-    var prevRender11 = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("session", function (prevRender11) { return function () {
       var out = prevRender11.apply(this, arguments);
       paintSessCard();
       return out;
-    };
+    }; });
   }
   setInterval(paintSessCard, 1600);
   paintSessCard();
@@ -15135,8 +15178,7 @@ render();
 
   /* ---------- render hook: work line, radar returns, alias fallback ---------- */
   if (typeof render === "function") {
-    var prevRenderN = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("workline", function (prevRenderN) { return function () {
       var out = prevRenderN();
       try {
         syncRun();
@@ -15148,7 +15190,7 @@ render();
         syncNoteBtn();
       } catch (e) { /* the night stack never blocks the game */ }
       return out;
-    };
+    }; });
   }
   try { syncRun(); paintWorkLine(); nightTick(); } catch (e) {}
 })();
@@ -15356,12 +15398,11 @@ render();
     } catch (e) { /* tile paint never blocks the game */ }
   }
   if (typeof render === "function") {
-    var prevRenderQ = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("tiles", function (prevRenderQ) { return function () {
       var out = prevRenderQ.apply(this, arguments);
       paintTiles();
       return out;
-    };
+    }; });
   }
   paintTiles();
 
@@ -17822,9 +17863,79 @@ render();
   function stageOfLevel(lv) { return lv >= 5 ? 3 : lv >= 3 ? 2 : 1; }
   function stageOfPlayer() { return stageOfLevel(levelOf(v14.xp)); }
   function stageOfPower(p) { return p >= 7 ? 3 : p >= 4 ? 2 : 1; }
-  function hookOfPlayer() { return 25 + Math.min(55, Math.floor(((typeof S !== "undefined" && S && S.hype) || 0) / 3)) + (stageOfPlayer() - 1) * 6; }
+  function hookOfPlayer() {
+    var legacy = 25 + Math.min(55, Math.floor(((typeof S !== "undefined" && S && S.hype) || 0) / 3)) + (stageOfPlayer() - 1) * 6;
+    try {
+      var cp = (window.RapDreamCatalog && window.RapDreamCatalog.playerHook) ? window.RapDreamCatalog.playerHook() : null;
+      if (typeof cp === "number") { return Math.max(20, Math.min(88, Math.round(cp) + (stageOfPlayer() - 1) * 6)); }
+    } catch (e) {}
+    return legacy;
+  }
+  function memberHook(m) { var pk = 3 + (hashName("rec|" + m.name) % 10); return Math.max(20, Math.min(85, Math.round(18 + (21 - pk) * 2.6) + ((m.stage || stageOfPower(m.power)) - 1) * 5)); }
   function statsOfPlayer() { var lv = levelOf(v14.xp), st = stageOfPlayer(); return { pen: 30 + lv * 6 + (st - 1) * 8, poise: 30 + lv * 4 + (st - 1) * 10, flow: 40 + lv * 5 + (st - 1) * 5, hook: hookOfPlayer() }; }
   function statsOfOpp(power) { var st = stageOfPower(power); return { pen: 24 + power * 7 + (st - 1) * 6, poise: 26 + power * 6 + (st - 1) * 8, flow: 34 + power * 5, hook: 20 + power * 6 + (st - 1) * 5 }; }
+
+  /* ---------------- V17: the four-move kit ----------------
+     every battler carries exactly four moves, fixed to the name:
+     two on-style anchors, then coverage picks so the kit answers
+     more than one matchup (coverage, not a power ladder: the dex
+     stays a scouting book). a stage climb swaps the weakest seat
+     for a stronger on-style move, when one exists. kits are pure
+     functions of the name and the stage: nothing to save, nothing
+     to drift, the same four every time the name walks in. */
+  function moveAvgW(m) { if (!m || !m.weights) { return 0.5; } var s = 0; for (var i = 0; i < m.weights.length; i += 1) { s += m.weights[i]; } return s / m.weights.length; }
+  function kitFor(name, stage) {
+    var style = styleForName(name);
+    var seed = hashName("kit|" + name);
+    function rank(m) { return moveAvgW(m) * 100 - ((seed >> ((m.id.length * 3 + m.name.length) % 11)) % 7); }
+    var onStyle = MOVES.filter(function (m) { return MOVE_STYLE[m.id] === style; }).sort(function (a, b) { return rank(b) - rank(a); });
+    var rest = MOVES.filter(function (m) { return MOVE_STYLE[m.id] !== style; }).sort(function (a, b) { return rank(b) - rank(a); });
+    var kit = [];
+    if (onStyle[0]) { kit.push(onStyle[0].id); }
+    if (onStyle[1]) { kit.push(onStyle[1].id); }
+    var covered = {}; kit.forEach(function (id) { covered[MOVE_STYLE[id]] = true; });
+    for (var p1 = 0; p1 < 2 && kit.length < 4; p1 += 1) {
+      for (var i = 0; i < rest.length && kit.length < 4; i += 1) {
+        if (kit.indexOf(rest[i].id) >= 0) { continue; }
+        if (p1 === 0 && covered[MOVE_STYLE[rest[i].id]]) { continue; }
+        kit.push(rest[i].id); covered[MOVE_STYLE[rest[i].id]] = true;
+      }
+    }
+    var swaps = Math.min(2, Math.max(0, (stage || 1) - 1));
+    var usedOut = {}, usedIn = {};
+    for (var sIdx = 0; sIdx < swaps; sIdx += 1) {
+      var weakest = null, weakestW = 1e9;
+      kit.forEach(function (id) { if (usedIn[id]) { return; } var w = moveAvgW(moveById(id)) - (MOVE_STYLE[id] === style ? 0.35 : 0); if (w < weakestW) { weakestW = w; weakest = id; } });
+      var cand = null;
+      onStyle.forEach(function (m) { if (kit.indexOf(m.id) < 0 && !usedOut[m.id] && (!cand || m.level > cand.level || (m.level === cand.level && moveAvgW(m) > moveAvgW(cand)))) { cand = m; } });
+      if (!weakest || !cand) { break; }
+      kit[kit.indexOf(weakest)] = cand.id;
+      usedOut[weakest] = true;
+      usedIn[cand.id] = true;
+    }
+    return kit.slice(0, 4);
+  }
+  function kitOfPlayer() {
+    var style = playerStyle();
+    var lv = levelOf(v14.xp);
+    var unlocked = MOVES.filter(function (m) { return m.level <= lv; });
+    var onStyle = unlocked.filter(function (m) { return MOVE_STYLE[m.id] === style; }).sort(function (a, b) { return moveAvgW(b) - moveAvgW(a); });
+    var rest = unlocked.filter(function (m) { return MOVE_STYLE[m.id] !== style; }).sort(function (a, b) { return moveAvgW(b) - moveAvgW(a); });
+    var kit = [];
+    onStyle.slice(0, 2).forEach(function (m) { kit.push(m.id); });
+    var covered = {}; kit.forEach(function (id) { covered[MOVE_STYLE[id]] = true; });
+    for (var p1 = 0; p1 < 2 && kit.length < 4; p1 += 1) {
+      for (var i = 0; i < rest.length && kit.length < 4; i += 1) {
+        if (kit.indexOf(rest[i].id) >= 0) { continue; }
+        if (p1 === 0 && covered[MOVE_STYLE[rest[i].id]]) { continue; }
+        kit.push(rest[i].id); covered[MOVE_STYLE[rest[i].id]] = true;
+      }
+    }
+    return kit.slice(0, 4);
+  }
+  function kitNames(name, stage) { return kitFor(name, stage).map(function (id) { var m = moveById(id); return m ? m.name : id; }); }
+  function playerKitNames() { return kitOfPlayer().map(function (id) { var m = moveById(id); return m ? m.name : id; }); }
+  var dexFilter = "all";
   function dexCounts() { var seen = 0, beaten = 0; for (var k in v14.dex) { if (v14.dex[k] && v14.dex[k].seen) { seen += 1; } if (v14.dex[k] && v14.dex[k].beaten) { beaten += 1; } } return { seen: seen, beaten: beaten, total: (typeof RD_FEATURED_NAMES !== "undefined" ? RD_FEATURED_NAMES.length : 0) }; }
   var LEAGUE_CARD = [
     { name: "Dugg", power: 4 },
@@ -18018,14 +18129,46 @@ render();
     var lv = levelOf(v14.xp);
     var rec = v14.wins + " won · " + v14.losses + " lost" + (v14.walks ? " · " + v14.walks + " walked" : "");
     card.appendChild(mkEl("p", null, "battle level " + lv + " · " + (v14.xp || 0) + " XP" + (xpToNext(v14.xp) ? " · " + xpToNext(v14.xp) + " XP to level " + (lv + 1) : " · top of the stairs") + " · " + rec));
-    var unlocked = MOVES.filter(moveUnlocked).map(function (m) { return m.name; }).join(", ");
     var locked = MOVES.filter(function (m) { return !moveUnlocked(m); }).map(function (m) { return m.name + " (level " + m.level + ")"; }).join(", ");
-    card.appendChild(mkEl("p", null, "your moves: " + unlocked + (locked ? " · still locked: " + locked : "")));
+    card.appendChild(mkEl("p", null, "your kit: " + playerKitNames().join(", ") + " · four moves, fixed to your name and your stage" + (locked ? " · still locked: " + locked : "")));
+    card.appendChild(mkEl("p", null, "breath: two bottles ride into every fight, on the menu beside your moves."));
     var pst = statsOfPlayer();
     card.appendChild(mkEl("p", null, "you fight " + playerStyle() + " · " + STAGE_NAMES[stageOfPlayer()] + " · pen " + pst.pen + " · poise " + pst.poise + " · flow " + pst.flow + " · hook power " + pst.hook));
     var dc = dexCounts();
     card.appendChild(mkEl("p", null, "the record: seen " + dc.seen + " of " + dc.total + " names · beaten " + dc.beaten + " of " + dc.total + (v14.roster.length ? " · roster " + v14.roster.length + " of 6 riding with you" : "")));
     baseBody.appendChild(card);
+
+    var recCard = mkEl("div", "rd-v14-card", null);
+    recCard.id = "rd-v17-record";
+    recCard.appendChild(mkEl("h4", null, "the record · kits read off the names"));
+    var filtRow = mkEl("div", "rd-v14-row", null);
+    ["all", "trap", "drill", "rnb", "experimental"].forEach(function (st) {
+      var fb = mkEl("button", "rd-v14-fight-btn", st === "all" ? "every style" : st);
+      fb.type = "button";
+      fb.setAttribute("data-dex-filter", st);
+      if (dexFilter === st) { fb.style.borderColor = "#ffcf3f"; fb.style.color = "#ffcf3f"; }
+      fb.addEventListener("click", function () { dexFilter = st; paintBasement(); });
+      filtRow.appendChild(fb);
+    });
+    recCard.appendChild(filtRow);
+    var allNames = (typeof RD_FEATURED_NAMES !== "undefined" ? RD_FEATURED_NAMES : []);
+    var seenNames = allNames.filter(function (n) { return v14.dex[n] && v14.dex[n].seen; });
+    if (!seenNames.length) {
+      recCard.appendChild(mkEl("p", null, "no names read yet. the first sighting writes the first page: style, stage, and the four moves they carry."));
+    }
+    var shownNames = seenNames.filter(function (n) { return dexFilter === "all" || styleForName(n) === dexFilter; });
+    if (seenNames.length && !shownNames.length) {
+      recCard.appendChild(mkEl("p", null, "no names under that style in the record yet."));
+    }
+    shownNames.forEach(function (n) {
+      var drow = mkEl("div", "rd-v14-row", null);
+      var dwho = mkEl("div", "rd-v14-who", null);
+      dwho.appendChild(mkEl("strong", null, n));
+      dwho.appendChild(mkEl("small", null, styleForName(n) + " style · " + STAGE_NAMES[v14.dex[n].stage || 1] + " · kit: " + kitNames(n, v14.dex[n].stage || 1).join(", ") + (v14.dex[n].beaten ? " · beaten" : " · still standing")));
+      drow.appendChild(dwho);
+      recCard.appendChild(drow);
+    });
+    baseBody.appendChild(recCard);
 
     var leagueCard = mkEl("div", "rd-v14-card", null);
     leagueCard.appendChild(mkEl("h4", null, "SkyTier Northwest · the league run"));
@@ -18051,7 +18194,7 @@ render();
         var rrow = mkEl("div", "rd-v14-row", null);
         var rwho = mkEl("div", "rd-v14-who", null);
         rwho.appendChild(mkEl("strong", null, m.name));
-        rwho.appendChild(mkEl("small", null, "power " + m.power + " · " + m.style + " style · " + STAGE_NAMES[m.stage || stageOfPower(m.power)] + " · composure " + Math.round(m.comp) + " of " + m.compMax + (m.comp < 15 ? " · resting: a day brings them back" : "")));
+        rwho.appendChild(mkEl("small", null, "power " + m.power + " · " + m.style + " style · " + STAGE_NAMES[m.stage || stageOfPower(m.power)] + " · kit: " + kitNames(m.name, m.stage || stageOfPower(m.power)).join(", ") + " · composure " + Math.round(m.comp) + " of " + m.compMax + (m.comp < 15 ? " · resting: a day brings them back" : "")));
         rrow.appendChild(rwho);
         rosCard.appendChild(rrow);
       });
@@ -18379,7 +18522,7 @@ render();
     "the staircase": [{ w: 2, n: "reference" }, { w: 2, n: "punch" }, { w: 3, n: "wordplay" }, { w: 2, n: "reference" }],
     "the technician": [{ w: 2, n: "scheme" }, { w: 1.5, n: "scheme" }, { w: 2, n: "scheme" }, { w: 0, n: "multis" }, { w: 1, n: "multis" }, { w: 2, n: "punch" }]
   };
-  function oppBar(f) {
+  function oppBarRaw(f) {
     var pf = (0.8 + f.power * 0.06) * typeMult(f.oppStyle, activeStyle(f)) * (1 + (stageOfPower(f.power) - 1) * 0.05);
     var bar = f.bar;
     function std(w, n, line) { return { w: w, n: n, dmg: Math.round(dmgFor(w) * pf), line: line || pickOf(THEIR_LINES), choke: false }; }
@@ -18399,6 +18542,17 @@ render();
     var cyc = SHAPE_CYCLES[f.shape] || SHAPE_CYCLES["the staircase"];
     var step = cyc[(bar - 1) % cyc.length];
     return std(step.w, step.n);
+  }
+  function oppBar(f) {
+    var r = oppBarRaw(f);
+    try {
+      if (r && !r.choke && f.oppKit && MOVE_STYLE[r.n] && f.oppKit.indexOf(r.n) < 0) {
+        var best = null, bd = 1e9;
+        f.oppKit.forEach(function (id) { var mm = moveById(id); if (mm) { var d = Math.abs(moveAvgW(mm) - r.w); if (d < bd) { bd = d; best = id; } } });
+        if (best) { r = { w: r.w, n: best, dmg: r.dmg, line: r.line, choke: false }; }
+      }
+    } catch (e) {}
+    return r;
   }
   function pickSpecial(kind, arg, btn) {
     var f = fight;
@@ -18590,7 +18744,7 @@ render();
     if (!f) { return; }
     fightBody.innerHTML = "";
     var aSt = activeStyle(f);
-    var yStats = f.member ? { pen: Math.round(24 + f.member.power * 7), poise: Math.round(26 + f.member.power * 6), flow: Math.round(34 + f.member.power * 5), hook: Math.round(20 + f.member.power * 6) } : statsOfPlayer();
+    var yStats = f.member ? { pen: Math.round(24 + f.member.power * 7), poise: Math.round(26 + f.member.power * 6), flow: Math.round(34 + f.member.power * 5), hook: memberHook(f.member) } : statsOfPlayer();
     var oStats = statsOfOpp(f.power);
     fightBody.appendChild(mkEl("p", "rd-v14-big", (f.member ? f.member.name + " (tagged in) vs " : "you vs ") + f.name + " · power " + f.power + " · fights like " + f.shape + (f.league ? " · league rung " + (f.rung + 1) + " of " + LEAGUE_CARD.length : "")));
     fightBody.appendChild(mkEl("p", "rd-v14-note", "your corner: " + aSt + " style · " + (f.member ? STAGE_NAMES[f.member.stage || stageOfPower(f.member.power)] : STAGE_NAMES[stageOfPlayer()]) + " · pen " + yStats.pen + " · poise " + yStats.poise + " · flow " + yStats.flow + " · hook power " + yStats.hook));
@@ -18637,8 +18791,17 @@ render();
       fightBody.appendChild(back);
     } else {
       var grid = mkEl("div", "rd-v14-moves", null);
-      MOVES.forEach(function (m) {
-        var unlocked = moveUnlocked(m);
+      var kitIds = f.member ? kitFor(f.member.name, f.member.stage || stageOfPower(f.member.power)) : kitOfPlayer();
+      var kitMoves = kitIds.map(function (id) { return moveById(id); }).filter(function (m) { return !!m; });
+      var songNames17 = [];
+      try { songNames17 = (!f.member && window.RapDreamCatalog && window.RapDreamCatalog.songMoveNames) ? window.RapDreamCatalog.songMoveNames() : []; } catch (e) {}
+      var dispNames = kitMoves.map(function (m) { return m.name; });
+      if (!f.member && songNames17.length) {
+        var ord17 = kitMoves.map(function (m, ix) { return { ix: ix, w: moveAvgW(m) }; }).sort(function (a, b) { return b.w - a.w; });
+        ord17.forEach(function (o, rk) { if (songNames17[rk]) { dispNames[o.ix] = songNames17[rk]; } });
+      }
+      kitMoves.forEach(function (m, kitIdx) {
+        var unlocked = f.member ? true : moveUnlocked(m);
         var st = unlocked ? moveState(f, m) : { ok: false, why: "" };
         var cls = "rd-v14-move", smallText;
         if (!unlocked) { smallText = "opens at battle level " + m.level; }
@@ -18655,7 +18818,7 @@ render();
         var b = mkEl("button", cls, null);
         b.type = "button";
         b.setAttribute("data-move", m.id);
-        b.appendChild(mkEl("strong", null, m.name));
+        b.appendChild(mkEl("strong", null, dispNames[kitIdx] || m.name));
         b.appendChild(mkEl("small", null, smallText));
         if (!unlocked) { b.disabled = true; }
         b.addEventListener("click", function () { pickMove(m, b); });
@@ -18721,7 +18884,7 @@ render();
       named: (typeof RD_FEATURED_NAMES !== "undefined" && RD_FEATURED_NAMES.indexOf(opp.name) >= 0),
       histCount: v14.hist[opp.name] || 0,
       league: !!opp.league, rung: (typeof opp.rung === "number" ? opp.rung : -1), fromPool: !!opp.pool, leagueForfeit: false,
-      oppStyle: styleForName(opp.name), member: null, youStored: null, youMax: youMax0,
+      oppStyle: styleForName(opp.name), oppKit: kitFor(opp.name, stageOfPower(opp.power)), member: null, youStored: null, youMax: youMax0,
       items: 2, offerUsed: false, switchName: null,
       you: youMax0, them: 80 + opp.power * 8, themMax: 80 + opp.power * 8,
       bar: 0, pick: null, committed: false, scheme: null, rebuttalOpen: false,
@@ -18730,6 +18893,7 @@ render();
     };
     if (fight.named && !v14.dex[fight.name]) { v14.dex[fight.name] = { seen: true, beaten: false }; }
     else if (fight.named) { v14.dex[fight.name].seen = true; }
+    if (fight.named) { v14.dex[fight.name].stage = stageOfPower(opp.power); }
     fightLog(fight, "the circle forms around you and " + opp.name + ". they fight like " + fight.shape + ", " + fight.oppStyle + " style, " + STAGE_NAMES[stageOfPower(opp.power)] + ". the entry was " + BATTLE_ENERGY + " energy, stated before the first bar.", true);
     fightOv.classList.remove("hidden");
     paintFight();
@@ -18739,11 +18903,13 @@ render();
 
   /* if the room is swept away mid-fight by another door, the fight
      ends the way walking off ends it */
-  setInterval(function () {
-    try {
-      if (fight && !fight.over && fightOv.classList.contains("hidden")) { endFight("walk"); }
-    } catch (e) {}
-  }, 600);
+  if (window.MutationObserver) {
+    new MutationObserver(function () {
+      try {
+        if (fight && !fight.over && fightOv.classList.contains("hidden")) { endFight("walk"); }
+      } catch (e) {}
+    }).observe(fightOv, { attributes: true, attributeFilter: ["class"] });
+  }
 
   /* ---------------- the battle door on the dash ----------------
      geometry is inherited: a button inside #actions is a door.
@@ -18808,10 +18974,8 @@ render();
   if (roomObs && window.MutationObserver) {
     new MutationObserver(function () { paintRoomDown(); }).observe(roomObs, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   }
-  setInterval(function () {
-    try { plantBattleCard(); } catch (e) {}
-    try { paintRoomDown(); } catch (e) {}
-  }, 1500);
+  /* V17 consolidation: no planter clock. the render pipeline
+     plants the door and the stairs on every pass instead. */
   try { plantBattleCard(); } catch (e) {}
 
   /* ---------------- persistence: the Persist chain grows a v14 ---------------- */
@@ -18851,7 +19015,7 @@ render();
           d.pool.forEach(function (r) { if (r.name === "C3") { r.name = "Caesar III"; } });
           d.gone = d.gone.map(function (n) { return n === "C3" ? "Caesar III" : n; });
           if (v.lastChart && typeof v.lastChart === "object" && Array.isArray(v.lastChart.chart) && v.lastChart.chart.length) { d.lastChart = v.lastChart; }
-          if (v.dex && typeof v.dex === "object") { for (var dk in v.dex) { if (v.dex[dk] && typeof v.dex[dk] === "object") { d.dex[dk] = { seen: !!v.dex[dk].seen, beaten: !!v.dex[dk].beaten }; } } }
+          if (v.dex && typeof v.dex === "object") { for (var dk in v.dex) { if (v.dex[dk] && typeof v.dex[dk] === "object") { d.dex[dk] = { seen: !!v.dex[dk].seen, beaten: !!v.dex[dk].beaten, stage: (typeof v.dex[dk].stage === "number" ? v.dex[dk].stage : 1) }; } } }
           if (Array.isArray(v.roster)) {
             d.roster = v.roster.filter(function (m) { return m && typeof m.name === "string" && typeof m.power === "number"; }).slice(0, 6).map(function (m) {
               var cm = (typeof m.compMax === "number" && m.compMax > 0) ? m.compMax : 70 + m.power * 8;
@@ -18865,7 +19029,7 @@ render();
           v14.dex = d.dex; v14.roster = d.roster; v14.leagueStep = d.leagueStep; v14.leagueDone = d.leagueDone;
           v14RestoredAt = Date.now();
         }
-      } catch (e) {}
+      } catch (e) { try { if (window.RapDreamErr) { window.RapDreamErr.log("battle-restore", String((e && e.message) || e)); } } catch (e2) {} }
     };
   })();
 
@@ -18896,14 +19060,15 @@ render();
       v14.roster.forEach(function (m) { m.comp = Math.min(m.compMax, m.comp + Math.ceil(m.compMax * 0.4)); });
       if (Math.random() < 0.35) { spawnRapper("day"); }
     }
+    try { plantBattleCard(); } catch (e) {}
+    try { paintRoomDown(); } catch (e) {}
   }
   if (typeof render === "function") {
-    var prevRender14 = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("basement", function (prevRender14) { return function () {
       var out = prevRender14.apply(this, arguments);
       try { v14RenderPass(); } catch (e) {}
       return out;
-    };
+    }; });
   }
 
   /* ---------------- deck audit hooks (V2 spec, verified this build) ---------------- */
@@ -18952,7 +19117,13 @@ render();
     stageOfPower: stageOfPower,
     stageNames: STAGE_NAMES,
     statsOfPlayer: statsOfPlayer,
-    statsOfOpp: statsOfOpp
+    statsOfOpp: statsOfOpp,
+    kitFor: kitFor,
+    kitOfPlayer: kitOfPlayer,
+    kitNames: kitNames,
+    playerKitNames: playerKitNames,
+    memberHook: memberHook,
+    moveAvgW: moveAvgW
   };
 })();
 </script>
@@ -19054,6 +19225,7 @@ render();
     if (dispOf(j) >= 15 && !v16.island && typeof S !== "undefined" && S && typeof S.fans === "number") {
       covered = j.tier * 30 + rnd(0, j.tier * 20);
       S.fans += covered;
+      try { if (window.RapDreamChartApi && window.RapDreamChartApi.bendLatest()) { var claw = Math.floor(covered / 2); S.fans -= claw; covered -= claw; tape("the story bends the board too: your newest record climbs a spot off the ink."); } } catch (e) {}
       tape("coverage: " + j.name + " runs the story and your name travels. +" + covered + " fans.");
     } else if (v16.island) {
       tape(j.name + " hears you out, but the island is the island: nothing she writes travels right now.");
@@ -19266,13 +19438,12 @@ render();
           v16.disp = d.disp; v16.workedDay = d.workedDay; v16.worked = d.worked; v16.island = d.island; v16.wiredDay = d.wiredDay; v16.setDay = d.setDay;
           v16RestoredAt = Date.now();
         }
-      } catch (e) {}
+      } catch (e) { try { if (window.RapDreamErr) { window.RapDreamErr.log("press-restore", String((e && e.message) || e)); } } catch (e2) {} }
     };
   })();
   var v16LastS = (typeof S !== "undefined") ? S : null;
   if (typeof render === "function") {
-    var prevRender16 = render;
-    render = function () {
+    window.RapDreamRenderPipe.link("press", function (prevRender16) { return function () {
       var out = prevRender16.apply(this, arguments);
       try {
         if (typeof S !== "undefined" && S && v16LastS !== S) {
@@ -19285,7 +19456,7 @@ render();
         refreshIsland();
       } catch (e) {}
       return out;
-    };
+    }; });
   }
 
   window.RapDreamV16Media = {
@@ -19301,6 +19472,413 @@ render();
     island: function () { refreshIsland(); return v16.island; },
     openGameRoom: openGameRoom,
     paintPartyMedia: paintPartyMedia
+  };
+})();
+</script>
+<script>
+"use strict";
+/* ==================================================================
+   V17: kits on the card, a penthouse upstairs, the press says
+   hello exactly once, and the game starts keeping its own
+   receipts. The battle module carries the kits themselves; this
+   module carries the rest of the wire-up: hook power reads the
+   catalog through the chart board, the penthouse fills with who
+   you actually signed and the byline closest to you, the team
+   screen shows the six seats without becoming a second home,
+   the morning report learns a fast-forward that never skips a
+   charge, and every fault on a load-bearing path lands in a
+   ledger the player never has to look at. One day tick clocks
+   the new systems; the render pipeline (one chain, named links)
+   paints them. Nothing here is a second economy.
+   ================================================================== */
+(function () {
+  if (typeof S === "undefined" || !S) { return; }
+  function gel(id) { return document.getElementById(id); }
+  function mkEl(tag, cls, text) { var n = document.createElement(tag); if (cls) { n.className = cls; } if (text != null) { n.textContent = text; } return n; }
+  function tape(text) { try { if (typeof log === "function") { log(text); } } catch (e) {} }
+  function wire(text) { try { if (typeof queueWire === "function") { queueWire(S, text); } } catch (e) {} }
+
+  function v17Defaults() { return { pressIntroSeen: false, ffReport: false, credWired: false, ledger: [] }; }
+  var v17 = v17Defaults();
+  var v17RestoredAt = 0;
+  var lastFastLines = [];
+
+  /* ---------------- the error ledger ----------------
+     silence toward the player, honesty toward the builder.
+     load-bearing catches (save, load, restores) report here;
+     window faults land here; the flavor armor elsewhere in the
+     game stays silent the way it was designed to. the ledger is
+     readable in one place only: behind the build stamp, in the
+     EVERYTHING room, on a click nobody makes by accident. */
+  var Err = {
+    log: function (scope, msg) {
+      try {
+        v17.ledger.push({ day: (typeof S !== "undefined" && S && S.day) || 0, scope: String(scope || "game"), msg: String(msg || "").slice(0, 180), at: Date.now() });
+        if (v17.ledger.length > 60) { v17.ledger.splice(0, v17.ledger.length - 60); }
+      } catch (e) {}
+    },
+    entries: function () { return v17.ledger.slice(); }
+  };
+  window.RapDreamErr = Err;
+  window.addEventListener("error", function (ev) { try { Err.log("window", (ev && ev.message) || "error"); } catch (e) {} });
+  window.addEventListener("unhandledrejection", function (ev) { try { Err.log("promise", String((ev && ev.reason && ev.reason.message) || (ev && ev.reason) || "rejection")); } catch (e) {} });
+
+  function paintDiag() {
+    var line = gel("rd-build-line");
+    if (!line || !line.parentNode) { return; }
+    var old = gel("rd-v17-diag");
+    if (old) { old.parentNode.removeChild(old); return; }
+    var box = mkEl("div", null, null);
+    box.id = "rd-v17-diag";
+    box.style.cssText = "border:2px solid #3d6076;border-radius:10px;background:#05090d;padding:10px 12px;margin:8px 0;font:500 12px/1.6 'Space Grotesk',sans-serif;color:#9fc6de;text-align:left";
+    var pipe = window.RapDreamRenderPipe;
+    box.appendChild(mkEl("p", null, "diagnostics · build " + (window.RapDreamBuildStamp || "?") + " · render links: " + (pipe ? pipe.names.join(", ") : "none") + " · one pipeline, " + (pipe ? pipe.links.length : 0) + " links, " + (pipe ? pipe.post.length : 0) + " post hooks"));
+    if (!v17.ledger.length) {
+      box.appendChild(mkEl("p", null, "the ledger is clean: no faults recorded on the load-bearing paths."));
+    } else {
+      v17.ledger.slice(-12).forEach(function (en) {
+        box.appendChild(mkEl("p", null, "day " + en.day + " · " + en.scope + " · " + en.msg));
+      });
+    }
+    line.parentNode.insertBefore(box, line.nextSibling);
+  }
+  function hookDiag() {
+    var line = gel("rd-build-line");
+    if (!line || line.getAttribute("data-rd-diag")) { return; }
+    line.setAttribute("data-rd-diag", "1");
+    line.style.cursor = "pointer";
+    line.title = "diagnostics";
+    line.addEventListener("click", paintDiag);
+  }
+
+  /* ---------------- the day tick ----------------
+     one clock. the new systems subscribe; nobody here starts a
+     private polling timer of their own. */
+  var daySubs = [];
+  var lastDay = (typeof S !== "undefined" && S && S.day) || 1;
+  var DayTick = {
+    onDay: function (fn) { daySubs.push(fn); },
+    day: function () { return lastDay; }
+  };
+  window.RapDreamDayTick = DayTick;
+  setInterval(function () {
+    try {
+      var d = (typeof S !== "undefined" && S && S.day) || 1;
+      if (d !== lastDay) {
+        lastDay = d;
+        daySubs.slice().forEach(function (fn) { try { fn(d); } catch (e) {} });
+        try { document.dispatchEvent(new CustomEvent("rd-day", { detail: { day: d } })); } catch (e) {}
+      }
+    } catch (e) {}
+  }, 1000);
+  DayTick.onDay(function () {
+    try {
+      if (!v17.credWired && window.RapDreamV14Probe && window.RapDreamV14Probe.league().done) {
+        v17.credWired = true;
+        wire("the basement credential carries upstairs: the SkyTier holder books features at a holder's price, and the sit-down questions have started asking about the card.");
+      }
+    } catch (e) {}
+  });
+
+  /* ---------------- the catalog wire ----------------
+     hook power's soft source: the average of your three best
+     chart peaks, never one farmed single. the battle module
+     caps it. song titles for the kit buttons come from the same
+     board: best peak first, newest first after that. */
+  function chartEntries() { try { return (window.RapDreamChartApi && window.RapDreamChartApi.entries()) || []; } catch (e) { return []; } }
+  function shortName(t) { t = String(t || ""); return t.length > 16 ? t.slice(0, 14) + ".." : t; }
+  window.RapDreamCatalog = {
+    playerHook: function () {
+      var es = chartEntries().filter(function (e) { return typeof e.peak === "number" && e.peak >= 1; });
+      if (!es.length) { return null; }
+      var scores = es.map(function (e) { return 21 - e.peak; }).sort(function (a, b) { return b - a; }).slice(0, 3);
+      var avg = scores.reduce(function (a, b) { return a + b; }, 0) / scores.length;
+      return 18 + avg * 2.6;
+    },
+    songMoveNames: function () {
+      var peakBySong = {};
+      chartEntries().forEach(function (e) { if (e.song && (typeof peakBySong[e.song] !== "number" || e.peak < peakBySong[e.song])) { peakBySong[e.song] = e.peak; } });
+      var list = [];
+      try { list = (window.RapDreamSongs || []).slice(); } catch (e) { list = []; }
+      list.sort(function (a, b) {
+        var pa = (typeof peakBySong[a.name] === "number") ? peakBySong[a.name] : 99;
+        var pb = (typeof peakBySong[b.name] === "number") ? peakBySong[b.name] : 99;
+        if (pa !== pb) { return pa - pb; }
+        return (b.day || 0) - (a.day || 0);
+      });
+      return list.map(function (s) { return shortName(s.name); });
+    }
+  };
+
+  /* ---------------- the penthouse ----------------
+     up from the party. not cast: earned. your signed artists
+     stand here because they are yours; the byline closest to
+     you stands here because the room keeps score. an empty
+     penthouse wears its guest list on the door. */
+  var pentOv = mkEl("section", "rd-overlay hidden", null);
+  pentOv.id = "rd-v17-penthouse";
+  pentOv.setAttribute("aria-label", "The penthouse");
+  pentOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>the penthouse</h3><p>upstairs from the party: the room the building keeps for its own. who stands here is not cast, it is earned.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(pentOv);
+  var pentBody = pentOv.querySelector(".rd-panel-body");
+  pentOv.querySelector(".rd-close").addEventListener("click", function () { pentOv.classList.add("hidden"); });
+  pentOv.addEventListener("click", function (e) { if (e.target === pentOv) { pentOv.classList.add("hidden"); } });
+
+  function roster() { try { return (window.RapDreamV14Probe && window.RapDreamV14Probe.state.roster) || []; } catch (e) { return []; } }
+  function battleApi() { return window.RapDreamV16Battle || null; }
+  function closestJourno() {
+    var M = window.RapDreamV16Media;
+    if (!M) { return null; }
+    var best = null;
+    M.pool.forEach(function (j) { var d = M.dispOf(j); if (d > 0 && (!best || d > best.disp)) { best = { name: j.name, tier: j.tier, disp: d, band: M.bandOf(j) }; } });
+    return best;
+  }
+  function paintPenthouse() {
+    pentBody.innerHTML = "";
+    var ros = roster();
+    var cj = closestJourno();
+    var B = battleApi();
+    if (!ros.length && !cj) {
+      pentBody.appendChild(mkEl("p", "rd-v14-note", "the penthouse keeps a guest list, and tonight the list is short: nobody signed, nobody in your corner. that is not a locked door, it is an empty one, and empty is a to-do list. sign a name out of the basement, warm a byline at the party, and this room fills itself."));
+      return;
+    }
+    if (ros.length) {
+      var card = mkEl("div", "rd-v14-card", null);
+      card.appendChild(mkEl("h4", null, "your artists, upstairs"));
+      ros.forEach(function (m) {
+        var row = mkEl("div", "rd-v14-row", null);
+        var who = mkEl("div", "rd-v14-who", null);
+        who.appendChild(mkEl("strong", null, m.name));
+        who.appendChild(mkEl("small", null, m.style + " style · " + (B ? B.stageNames[m.stage || B.stageOfPower(m.power)] : "") + (B ? " · kit: " + B.kitNames(m.name, m.stage || B.stageOfPower(m.power)).join(", ") : "")));
+        row.appendChild(who);
+        card.appendChild(row);
+      });
+      pentBody.appendChild(card);
+    }
+    if (cj) {
+      var pc = mkEl("div", "rd-v14-card", null);
+      pc.appendChild(mkEl("h4", null, "the byline closest to you"));
+      var prow = mkEl("div", "rd-v14-row", null);
+      var pwho = mkEl("div", "rd-v14-who", null);
+      pwho.appendChild(mkEl("strong", null, cj.name));
+      pwho.appendChild(mkEl("small", null, cj.band + " (" + cj.disp + ") · of every byline in the building, she is the one standing up here"));
+      prow.appendChild(pwho);
+      var btns = mkEl("div", "rd-v16-btns", null);
+      var b1 = mkEl("button", "rd-v16-btn", "give her the story");
+      b1.type = "button";
+      b1.addEventListener("click", function () { try { window.RapDreamV16Media.workWith(cj.name); } catch (e) {} paintPenthouse(); });
+      var b2 = mkEl("button", "rd-v16-btn cold", "freeze her out");
+      b2.type = "button";
+      b2.addEventListener("click", function () { try { window.RapDreamV16Media.freezeOut(cj.name); } catch (e) {} paintPenthouse(); });
+      btns.appendChild(b1); btns.appendChild(b2);
+      prow.appendChild(btns);
+      pc.appendChild(prow);
+      pentBody.appendChild(pc);
+    } else if (ros.length) {
+      pentBody.appendChild(mkEl("p", "rd-v14-note", "no byline has warmed to you yet. the second seat up here is earned at the party, one story at a time."));
+    }
+  }
+  function openPenthouse() { paintPenthouse(); pentOv.classList.remove("hidden"); }
+  window.RapDreamPenthouse = openPenthouse;
+
+  /* ---------------- the team screen ----------------
+     a window, not a second home: it reads the roster downstairs
+     and changes nothing. */
+  var teamOv = mkEl("section", "rd-overlay hidden", null);
+  teamOv.id = "rd-v17-team";
+  teamOv.setAttribute("aria-label", "Your team");
+  teamOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>your team</h3><p>the six seats and the one standing in front of them, read straight off the basement roster. this room changes nothing: it shows everything.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  document.body.appendChild(teamOv);
+  var teamBody = teamOv.querySelector(".rd-panel-body");
+  teamOv.querySelector(".rd-close").addEventListener("click", function () { teamOv.classList.add("hidden"); });
+  teamOv.addEventListener("click", function (e) { if (e.target === teamOv) { teamOv.classList.add("hidden"); } });
+  function teamRow(name, small) {
+    var row = mkEl("div", "rd-v14-row", null);
+    var who = mkEl("div", "rd-v14-who", null);
+    who.appendChild(mkEl("strong", null, name));
+    who.appendChild(mkEl("small", null, small));
+    row.appendChild(who);
+    return row;
+  }
+  function paintTeam() {
+    teamBody.innerHTML = "";
+    var B = battleApi();
+    var ros = roster();
+    if (B) {
+      var pst = B.statsOfPlayer();
+      teamBody.appendChild(teamRow("you", B.playerStyle() + " style · " + B.stageNames[B.stageOfPlayer()] + " · kit: " + B.playerKitNames().join(", ") + " · hook power " + pst.hook));
+    }
+    if (!ros.length) {
+      teamBody.appendChild(mkEl("p", "rd-v14-note", "no seats filled yet. the roster is caught, not bought: weaken a name in the basement and offer the deal instead of the finish."));
+      return;
+    }
+    ros.forEach(function (m) {
+      teamBody.appendChild(teamRow(m.name, m.style + " style · " + (B ? B.stageNames[m.stage || B.stageOfPower(m.power)] : "") + " · kit: " + (B ? B.kitNames(m.name, m.stage || B.stageOfPower(m.power)).join(", ") : "") + " · composure " + Math.round(m.comp) + " of " + m.compMax));
+    });
+  }
+  function openTeam() { paintTeam(); teamOv.classList.remove("hidden"); }
+  window.RapDreamTeam = openTeam;
+
+  /* ---------------- party floor: the door up, the team door,
+     and the press saying hello exactly once ---------------- */
+  function paintParty17() {
+    var party = gel("rdn-party");
+    if (!party || party.classList.contains("hidden")) { return; }
+    var body = party.querySelector(".rd-panel-body");
+    if (!body) { return; }
+    if (!body.querySelector(".rdn-party-map") && !body.querySelector(".rd-v14-stairs")) { return; }
+    if (!body.querySelector(".rd-v17-door")) {
+      var door = mkEl("button", "rd-v16-door rd-v17-door", "▲ up · the penthouse");
+      door.type = "button";
+      door.addEventListener("click", function () { openPenthouse(); });
+      body.appendChild(door);
+    }
+    if (!v17.pressIntroSeen && body.querySelector(".rd-v16-media")) {
+      v17.pressIntroSeen = true;
+      var intro = mkEl("div", "rd-v16-media rd-v17-press-intro", null);
+      intro.appendChild(mkEl("h4", null, "the press is in the building"));
+      intro.appendChild(mkEl("p", null, "first sighting, so it gets said once: journalists drift through the party rooms like everybody else. give one the story and her coverage carries your name out of the building; freeze one out and her whole tier keeps score. three frozen bylines and the press goes quiet: the island. you will find them room to room, under the music."));
+      body.appendChild(intro);
+    }
+  }
+  var partyEl = gel("rdn-party");
+  if (partyEl && window.MutationObserver) {
+    var pQueued = false;
+    new MutationObserver(function () {
+      if (pQueued) { return; }
+      pQueued = true;
+      setTimeout(function () { pQueued = false; try { paintParty17(); } catch (e) {} }, 90);
+    }).observe(partyEl, { childList: true, subtree: true });
+  }
+  var baseEl = gel("rd-v14-base");
+  if (baseEl && window.MutationObserver) {
+    var bQueued = false;
+    new MutationObserver(function () {
+      if (bQueued) { return; }
+      bQueued = true;
+      setTimeout(function () {
+        bQueued = false;
+        try {
+          if (baseEl.classList.contains("hidden")) { return; }
+          var body = baseEl.querySelector(".rd-panel-body");
+          if (!body || body.querySelector("#rd-v17-teambtn")) { return; }
+          var b = mkEl("button", "rd-v14-stairs", "your team · the six seats");
+          b.type = "button";
+          b.id = "rd-v17-teambtn";
+          b.addEventListener("click", function () { openTeam(); });
+          body.appendChild(b);
+        } catch (e) {}
+      }, 60);
+    }).observe(baseEl, { childList: true, subtree: true });
+  }
+
+  /* ---------------- the morning report, fast-forwarded --------
+     fast skips the flavor and never the ledger: every line that
+     carries a charge is copied to the tape before the flash
+     closes, so a fast morning costs exactly what a slow one
+     shows. */
+  function filterReportLines(text) {
+    return String(text || "").split(/\n+/).map(function (l) { return l.trim(); }).filter(function (l) {
+      return !!l && (/\$\s?\d/.test(l) || /-\$/.test(l) || /\bcost\b/i.test(l) || /\bpaid\b/i.test(l) || /\brent\b/i.test(l) || /\bowes?\b/i.test(l) || /\bcharged\b/i.test(l) || /\bswept\b/i.test(l));
+    });
+  }
+  function fastReport() {
+    try {
+      var btn = gel("start-day");
+      var host = btn ? (btn.closest ? btn.closest("section") : null) : null;
+      if (!host) { host = gel("instructions"); }
+      var lines = filterReportLines(host ? host.textContent : "");
+      lastFastLines = lines;
+      lines.forEach(function (l) { tape("report: " + l); });
+      if (typeof closeDayFlash === "function") { closeDayFlash(); }
+      else if (btn) { btn.click(); }
+    } catch (e) {}
+  }
+  var ffWrapped = false;
+  if (typeof dayFlash === "function") {
+    var prevDayFlash17 = dayFlash;
+    dayFlash = function () {
+      var out = prevDayFlash17.apply(this, arguments);
+      if (v17.ffReport) { setTimeout(fastReport, 650); }
+      return out;
+    };
+    ffWrapped = true;
+  }
+  function plantFF() {
+    if (gel("rd-v17-ff")) { return; }
+    var anchor = gel("rd-open-basement");
+    if (!anchor || !anchor.parentNode) { return; }
+    var b = mkEl("button", "hints-toggle", v17.ffReport ? "report: fast" : "report: full");
+    b.type = "button";
+    b.id = "rd-v17-ff";
+    b.addEventListener("click", function () {
+      v17.ffReport = !v17.ffReport;
+      b.textContent = v17.ffReport ? "report: fast" : "report: full";
+      tape(v17.ffReport ? "the morning report runs fast now: flavor skipped, every charge still printed." : "the morning report runs full again.");
+    });
+    anchor.parentNode.insertBefore(b, anchor.nextSibling);
+  }
+
+  /* ---------------- persistence + career watch ---------------- */
+  (function v17Persist() {
+    var P = window.RapDreamPersist;
+    if (!P || typeof P.collect !== "function" || typeof P.restore !== "function") { return; }
+    var collect0 = P.collect, restore0 = P.restore;
+    P.collect = function () {
+      var base = null;
+      try { base = collect0(); } catch (e) {}
+      if (!base || typeof base !== "object") { base = {}; }
+      base.v17 = { pressIntroSeen: v17.pressIntroSeen, ffReport: v17.ffReport, credWired: v17.credWired, ledger: v17.ledger.slice(-30) };
+      return base;
+    };
+    P.restore = function (x) {
+      try { restore0(x); } catch (e) {}
+      try {
+        if (x && x.v17 && typeof x.v17 === "object") {
+          var v = x.v17, d = v17Defaults();
+          if (typeof v.pressIntroSeen === "boolean") { d.pressIntroSeen = v.pressIntroSeen; }
+          if (typeof v.ffReport === "boolean") { d.ffReport = v.ffReport; }
+          if (typeof v.credWired === "boolean") { d.credWired = v.credWired; }
+          if (Array.isArray(v.ledger)) { d.ledger = v.ledger.filter(function (en) { return en && typeof en.msg === "string"; }).slice(-30); }
+          v17.pressIntroSeen = d.pressIntroSeen; v17.ffReport = d.ffReport; v17.credWired = d.credWired; v17.ledger = d.ledger;
+          v17RestoredAt = Date.now();
+        }
+      } catch (e) { try { Err.log("v17-restore", String((e && e.message) || e)); } catch (e2) {} }
+    };
+  })();
+  var v17LastS = (typeof S !== "undefined") ? S : null;
+  if (window.RapDreamRenderPipe) {
+    window.RapDreamRenderPipe.post.push(function () {
+      try {
+        if (typeof S !== "undefined" && S && v17LastS !== S) {
+          v17LastS = S;
+          if (Date.now() - v17RestoredAt > 800) {
+            var d = v17Defaults();
+            v17.pressIntroSeen = d.pressIntroSeen; v17.ffReport = d.ffReport; v17.credWired = d.credWired; v17.ledger = d.ledger;
+          }
+        }
+      } catch (e) {}
+      try { plantFF(); } catch (e) {}
+      try { hookDiag(); } catch (e) {}
+    });
+  }
+
+  window.RapDreamV17 = {
+    state: v17,
+    ledger: Err.entries,
+    logError: Err.log,
+    openPenthouse: openPenthouse,
+    paintPenthouse: paintPenthouse,
+    openTeam: openTeam,
+    closestJourno: closestJourno,
+    filterReportLines: filterReportLines,
+    fastReport: fastReport,
+    ffWrapped: function () { return ffWrapped; },
+    setFF: function (on) { v17.ffReport = !!on; },
+    pressIntroSeen: function () { return v17.pressIntroSeen; },
+    paintParty: paintParty17,
+    lastFastLines: function () { return lastFastLines.slice(); },
+    dayTick: DayTick
   };
 })();
 </script>
