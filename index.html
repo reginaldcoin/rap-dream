@@ -3020,8 +3020,6 @@ const $=e=>document.getElementById(e);let S=newGame(),prev=snapshot(S),bannerTim
 </script>
 <script>
 "use strict";
-/* Rap Dream patch: gear-driven studio ease, adaptive doll wardrobe, tournament rework.
-   Layered over the shipped engine: overrides resolve at call time, game state is shared. */
 function gearBarMs(base) {
   var g = 1;
   try { g = Math.max(1, Math.min(6, (typeof S !== "undefined" && S && S.tier) || 1)); } catch (e) { g = 1; }
@@ -3101,16 +3099,6 @@ startPunchIn = function () {
   });
   btn.focus();
 };
-/* RIDE THE BUZZ, MERGED: the drop, the release window, and the buzz are
-   one game now. One pulse rides the release week; ONE press stops the
-   needle. Where it lands is the day the record drops (the window's pay
-   table rides along), the green is the prime window — Friday into
-   Saturday — and stopping in the green catches the pulse, so the record
-   leaves with legs. Release quality comes off the landing alone: dead
-   center of the prime window is a 5, and no take-quality roll anywhere
-   caps what a clean press can land. The finish carries rdRide so the
-   evening layer applies the window adjustment and the buzz legs in the
-   same single press. */
 startDropTiming = function () {
   setMini("Ride the buzz", "release // one pulse, one press", "One pulse rides the release week and it does not come back. One press stops the needle: where it lands is the day the record drops, and the green is the prime window, Friday into Saturday. Stop it in the green and the buzz is caught — the record leaves with legs, and a clean catch lands good on timing alone.");
   var stage = $("minigame-stage");
@@ -4375,13 +4363,10 @@ syncDoll();
 </script>
 <script>
 "use strict";
-/* Rap Dream patch: diary feedback loop, three-slot Offbeat Wire, featured
-   names registry, and the meme-cannon fire flash. Layered over the shipped
-   engine: overrides resolve at call time, game state is shared. */
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206", "PAPERM8", "elite"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206", "PAPERM8", "elite", "Moe Money"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -4934,10 +4919,6 @@ render();
 </script>
 <script>
 "use strict";
-/* Rap Dream patch: story beats on the wire and tape, the Northwest Takeover
-   weekly interview with BA, record-mix tilt from the radio/club/street
-   sliders, network taste advice, market price-history charts, and the
-   features market. Layered over the shipped engine like every patch here. */
 (function () {
   if (typeof S === "undefined" || !S) { return; }
   function $(id) { return document.getElementById(id); }
@@ -6120,10 +6101,6 @@ render();
 </script>
 <script>
 "use strict";
-/* Rap Dream patch: the stacked update: record aiming bars + A&R read,
-   promo mediums, the song writing engine, the timeline, robot sports,
-   travel, and the four menu doors with habit hot keys. Layered over the
-   shipped engine like every patch here: shared state, call-time overrides. */
 (function () {
   if (typeof S === "undefined" || !S) { return; }
   function $(id) { return document.getElementById(id); }
@@ -8380,10 +8357,6 @@ render();
 </script>
 <script>
 "use strict";
-/* Rap Dream patch: the big systems: start flow (3 ways in), genre classes +
-   regions, the name engine (class/region pools, deed renames, nicknames),
-   your room, and the road-crowd show bonus. Layered like every patch here:
-   shared state, call-time overrides, nothing parked built. */
 (function () {
   if (typeof S === "undefined" || !S) { return; }
   function $(id) { return document.getElementById(id); }
@@ -8971,10 +8944,6 @@ render();
 </script>
 <script>
 "use strict";
-/* Rap Dream patch: the evening build. Label pop-out with debt payoff, the
-   live phone, the shop, the chapter wall, release quicktimes, feature
-   offers, legend class flavor, the EVERYTHING menu, and the final grid.
-   Layered like every patch here: shared state, call-time overrides. */
 (function () {
   if (typeof S === "undefined" || !S) { return; }
   function $(id) { return document.getElementById(id); }
@@ -10318,12 +10287,6 @@ render();
 </script>
 <script>
 "use strict";
-/* Rap Dream patch: the late stack (items 21 to 30). Scaling cost helpers,
-   the long gear and school ladders, the studio and office as places, the
-   2-round thesis defense, SKY TAX, the interview exit, the moved record
-   advice button, sign-true totals, and week-and-day dates. Layered like
-   every patch here: call-time overrides, per-feature guards so nothing
-   in this file can block the game. */
 (function () {
   if (typeof S === "undefined" || !S) { return; }
   function gel(id) { return document.getElementById(id); }
@@ -13741,10 +13704,6 @@ render();
 
 <script>
 "use strict";
-/* Rap Dream patch: the night stack — beef ladder thought lines, the work
-   thought line, the PARTY text world, and the featured-names surfacing
-   repair. Layered over the shipped engine like every patch here: shared
-   state, call-time overrides, display-only where the pattern calls for it. */
 (function () {
   if (typeof S === "undefined" || !S) { return; }
   function $(id) { return document.getElementById(id); }
