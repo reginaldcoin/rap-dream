@@ -4366,7 +4366,7 @@ syncDoll();
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206", "PAPERM8", "elite", "Moe Money"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206", "PAPERM8", "elite", "Moe Money", "Red Shirt Mike"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -13038,6 +13038,21 @@ render();
       });
     } catch (e) { return null; }
   }
+  /* V20 (T3): the save carries a checksum and a version ladder.
+     v1 saves (no checksum, no runSeed) still load and migrate in
+     memory; every new write is v2 with a checksum over the payload.
+     A v2 save whose checksum fails falls back to the backup copy,
+     then to no-save: a tampered save never becomes a run. */
+  var SAVE_V = 2;
+  function saveHash(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i += 1) { h = Math.imul(h ^ str.charCodeAt(i), 16777619); }
+    return ("0000000" + (h >>> 0).toString(16)).slice(-8);
+  }
+  function saveCanonical(p) {
+    return safeStringify({ v: p.v, state: p.state, extras: p.extras, rd: p.rd, runSeed: (typeof p.runSeed === "number" ? p.runSeed : null) });
+  }
+  function saveCheck(p) { var c = saveCanonical(p); return c ? saveHash(c) : null; }
   function readSave() {
     var ls = store(); if (!ls) { return null; }
     try {
@@ -13054,7 +13069,14 @@ render();
         if (bak) { try { d = JSON.parse(bak); } catch (e3) { d = null; } }
         if (!d) { return null; }
       }
-      if (!d || d.v !== 1 || !d.state || typeof d.state !== "object") { return null; }
+      if (!d || (d.v !== 1 && d.v !== 2) || !d.state || typeof d.state !== "object") { return null; }
+      if (d.v === 2 && d.check !== saveCheck(d)) {
+        try { if (window.RapDreamErr) { window.RapDreamErr.log("load", "save checksum mismatch: falling back to the backup copy"); } } catch (e5) {}
+        var bakD = null;
+        try { var bakRaw = ls.getItem(SAVE_KEY + ".bak"); if (bakRaw) { bakD = JSON.parse(bakRaw); } } catch (e6) {}
+        if (bakD && bakD.state && typeof bakD.state === "object" && (bakD.v === 1 || (bakD.v === 2 && bakD.check === saveCheck(bakD)))) { d = bakD; }
+        else { return null; }
+      }
       var st = d.state;
       if (typeof st.money !== "number" || typeof st.day !== "number" || typeof st.fans !== "number") { return null; }
       if (st.over) { return null; }
@@ -13082,7 +13104,7 @@ render();
       var raw = ls.getItem(SAVE_KEY);
       if (!raw) { return; }
       var d = JSON.parse(raw);
-      if (!d || d.v !== 1 || !d.state || typeof d.state !== "object") { return; }
+      if (!d || (d.v !== 1 && d.v !== 2) || !d.state || typeof d.state !== "object") { return; }
       if (!("extras" in d)) {
         d.extras = null;
         var txt = safeStringify(d);
@@ -13100,12 +13122,17 @@ render();
     try {
       var RD = window.RapDreamStart;
       var payload = {
-        v: 1,
+        v: SAVE_V,
         savedAt: Date.now(),
         state: S,
         extras: (window.RapDreamPersist && window.RapDreamPersist.collect) ? window.RapDreamPersist.collect() : null,
-        rd: { cls: RD.cls, region: RD.region, channel: RD.channel, words: RD.words, nickname: RD.nickname, deeds: RD.deeds, emphasis: (window.RapDreamEmphasis && window.RapDreamEmphasis.get) ? window.RapDreamEmphasis.get() : null }
+        rd: { cls: RD.cls, region: RD.region, channel: RD.channel, words: RD.words, nickname: RD.nickname, deeds: RD.deeds, emphasis: (window.RapDreamEmphasis && window.RapDreamEmphasis.get) ? window.RapDreamEmphasis.get() : null },
+        /* V20 (T2): the featured roll seed rides the payload, so a
+           reload resumes the same featured world instead of
+           re-dealing it at boot. */
+        runSeed: (typeof rdRunSeed === "number") ? rdRunSeed : null
       };
+      payload.check = saveCheck(payload);
       var txt = safeStringify(payload);
       if (txt) { ls.setItem(SAVE_KEY, txt); try { ls.setItem(SAVE_KEY + ".bak", txt); } catch (e2) {} }
     } catch (e) { try { if (window.RapDreamErr) { window.RapDreamErr.log("save", String((e && e.message) || e)); } } catch (e3) {} }
@@ -13188,6 +13215,9 @@ render();
     var d = readSave();
     if (!d) { paintContinue(); return; }
     try {
+      /* V20 (T2): the saved seed lands before the first render, so
+         every featured roll in the resumed run is the saved world's. */
+      if (typeof d.runSeed === "number") { try { rdRunSeed = d.runSeed; rdRollCache = {}; } catch (e) {} }
       S = d.state;
       applyRD(d);
       if (typeof render === "function") { render(); }
@@ -13201,6 +13231,14 @@ render();
          travel log back into them, so a reload loses nothing written. */
       if (d.extras && window.RapDreamPersist && window.RapDreamPersist.restore) {
         try { window.RapDreamPersist.restore(d.extras); } catch (e) {}
+      }
+      /* V20 (T2), second landing: the render hooks read a swapped
+         state object as a new run and re-roll the seed mid-resume.
+         Put the saved seed back after the last of those renders and
+         paint once more, so the resumed world is the saved world on
+         every surface, not just in the payload. */
+      if (typeof d.runSeed === "number") {
+        try { rdRunSeed = d.runSeed; rdRollCache = {}; if (typeof render === "function") { render(); } } catch (e) {}
       }
       if (typeof log === "function") { log("picked the run back up: day " + S.day + ", the desk exactly where you left it."); }
       dirty = true;
@@ -13237,6 +13275,7 @@ render();
   setInterval(paintContinue, 1500);
   paintContinue();
   window.RapDreamContinueSaved = continueRun;
+  window.RapDreamSaveInfo = { version: SAVE_V, verify: function (d) { return !!d && d.v === SAVE_V && d.check === saveCheck(d); }, checksum: function (d) { return saveCheck(d); } };
 
   /* the title screen heals itself. If a boot ever strands a player
      before the title is usable — no live run, no landed intro, no
@@ -13530,6 +13569,7 @@ render();
       state: S,
       extras: (window.RapDreamPersist && window.RapDreamPersist.collect) ? window.RapDreamPersist.collect() : null,
       rd: { cls: RD.cls || null, region: RD.region || null, channel: RD.channel || null, words: RD.words || null, nickname: RD.nickname || null, deeds: RD.deeds || {}, emphasis: (window.RapDreamEmphasis && window.RapDreamEmphasis.get) ? window.RapDreamEmphasis.get() : null },
+      runSeed: (typeof rdRunSeed === "number") ? rdRunSeed : null,
       ctr: ctr
     });
   }
@@ -13564,7 +13604,7 @@ render();
     try { ls = window.localStorage || null; } catch (e) {}
     if (!ls) { return "this browser is not storing saves, so there is nowhere to land the run."; }
     try {
-      ls.setItem(SS_SAVE_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), state: merged, extras: obj.extras || null, rd: obj.rd || {} }));
+      ls.setItem(SS_SAVE_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), state: merged, extras: obj.extras || null, rd: obj.rd || {}, runSeed: (typeof obj.runSeed === "number" ? obj.runSeed : null) }));
       if (obj.ctr) {
         var cur = {};
         try { cur = JSON.parse(ls.getItem(SS_CTR_KEY) || "{}") || {}; } catch (e) { cur = {}; }
@@ -17764,8 +17804,19 @@ render();
   function tape(text) { try { if (typeof log === "function") { log(text); } } catch (e) {} }
   function wire(text) { try { if (typeof queueWire === "function") { queueWire(S, text); } } catch (e) {} }
   function fmtN(n) { try { return formatNumber(n); } catch (e) { return String(n); } }
-  function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
-  function pickOf(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  /* V20 (T1): one seeded stream for battle resolution. battleRngState
+     is live only while a bar resolves (or a deal is offered), so the
+     rest of the game keeps its ordinary luck; inside a bar, every
+     roll comes from the fight's seed, which is what makes a stored
+     battle replayable. */
+  var battleRngState = null;
+  function frand() {
+    if (battleRngState === null) { return Math.random(); }
+    battleRngState = (Math.imul(battleRngState, 1664525) + 1013904223) >>> 0;
+    return battleRngState / 4294967296;
+  }
+  function rnd(a, b) { return a + Math.floor(frand() * (b - a + 1)); }
+  function pickOf(arr) { return arr[Math.floor(frand() * arr.length)]; }
 
   var BATTLE_ENERGY = 10;      /* the diss price: one live battle, stated up front */
   var TICK_MS = 3000;          /* one bar at 80 BPM: 4 beats x 0.75s */
@@ -17773,7 +17824,7 @@ render();
 
   /* ---------------- state (rides extras.v14) ---------------- */
   function v14Defaults() {
-    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0, hist: {}, lastChart: null, dex: {}, roster: [], leagueStep: 0, leagueDone: false };
+    return { xp: 0, wins: 0, losses: 0, walks: 0, fights: 0, pool: [], gone: [], lastSpawnDay: 0, spawnSeq: 0, hist: {}, lastChart: null, dex: {}, roster: [], leagueStep: 0, leagueDone: false, battles: [] };
   }
   var v14 = v14Defaults();
   var v14RestoredAt = 0;
@@ -17812,7 +17863,7 @@ render();
   ];
   function moveUnlocked(m) { return levelOf(v14.xp) >= m.level; }
   function moveById(id) { for (var i = 0; i < MOVES.length; i += 1) { if (MOVES[i].id === id) { return MOVES[i]; } } return null; }
-  function rollW(list) { return list[Math.floor(Math.random() * list.length)]; }
+  function rollW(list) { return list[Math.floor(frand() * list.length)]; }
 
   /* ---------------- V16: styles, stages, the record ----------------
      the four classes are the styles. the chart is a clean cycle:
@@ -17972,7 +18023,24 @@ render();
     + ".rd-v14-bub.you{outline:2px solid rgba(255,207,63,.9);outline-offset:-2px}"
     + ".rd-v14-legend{display:flex;flex-wrap:wrap;gap:6px 10px;margin:6px 0 2px}"
     + ".rd-v14-legend span{font:600 10.5px 'Space Grotesk',sans-serif;color:#9fc6de}"
-    + ".rd-v14-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}";
+    + ".rd-v14-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}"
+    /* V20 battle presentation: real motion, quiet chrome. Idle is a
+       slow transform bob (no flashing); lunge, hit and break are
+       one-shot transforms on the bar that caused them. */
+    + "@keyframes rd14idle{0%{transform:translateY(0)}100%{transform:translateY(-3px)}}"
+    + "@keyframes rd14lungeYou{0%{transform:translateX(0)}40%{transform:translateX(16px) scale(1.06)}100%{transform:translateX(0)}}"
+    + "@keyframes rd14lungeThem{0%{transform:translateX(0)}40%{transform:translateX(-16px) scale(1.06)}100%{transform:translateX(0)}}"
+    + "@keyframes rd14break{0%{transform:rotate(0) translateY(0)}100%{transform:rotate(-7deg) translateY(7px)}}"
+    + ".rd-v14-fig{animation:rd14idle 1.4s ease-in-out infinite alternate}"
+    + ".rd-v14-fighter.lunge.you .rd-v14-fig{animation:rd14lungeYou .45s ease}"
+    + ".rd-v14-fighter.lunge.them .rd-v14-fig{animation:rd14lungeThem .45s ease}"
+    + ".rd-v14-fighter.break .rd-v14-fig{animation:rd14break .5s ease forwards;filter:grayscale(.55) brightness(.75)}"
+    + ".rd-v14-fighter.break span{color:#ff9f1c}"
+    + "#rd-v14-fight .rd-close{width:auto;min-height:40px;padding:8px 14px}"
+    + ".rd-v14-close{display:block;margin:12px auto 2px;padding:10px 22px;background:#12202c;color:#ffcf3f;border:2px solid #3d6076;border-radius:11px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.07em;text-transform:uppercase;cursor:pointer}"
+    + ".rd-v14-log{max-height:96px}"
+    + ".rd-v14-loghead{display:block;margin-bottom:4px;color:#9fc6de;font-size:11px;letter-spacing:.08em;text-transform:uppercase}"
+    + "@media (prefers-reduced-motion:reduce){.rd-v14-fig{animation:none}.rd-v14-fighter.lunge .rd-v14-fig{animation:none}}";
   document.head.appendChild(css);
 
   /* ---------------- the spawn: names up the stairs ---------------- */
@@ -18261,7 +18329,7 @@ render();
   var fightOv = mkEl("section", "rd-overlay hidden", null);
   fightOv.id = "rd-v14-fight";
   fightOv.setAttribute("aria-label", "Live battle");
-  fightOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>live battle</h3><p>SkyTier Northwest presents the card. bar by bar, in real time: one bar is 3 seconds, the deck's own tempo. pick your move before the bar turns, or your mouth runs a plain bar on its own.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
+  fightOv.innerHTML = "<div class=\"rd-panel\"><div class=\"rd-panel-head\"><div><h3>live battle</h3><p>SkyTier Northwest. One bar is 3 seconds. Pick before it turns.</p></div><button class=\"rd-close\" type=\"button\">close</button></div><div class=\"rd-panel-body\"></div></div>";
   document.body.appendChild(fightOv);
   var fightBody = fightOv.querySelector(".rd-panel-body");
   fightOv.querySelector(".rd-close").addEventListener("click", function () {
@@ -18556,7 +18624,10 @@ render();
     if (!f || !offerOpen(f)) { return false; }
     f.offerUsed = true;
     var chance = 45 + (f.them <= f.themMax * 0.15 ? 20 : 0) + Math.min(20, Math.floor(((typeof S !== "undefined" && S && S.rep) || 0) / 5)) + (((typeof S !== "undefined" && S && S.money) || 0) >= 500 ? 10 : ((typeof S !== "undefined" && S && S.money) || 0) >= 100 ? 5 : 0);
-    if (Math.random() * 100 < chance) {
+    battleRngState = (typeof f.rngState === "number") ? f.rngState : (f.rngState = f.seed || 1);
+    var dealRoll = frand();
+    f.rngState = battleRngState; battleRngState = null;
+    if (dealRoll * 100 < chance) {
       endFight("signed");
       return true;
     }
@@ -18571,6 +18642,10 @@ render();
     if (!f || f.over) { return; }
     f.bar += 1;
     f.lastFx = { you: "", them: "" };
+    /* V20 (T1): this bar rolls on the fight's seed, and the move the
+       player committed (or the auto bar) joins the stored move list. */
+    battleRngState = (typeof f.rngState === "number") ? f.rngState : (f.rngState = f.seed || 1);
+    f.moves.push(f.scheme ? "scheme" : (f.committed && f.pick ? (f.pick === "__switch" ? "__switch:" + (f.switchName || "") : f.pick) : "bar"));
     var yb, schemeDone = false;
     if (f.committed && f.pick === "__item") {
       f.items = Math.max(0, f.items - 1);
@@ -18617,14 +18692,14 @@ render();
     f.them = Math.max(0, f.them - yb.dmg);
     f.chart.push({ n: f.bar, side: "you", nature: yb.nature, w: yb.w });
     fightLog(f, "bar " + f.bar + " · you: " + yb.line + " [" + yb.nature + " " + yb.w + "] (-" + yb.dmg + " their composure)" + (yb.note ? " — " + yb.note : ""));
-    if (yb.dmg > 0) { bsfx("hit"); f.lastFx.them = yb.w >= 3 ? "heavy" : "hit"; } else { bsfx("whiff"); }
+    if (yb.dmg > 0) { bsfx("hit"); f.lastFx.you = "lunge"; f.lastFx.them = (f.them <= f.themMax * 0.3) ? "break" : (yb.w >= 3 ? "heavy" : "hit"); } else { bsfx("whiff"); }
     if (schemeDone) { f.scheme = null; }
     f.committed = false;
     f.pick = null;
     f.switchName = null;
     f.barStart = Date.now();
     f.justTurned = true;
-    if (f.them <= 0) { endFight("win"); return; }
+    if (f.them <= 0) { f.rngState = battleRngState; battleRngState = null; endFight("win"); return; }
     var ob = oppBar(f);
     f.chart.push({ n: f.bar, side: "them", nature: ob.n, w: ob.w });
     if (ob.choke) {
@@ -18634,7 +18709,7 @@ render();
     } else {
       f.you = Math.max(0, f.you - ob.dmg);
       fightLog(f, "bar " + f.bar + " · " + f.name + ": " + ob.line + " [" + ob.n + " " + ob.w + "] (-" + ob.dmg + " your composure)", true);
-      if (ob.dmg > 0) { bsfx("hurt"); f.lastFx.you = ob.w >= 3 ? "heavy" : "hit"; }
+      if (ob.dmg > 0) { bsfx("hurt"); f.lastFx.them = "lunge"; f.lastFx.you = (f.you <= (f.youMax || 100) * 0.3) ? "break" : (ob.w >= 3 ? "heavy" : "hit"); }
     }
     if (f.scheme && ob.w >= 3) {
       f.scheme = null;
@@ -18642,6 +18717,7 @@ render();
     }
     f.rebuttalOpen = !ob.choke && ob.w >= 2 && ob.dmg > 0;
     f.barStart = Date.now();
+    f.rngState = battleRngState; battleRngState = null;
     if (f.you <= 0) { endFight("loss"); return; }
     paintFight();
   }
@@ -18662,6 +18738,16 @@ render();
     v14.hist[f.name] = (v14.hist[f.name] || 0) + 1;
     if (f.chart && f.chart.length) {
       v14.lastChart = { name: f.name, result: result, bars: f.bar, day: (S && S.day) || 1, chart: f.chart.map(function (e) { return { n: e.n, side: e.side, nature: e.nature, w: e.w }; }) };
+    }
+    /* V20 (T1): every finished battle leaves a replayable record:
+       its seed and its move list, kept with the result and the chart
+       it produced. RapDreamV20.replay proves a record by re-running
+       it through this same engine. (A mid-battle deal offer is not a
+       move and never opens in a league match, so league records are
+       exact.) */
+    if (typeof f.seed === "number") {
+      v14.battles.push({ seed: f.seed, moves: f.moves.slice(), name: f.name, power: f.power, shape: f.shape, league: !!f.league, rung: f.rung, result: result, bars: f.bar, day: (S && S.day) || 1, xpAtStart: f.xpAtStart, histAtStart: f.histAtStart, chart: f.chart.map(function (e) { return { n: e.n, side: e.side, nature: e.nature, w: e.w }; }) });
+      if (v14.battles.length > 20) { v14.battles.splice(0, v14.battles.length - 20); }
     }
     var before = levelOf(v14.xp);
     v14.xp += xp;
@@ -18716,20 +18802,22 @@ render();
     var yStats = f.member ? { pen: Math.round(24 + f.member.power * 7), poise: Math.round(26 + f.member.power * 6), flow: Math.round(34 + f.member.power * 5), hook: memberHook(f.member) } : statsOfPlayer();
     var oStats = statsOfOpp(f.power);
     fightBody.appendChild(mkEl("p", "rd-v14-big", (f.member ? f.member.name + " (tagged in) vs " : "you vs ") + f.name + " · power " + f.power + " · fights like " + f.shape + (f.league ? " · league rung " + (f.rung + 1) + " of " + LEAGUE_CARD.length : "")));
-    fightBody.appendChild(mkEl("p", "rd-v14-note", "your corner: " + aSt + " style · " + (f.member ? STAGE_NAMES[f.member.stage || stageOfPower(f.member.power)] : STAGE_NAMES[stageOfPlayer()]) + " · pen " + yStats.pen + " · poise " + yStats.poise + " · flow " + yStats.flow + " · hook power " + yStats.hook));
-    fightBody.appendChild(mkEl("p", "rd-v14-note", "their corner: " + f.oppStyle + " style · " + STAGE_NAMES[stageOfPower(f.power)] + " · pen " + oStats.pen + " · poise " + oStats.poise + " · flow " + oStats.flow + " · hook power " + oStats.hook + (STYLE_BEATS[aSt] === f.oppStyle ? " · your style cuts theirs" : STYLE_BEATS[f.oppStyle] === aSt ? " · their style cuts yours" : "")));
+    fightBody.appendChild(mkEl("p", "rd-v14-note", "you · " + aSt + " · pen " + yStats.pen + " · poise " + yStats.poise + " · flow " + yStats.flow + " · hook " + yStats.hook));
+    fightBody.appendChild(mkEl("p", "rd-v14-note", f.name + " · " + f.oppStyle + " · pen " + oStats.pen + " · poise " + oStats.poise + " · flow " + oStats.flow + " · hook " + oStats.hook + (STYLE_BEATS[aSt] === f.oppStyle ? " · your style cuts theirs" : STYLE_BEATS[f.oppStyle] === aSt ? " · their style cuts yours" : "")));
     var viz = mkEl("div", "rd-v14-viz", null);
     viz.id = "rd-v14-viz";
     var face = mkEl("div", "rd-v14-face", null);
-    face.appendChild(fighterFig("you", "you", f.lastFx ? f.lastFx.you : ""));
+    var fxYou = f.lastFx ? f.lastFx.you : "", fxThem = f.lastFx ? f.lastFx.them : "";
+    if (f.over) { if (f.result === "win" || f.result === "signed") { fxThem = "break"; } else if (f.result === "loss") { fxYou = "break"; } }
+    face.appendChild(fighterFig("you", "you", fxYou));
     face.appendChild(mkEl("div", "rd-v14-vs", "VS"));
-    face.appendChild(fighterFig("them", f.name, f.lastFx ? f.lastFx.them : ""));
+    face.appendChild(fighterFig("them", f.name, fxThem));
     viz.appendChild(face);
     viz.appendChild(mkEl("div", "rd-v14-mlabel", (f.member ? f.member.name + " composure" : "your composure") + " · " + Math.max(0, Math.round(f.you)) + " of " + Math.round(f.youMax || 100)));
     var m1 = mkEl("div", "rd-v14-meter", null); var i1 = mkEl("i", null, null); i1.style.width = Math.max(0, f.you) + "%"; m1.appendChild(i1); viz.appendChild(m1);
     viz.appendChild(mkEl("div", "rd-v14-mlabel", f.name + " composure · " + Math.max(0, Math.round(f.them)) + " of " + Math.round(f.themMax)));
     var m2 = mkEl("div", "rd-v14-meter them", null); var i2 = mkEl("i", null, null); i2.style.width = Math.max(0, (f.them / f.themMax) * 100) + "%"; m2.appendChild(i2); viz.appendChild(m2);
-    viz.appendChild(chartStrip(f.chart));
+    if (!f.over) { viz.appendChild(chartStrip(f.chart)); }
     fightBody.appendChild(viz);
     var beat = mkEl("div", "rd-v14-beat" + (f.justTurned ? " hit" : ""), null);
     beat.appendChild(mkEl("i", null, null));
@@ -18830,8 +18918,9 @@ render();
       fightBody.appendChild(surrender);
     }
     var logBox = mkEl("div", "rd-v14-log", null);
-    logBox.appendChild(mkEl("strong", null, "the story so far"));
-    f.log.slice(-42).forEach(function (line) {
+    var recentLog = f.log.slice(-6);
+    logBox.appendChild(mkEl("span", "rd-v14-loghead", "the story so far · last " + recentLog.length + " of " + f.log.length));
+    recentLog.forEach(function (line) {
       logBox.appendChild(mkEl("span", line.dim ? "dim" : null, line.text));
     });
     fightBody.appendChild(logBox);
@@ -18847,6 +18936,11 @@ render();
     S.energy = Math.max(0, (S.energy || 0) - BATTLE_ENERGY);
     baseOv.classList.add("hidden");
     var youMax0 = 100 + (stageOfPlayer() - 1) * 20;
+    /* V20 (T1): a league fight's seed is derived from the run seed,
+       the rung, the name, the day and the career's fight count, so
+       the card is dealt by the world the player is actually in; any
+       fight may also be handed a seed (a replay does exactly that). */
+    var battleSeed = (typeof opp.seed === "number") ? (opp.seed >>> 0) : (opp.league ? ((typeof rdHash === "function" ? rdHash((typeof rdRunSeed !== "undefined" ? rdRunSeed : 0) + "|league|" + (typeof opp.rung === "number" ? opp.rung : -1) + "|" + opp.name + "|" + ((S && S.day) || 1) + "|" + v14.fights) : Math.floor(Math.random() * 1e9)) >>> 0) : Math.floor(Math.random() * 1e9));
     fight = {
       name: opp.name, power: opp.power, rival: !!opp.rival,
       shape: opp.shape || shapeFor(opp.power, opp.name, !!opp.rival),
@@ -18858,7 +18952,8 @@ render();
       you: youMax0, them: 80 + opp.power * 8, themMax: 80 + opp.power * 8,
       bar: 0, pick: null, committed: false, scheme: null, rebuttalOpen: false,
       chart: [], lastFx: { you: "", them: "" }, barStart: Date.now(), justTurned: false,
-      over: false, result: null, log: [], timer: 0, xpGain: 0, levelUp: 0
+      over: false, result: null, log: [], timer: 0, xpGain: 0, levelUp: 0,
+      seed: battleSeed, rngState: battleSeed, moves: [], xpAtStart: v14.xp, histAtStart: v14.hist[opp.name] || 0
     };
     if (fight.named && !v14.dex[fight.name]) { v14.dex[fight.name] = { seen: true, beaten: false }; }
     else if (fight.named) { v14.dex[fight.name].seen = true; }
@@ -18959,7 +19054,7 @@ render();
       base.v14 = {
         xp: v14.xp, wins: v14.wins, losses: v14.losses, walks: v14.walks, fights: v14.fights,
         pool: v14.pool, gone: v14.gone.slice(-40), lastSpawnDay: v14.lastSpawnDay, spawnSeq: v14.spawnSeq, hist: v14.hist, lastChart: v14.lastChart,
-        dex: v14.dex, roster: v14.roster, leagueStep: v14.leagueStep, leagueDone: v14.leagueDone
+        dex: v14.dex, roster: v14.roster, leagueStep: v14.leagueStep, leagueDone: v14.leagueDone, battles: v14.battles
       };
       return base;
     };
@@ -18993,9 +19088,10 @@ render();
           }
           if (typeof v.leagueStep === "number") { d.leagueStep = Math.max(0, Math.min(LEAGUE_CARD.length - 1, Math.floor(v.leagueStep))); }
           if (typeof v.leagueDone === "boolean") { d.leagueDone = v.leagueDone; }
+          if (Array.isArray(v.battles)) { d.battles = v.battles.filter(function (b) { return b && typeof b.seed === "number" && Array.isArray(b.moves) && typeof b.name === "string"; }).slice(-20); }
           v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
           v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist; v14.lastChart = d.lastChart;
-          v14.dex = d.dex; v14.roster = d.roster; v14.leagueStep = d.leagueStep; v14.leagueDone = d.leagueDone;
+          v14.dex = d.dex; v14.roster = d.roster; v14.leagueStep = d.leagueStep; v14.leagueDone = d.leagueDone; v14.battles = d.battles;
           v14RestoredAt = Date.now();
         }
       } catch (e) { try { if (window.RapDreamErr) { window.RapDreamErr.log("battle-restore", String((e && e.message) || e)); } } catch (e2) {} }
@@ -19009,7 +19105,7 @@ render();
     var d = v14Defaults();
     v14.xp = d.xp; v14.wins = d.wins; v14.losses = d.losses; v14.walks = d.walks; v14.fights = d.fights;
     v14.pool = d.pool; v14.gone = d.gone; v14.lastSpawnDay = d.lastSpawnDay; v14.spawnSeq = d.spawnSeq; v14.hist = d.hist; v14.lastChart = d.lastChart;
-    v14.dex = d.dex; v14.roster = d.roster; v14.leagueStep = d.leagueStep; v14.leagueDone = d.leagueDone;
+    v14.dex = d.dex; v14.roster = d.roster; v14.leagueStep = d.leagueStep; v14.leagueDone = d.leagueDone; v14.battles = d.battles;
     if (fight && fight.timer) { clearInterval(fight.timer); }
     fight = null;
   }
@@ -19074,7 +19170,51 @@ render();
     useItem: function () { pickSpecial("item", null, null); return !!fight && fight.committed && fight.pick === "__item"; },
     switchTo: function (name) { pickSpecial("switch", name, null); return !!fight && fight.committed && fight.pick === "__switch"; },
     dexCounts: dexCounts,
-    league: function () { return { step: v14.leagueStep, done: v14.leagueDone, card: LEAGUE_CARD.map(function (r) { return r.name; }) }; }
+    league: function () { return { step: v14.leagueStep, done: v14.leagueDone, card: LEAGUE_CARD.map(function (r) { return r.name; }) }; },
+    battles: function () { return v14.battles; }
+  };
+  /* V20 (T1): the replay proof. Re-running a stored record through
+     this same engine, with the state the battle started from, must
+     reproduce its chart and its result exactly: claim nothing you
+     cannot replay. The replay is pure: the career state it touches
+     is snapshotted first and restored after, win or lose. */
+  window.RapDreamV20 = {
+    battles: function () { return v14.battles.slice(); },
+    replay: function (rec) {
+      if (!rec || typeof rec.seed !== "number" || !Array.isArray(rec.moves) || typeof rec.name !== "string") { return { ok: false, why: "not a battle record" }; }
+      var snap = null;
+      try {
+        snap = { xp: v14.xp, wins: v14.wins, losses: v14.losses, walks: v14.walks, fights: v14.fights, hist: JSON.parse(JSON.stringify(v14.hist)), dex: JSON.parse(JSON.stringify(v14.dex)), leagueStep: v14.leagueStep, leagueDone: v14.leagueDone, pool: v14.pool.slice(), gone: v14.gone.slice(), roster: JSON.parse(JSON.stringify(v14.roster)), lastChart: v14.lastChart, battlesLen: v14.battles.length, energy: (typeof S !== "undefined" && S) ? S.energy : 0, fans: (typeof S !== "undefined" && S) ? S.fans : 0 };
+      } catch (e) { return { ok: false, why: "snapshot failed" }; }
+      var out = null;
+      try {
+        if (typeof rec.xpAtStart === "number") { v14.xp = rec.xpAtStart; }
+        if (typeof rec.histAtStart === "number") { v14.hist[rec.name] = rec.histAtStart; }
+        if (typeof S !== "undefined" && S) { S.energy = 100; }
+        startFight({ name: rec.name, power: rec.power, shape: rec.shape, league: !!rec.league, rung: (typeof rec.rung === "number" ? rec.rung : -1), rival: false, pool: false, seed: rec.seed });
+        if (!fight) { throw new Error("the replay fight did not start"); }
+        if (fight.timer) { clearInterval(fight.timer); fight.timer = 0; }
+        for (var i = 0; i < rec.moves.length && fight && !fight.over; i += 1) {
+          var mv = rec.moves[i];
+          if (!fight.scheme) {
+            if (mv === "__item") { pickSpecial("item", null, null); }
+            else if (mv.indexOf("__switch:") === 0) { pickSpecial("switch", mv.slice(9), null); }
+            else if (mv === "scheme") { var smv = moveById("scheme"); if (smv) { pickMove(smv, null); } }
+            else if (mv !== "bar") { var mmv = moveById(mv); if (mmv) { pickMove(mmv, null); } }
+          }
+          resolveBar();
+        }
+        out = { ok: !!(fight && fight.over), result: fight ? fight.result : null, bars: fight ? fight.bar : 0, chart: fight ? fight.chart.map(function (e) { return { n: e.n, side: e.side, nature: e.nature, w: e.w }; }) : [] };
+      } catch (e) { out = { ok: false, why: String((e && e.message) || e) }; }
+      try {
+        if (fight && fight.timer) { clearInterval(fight.timer); }
+        fight = null;
+        fightOv.classList.add("hidden");
+        v14.xp = snap.xp; v14.wins = snap.wins; v14.losses = snap.losses; v14.walks = snap.walks; v14.fights = snap.fights; v14.hist = snap.hist; v14.dex = snap.dex; v14.leagueStep = snap.leagueStep; v14.leagueDone = snap.leagueDone; v14.pool = snap.pool; v14.gone = snap.gone; v14.roster = snap.roster; v14.lastChart = snap.lastChart; v14.battles.length = snap.battlesLen;
+        if (typeof S !== "undefined" && S) { S.energy = snap.energy; S.fans = snap.fans; }
+      } catch (e) {}
+      return out;
+    }
   };
   window.RapDreamV16Battle = {
     styles: BATTLE_STYLES.slice(),
