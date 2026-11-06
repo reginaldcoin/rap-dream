@@ -4366,7 +4366,7 @@ syncDoll();
 
 /* Featured names: a 1% rarity substitution wherever rapper names surface —
    rival radar, beef room, cypher callouts, wire headlines, signing offers. */
-var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206", "PAPERM8", "elite", "Moe Money", "Red Shirt Mike"];
+var RD_FEATURED_NAMES = ["Flip Traxx", "Human the battler", "Big Geni3", "Steezie Steelo", "Trippy Villain Sensei", "Yung Blucka", "SIRR RICHH", "sudo-intellect", "THC", "Lil Francisco", "Derrty Shirt", "Dugg", "AGAME365", "6 Wheelz", "SMD", "Authentikc", "Certs", "Dego the battler", "AYE Q", "Chris Swagg", "BLAKOUT", "King 44", "jukebox", "HyrThinking", "Heretic the Heathen", "Geo Definite", "Caesar III", "Spazzmatic", "RedRome206", "PAPERM8", "elite", "Moe Money", "Red Shirt Mike", "Bill Blaze"];
 var rdRollCache = {};
 var rdRunSeed = Math.floor(Math.random() * 1e9);
 function rdHash(str) {
@@ -14749,6 +14749,7 @@ render();
     paintParty();
     partyOv.classList.remove("hidden");
   }
+  window.RapDreamParty = openParty;
   partyOv.addEventListener("click", function (e) { if (e.target === partyOv) { partyOv.classList.add("hidden"); } });
   document.addEventListener("keydown", function (e) {
     if (partyOv.classList.contains("hidden")) { return; }
@@ -19299,7 +19300,27 @@ render();
     if (d < 50) { return "warm"; }
     return "in your corner";
   }
-  function roomOf(j, day) { return hashName((day || 1) + "|" + j.name) % 10; }
+  /* V21 hotfix (party floor): the floor has 9 cells and the game room is
+     stocked separately. The day's shuffled order deals one journalist to
+     each floor cell first (a guaranteed minimum of one per cell), two to
+     the game room, and the rest across the floor by hash. Nobody is
+     parked off the floor by a % 10 hash anymore. */
+  var roomMapDay = 0, roomMap = null;
+  function buildRoomMap(day) {
+    var order = JOURNOS.slice().sort(function (a, b) { return hashName(day + "|sort|" + a.name) - hashName(day + "|sort|" + b.name); });
+    var map = {};
+    for (var i = 0; i < order.length; i += 1) {
+      if (i < 9) { map[order[i].name] = i; }
+      else if (i < 11) { map[order[i].name] = 9; }
+      else { map[order[i].name] = hashName(day + "|extra|" + order[i].name) % 9; }
+    }
+    return map;
+  }
+  function roomOf(j, day) {
+    var d = day || 1;
+    if (roomMapDay !== d || !roomMap) { roomMap = buildRoomMap(d); roomMapDay = d; }
+    return (j.name in roomMap) ? roomMap[j.name] : hashName(d + "|" + j.name) % 9;
+  }
   function inRoom(roomIdx) { var day = (typeof S !== "undefined" && S && S.day) || 1; return JOURNOS.filter(function (j) { return roomOf(j, day) === roomIdx; }); }
   function computeIsland() { var n = 0; JOURNOS.forEach(function (j) { if (dispOf(j) <= -40) { n += 1; } }); return n >= 3; }
   function refreshIsland() {
@@ -19487,7 +19508,12 @@ render();
     var existing = body.querySelector(".rd-v16-media");
     if (existing && existing.getAttribute("data-v16-room") === String(idx) && !force) { return; }
     if (existing) { existing.parentNode.removeChild(existing); }
-    body.appendChild(mediaBox(idx));
+    /* V21 hotfix: the press box sits directly under the room's own
+       description, above the map: the room reads first, the press is
+       right under it, and none of it waits below the fold. */
+    var mapEl = body.querySelector(".rdn-party-map");
+    if (mapEl) { body.insertBefore(mediaBox(idx), mapEl); }
+    else { body.insertBefore(mediaBox(idx), body.firstChild); }
   }
   var partyEl = gel("rdn-party");
   if (partyEl && window.MutationObserver) {
@@ -19988,6 +20014,460 @@ render();
     paintParty: paintParty17,
     lastFastLines: function () { return lastFastLines.slice(); },
     dayTick: DayTick
+  };
+})();
+</script>
+<script>
+"use strict";
+/* ==================================================================
+   V21: You always know where you are.
+   The interface build: a persistent visible navigation bar, a dash
+   with a hierarchy, room exit discipline, and one explicit type
+   scale for the shell. Everything here is shell-level: no room
+   content changes, no relocated controls (the bar and the grouping
+   are additive), no translucency, no gesture-only navigation, no
+   stacked sheets of its own, no confirmation dialogs.
+   State: navigation memory only (dash scroll, panel scrolls, the
+   venue entry stack). Game state keeps its existing homes.
+   ================================================================== */
+(function () {
+  function gel(id) { return document.getElementById(id); }
+  function mkEl(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) { n.className = cls; }
+    if (text != null) { n.textContent = text; }
+    return n;
+  }
+  function vis(el) { return !!(el && !el.classList.contains("hidden")); }
+
+  /* ---------------- the type scale, explicit ----------------
+     One scale for the shell: caption / body / headline / display,
+     one family, a legibility floor at the caption size. Rooms stop
+     inventing sizes: anything shell-level reads off these tokens. */
+  var TYPE_SCALE = {
+    caption: 12, body: 14, headline: 20, display: 30,
+    family: "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    floor: 12
+  };
+
+  var css = document.createElement("style");
+  css.id = "rd-v21-css";
+  css.textContent = ""
+    + ":root{--rd-type-caption:" + TYPE_SCALE.caption + "px;--rd-type-body:" + TYPE_SCALE.body + "px;--rd-type-headline:" + TYPE_SCALE.headline + "px;--rd-type-display:" + TYPE_SCALE.display + "px;--rd-type-family:" + TYPE_SCALE.family + "}"
+    /* the shell reads the scale */
+    + ".section-title h2{font-size:var(--rd-type-headline)}"
+    + ".rd-panel h2{font-size:var(--rd-type-display);line-height:1.05}"
+    + ".rd-panel h3{font-size:var(--rd-type-headline);line-height:1.15}"
+    + ".rd-opt small{font-size:var(--rd-type-caption)}"
+    /* the press box moved up its panel; its margin follows it up */
+    + ".rd-v16-media{margin:0 0 12px}"
+    /* V21 origination (from this run's own screenshots): a tall room
+       panel runs under the bar, and its last buttons sit in the
+       strip the bar covers. Panels gain bar clearance at the bottom
+       so the end of every room can scroll clear of the bar. */
+    + "html.rd-v21-on .rd-panel{padding-bottom:calc(clamp(22px,5vw,36px) + 64px)}"
+    /* room under the bar: the dash never hides behind it */
+    + "html.rd-v21-on body{padding-bottom:calc(68px + env(safe-area-inset-bottom))}"
+    /* ---------------- the persistent bar ---------------- */
+    + "#rd-v21-bar{position:fixed;left:0;right:0;bottom:0;z-index:800;display:none;background:var(--surface);border-top:2px solid var(--line);padding-bottom:env(safe-area-inset-bottom);font-family:var(--rd-type-family)}"
+    + "html.rd-v21-on #rd-v21-bar{display:flex}"
+    + "#rd-v21-bar button{flex:1 1 0;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;background:transparent;border:0;border-right:1px solid var(--line-soft);color:var(--muted);cursor:pointer;touch-action:manipulation}"
+    + "#rd-v21-bar button:last-child{border-right:0}"
+    + "#rd-v21-bar .rd-v21-ico{font-size:16px;line-height:1}"
+    + "#rd-v21-bar .rd-v21-lab{font-size:var(--rd-type-caption);line-height:1.15;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}"
+    + "#rd-v21-bar button[aria-current='true']{background:var(--signal);color:var(--signal-ink)}"
+    + "#rd-v21-bar button:focus-visible{outline:2px solid var(--signal);outline-offset:-2px}"
+    /* ---------------- the dash hierarchy ---------------- */
+    + "#actions.rd-v21-grouped{display:block;border:0}"
+    + ".rd-v21-group{margin:0 0 16px}"
+    + ".rd-v21-group-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 8px;font-family:var(--rd-type-family)}"
+    + ".rd-v21-group-head b{font-size:var(--rd-type-body);text-transform:uppercase;letter-spacing:.04em}"
+    + ".rd-v21-group-head span{font-size:var(--rd-type-caption);color:var(--muted);text-transform:uppercase}"
+    + ".rd-v21-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}"
+    + ".rd-v21-grid button{min-width:0;text-align:left;cursor:pointer;color:var(--ink);background:var(--surface);border:1px solid var(--line);touch-action:manipulation}"
+    + ".rd-v21-grid-primary button{height:auto!important;min-height:112px!important;padding:10px}"
+    + "#actions .rd-v21-grid-primary button b{font-size:var(--rd-type-body)}"
+    + ".rd-v21-grid-primary{border-top:3px solid var(--signal);padding-top:6px}"
+    + ".rd-v21-grid-more button{height:auto!important;min-height:64px!important;padding:8px}"
+    + "#actions .rd-v21-grid-more button b{font-size:13px}"
+    + "#actions .rd-v21-grid button small{font-size:var(--rd-type-caption);line-height:1.35}"
+    + "#actions .rd-v21-grid-primary button small{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}"
+    + "#actions .rd-v21-grid-more button small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}"
+    + "@media (max-width:620px){.rd-v21-grid-primary button{min-height:104px!important}.rd-v21-grid-more button{min-height:60px!important}}";
+  document.head.appendChild(css);
+
+  /* ---------------- dash hierarchy ----------------
+     The daily loop leads: the numbered core of the six-move economy
+     (work, cypher, record, release, promo, sleep). Everything else
+     keeps its button, its key, and its handler, demoted to a second
+     group under its own heading. DOM order inside each group is the
+     order the buttons already had; nothing is renamed or rewired. */
+  var PRIMARY = ["job", "cypher", "record", "release", "promo", "sleep"];
+  var MORE_ORDER = ["merch", "stunt", "market", "beef", "battle", "tournament", "writing", "catalog", "features", "computer", "study", "gear", "advance", "show", "legend", "realestate", "sign", "notifications"];
+  var grouping = false;
+  function sortGrid(grid, order) {
+    var btns = [];
+    for (var i = 0; i < grid.childNodes.length; i += 1) {
+      var n = grid.childNodes[i];
+      if (n.nodeType === 1 && n.tagName === "BUTTON") { btns.push(n); }
+    }
+    var rank = function (b) {
+      var idx = order.indexOf(b.getAttribute("data-act") || "");
+      return idx < 0 ? 999 : idx;
+    };
+    var sorted = btns.slice().sort(function (a, b) { return rank(a) - rank(b); });
+    var changed = false;
+    for (var j = 0; j < btns.length; j += 1) { if (btns[j] !== sorted[j]) { changed = true; break; } }
+    if (changed) { sorted.forEach(function (b) { grid.appendChild(b); }); }
+  }
+  function groupActions() {
+    var actions = gel("actions");
+    if (!actions || grouping) { return; }
+    var primGrid = gel("rd-v21-primary-grid");
+    if (!primGrid) {
+      var prim = mkEl("div", "rd-v21-group", null);
+      prim.id = "rd-v21-primary";
+      var ph = mkEl("div", "rd-v21-group-head", null);
+      ph.appendChild(mkEl("b", null, "every day"));
+      ph.appendChild(mkEl("span", null, "the daily loop"));
+      prim.appendChild(ph);
+      primGrid = mkEl("div", "rd-v21-grid rd-v21-grid-primary", null);
+      primGrid.id = "rd-v21-primary-grid";
+      prim.appendChild(primGrid);
+      var more = mkEl("div", "rd-v21-group", null);
+      more.id = "rd-v21-more";
+      var mh = mkEl("div", "rd-v21-group-head", null);
+      mh.appendChild(mkEl("b", null, "the rest of the board"));
+      mh.appendChild(mkEl("span", null, "when the day calls for it"));
+      more.appendChild(mh);
+      var moreGrid = mkEl("div", "rd-v21-grid rd-v21-grid-more", null);
+      moreGrid.id = "rd-v21-more-grid";
+      more.appendChild(moreGrid);
+      actions.appendChild(prim);
+      actions.appendChild(more);
+      actions.classList.add("rd-v21-grouped");
+    }
+    var moreGrid2 = gel("rd-v21-more-grid");
+    grouping = true;
+    try {
+      var strays = [];
+      for (var i = 0; i < actions.childNodes.length; i += 1) {
+        var n = actions.childNodes[i];
+        if (n.nodeType === 1 && n.tagName === "BUTTON") { strays.push(n); }
+      }
+      strays.forEach(function (b) {
+        var act = b.getAttribute("data-act") || "";
+        var target = PRIMARY.indexOf(act) >= 0 ? primGrid : moreGrid2;
+        if (b.parentNode !== target) { target.appendChild(b); }
+      });
+      /* Other render passes re-append deck buttons in their own
+         order; the groups keep one canonical order regardless. */
+      sortGrid(primGrid, PRIMARY);
+      sortGrid(moreGrid2, MORE_ORDER);
+    } catch (e) {}
+    grouping = false;
+  }
+  groupActions();
+  var actionsEl = gel("actions");
+  if (actionsEl && window.MutationObserver) {
+    var groupQueued = false;
+    new MutationObserver(function () {
+      if (groupQueued || grouping) { return; }
+      groupQueued = true;
+      setTimeout(function () { groupQueued = false; try { groupActions(); } catch (e) {} }, 60);
+    }).observe(actionsEl, { childList: true });
+  }
+
+  /* ---------------- the venue stack + exit discipline ----------------
+     The venue is a stack of places: dash at the bottom, then rooms.
+     V21 watches the stack at the DOM level and keeps one promise:
+     when a room closes and nothing stands above the dash, the place
+     it was entered from reopens (the party reopens when you leave
+     the basement; the basement reopens when a fight ends; your room
+     reopens when you come up from the basement). Reopening rides
+     each room's own door, so the room repaints the way it always
+     does when entered. */
+  var VENUE_IDS = ["rdn-party", "rd-v14-base", "rd-v14-fight", "rd-v16-gameroom", "rd-v17-penthouse", "rd-v17-team", "rd-room", "rd-dj"];
+  var openStack = [];
+  var entryOf = {};
+  var closeMemory = {};
+  var pendingClose = null;
+  var navigating = false;
+
+  function venueEl(id) { return gel(id); }
+  function topVenue() {
+    for (var i = openStack.length - 1; i >= 0; i -= 1) {
+      if (vis(openStack[i])) { return openStack[i]; }
+    }
+    return null;
+  }
+  function reopen(el) {
+    if (!el) { return; }
+    try {
+      if (el.id === "rd-v14-base" && typeof window.RapDreamBasement === "function") { window.RapDreamBasement(); return; }
+      if (el.id === "rdn-party") {
+        if (typeof window.RapDreamParty === "function") { window.RapDreamParty(); return; }
+        var stunt = document.querySelector("[data-act='stunt']");
+        if (stunt) { stunt.click(); return; }
+      }
+      if (el.id === "rd-room") {
+        var rb = gel("rd-room-btn");
+        if (rb) { rb.click(); return; }
+      }
+      if (el.id === "rd-dj" && typeof window.RapDreamDJ === "function") { window.RapDreamDJ(); return; }
+      el.classList.remove("hidden");
+    } catch (e) {}
+  }
+  /* Two passes, closes before opens: one gesture often closes a room
+     and opens the next in the same handler (your room hides, then the
+     basement opens), and the entry record has to see the close first.
+     A close that no open consumes is an exit: if the place it was
+     entered from is hidden, that place reopens. An open that lands on
+     the close's own entry target is a return (the fight's back
+     button), and it keeps the entry it had before. */
+  function syncStack() {
+    var closedNow = [];
+    VENUE_IDS.forEach(function (id) {
+      var el = venueEl(id);
+      if (!el) { return; }
+      var idx = openStack.indexOf(el);
+      if (!vis(el) && idx >= 0) {
+        openStack.splice(idx, 1);
+        closeMemory[id] = entryOf[id] || null;
+        pendingClose = { el: el, id: id, entryId: entryOf[id] || null, at: Date.now() };
+        entryOf[id] = null;
+        closedNow.push(pendingClose);
+      }
+    });
+    var consumed = false;
+    VENUE_IDS.forEach(function (id) {
+      var el = venueEl(id);
+      if (!el) { return; }
+      if (vis(el) && openStack.indexOf(el) < 0) {
+        var entry = null;
+        if (navigating) {
+          var t = topVenue();
+          entry = t ? t.id : null;
+        } else if (pendingClose && (Date.now() - pendingClose.at) < 1200 && pendingClose.el !== el) {
+          if (pendingClose.entryId === id) { entry = closeMemory[id] || null; }
+          else { entry = pendingClose.id; }
+          consumed = true;
+        } else {
+          var t2 = topVenue();
+          entry = t2 ? t2.id : null;
+        }
+        entryOf[id] = entry;
+        openStack.push(el);
+      }
+    });
+    if (consumed) { pendingClose = null; }
+    if (!navigating && closedNow.length && !consumed) {
+      var last = closedNow[closedNow.length - 1];
+      if (last.entryId) {
+        var target = venueEl(last.entryId);
+        if (target && target !== last.el && !vis(target)) {
+          navigating = true;
+          reopen(target);
+          setTimeout(function () { navigating = false; try { syncStack(); } catch (e) {} }, 160);
+        }
+      }
+    }
+    updateBar();
+  }
+  if (window.MutationObserver) {
+    var syncQueued = false;
+    new MutationObserver(function () {
+      if (syncQueued) { return; }
+      syncQueued = true;
+      setTimeout(function () { syncQueued = false; try { syncStack(); } catch (e) {} }, 40);
+    }).observe(document.body, { attributes: true, attributeFilter: ["class"], subtree: true });
+  }
+
+  /* ---------------- per-tab state ----------------
+     Switching destinations never reloads and never wipes: the dash
+     keeps its scroll, each room keeps its panel scroll, and every
+     room's own state rides the homes it already lives in. */
+  var dashScroll = 0;
+  var panelScroll = {};
+  function panelOf(id) {
+    var el = venueEl(id);
+    return el ? el.querySelector(".rd-panel") : null;
+  }
+  function saveScrolls() {
+    if (!topVenue()) { dashScroll = window.scrollY || 0; }
+    VENUE_IDS.forEach(function (id) {
+      var p = panelOf(id);
+      if (p && vis(venueEl(id))) { panelScroll[id] = p.scrollTop; }
+    });
+  }
+  function restoreScroll(id) {
+    setTimeout(function () {
+      var p = panelOf(id);
+      if (p && typeof panelScroll[id] === "number") { p.scrollTop = panelScroll[id]; }
+    }, 380);
+  }
+
+  /* ---------------- the bar ---------------- */
+  var DEST_FOR_VENUE = {
+    "rdn-party": "party", "rd-v16-gameroom": "party", "rd-v17-penthouse": "party",
+    "rd-v14-base": "basement", "rd-v14-fight": "basement", "rd-v17-team": "basement",
+    "rd-room": "room", "rd-dj": "booth"
+  };
+  var bar = mkEl("nav", null, null);
+  bar.id = "rd-v21-bar";
+  bar.setAttribute("aria-label", "Where you can go");
+  [
+    { dest: "dash", ico: "⌂", lab: "Dash" },
+    { dest: "party", ico: "♫", lab: "Party" },
+    { dest: "basement", ico: "▼", lab: "Basement" },
+    { dest: "booth", ico: "◉", lab: "Booth" },
+    { dest: "room", ico: "▲", lab: "My Room" }
+  ].forEach(function (d) {
+    var b = mkEl("button", null, null);
+    b.type = "button";
+    b.setAttribute("data-v21-dest", d.dest);
+    b.setAttribute("aria-label", d.lab);
+    b.appendChild(mkEl("span", "rd-v21-ico", d.ico));
+    b.appendChild(mkEl("span", "rd-v21-lab", d.lab));
+    b.addEventListener("click", function () { navigate(d.dest); });
+    bar.appendChild(b);
+  });
+  document.body.appendChild(bar);
+
+  function currentDest() {
+    var top = topVenue();
+    if (!top) { return "dash"; }
+    return DEST_FOR_VENUE[top.id] || "dash";
+  }
+  function updateBar() {
+    var dest = currentDest();
+    var btns = bar.querySelectorAll("button");
+    for (var i = 0; i < btns.length; i += 1) {
+      if (btns[i].getAttribute("data-v21-dest") === dest) { btns[i].setAttribute("aria-current", "true"); }
+      else { btns[i].removeAttribute("aria-current"); }
+    }
+  }
+  function runActive() {
+    /* The intro is the game's front door (z-600, dismissed by its
+       own buttons): the bar never stands on it. The bar appears
+       once the player is through the door and a run is live. */
+    var intro = gel("rd-intro");
+    if (intro && !intro.classList.contains("hidden")) { return false; }
+    try {
+      if (window.RapDreamStart && window.RapDreamStart.picked) { return true; }
+    } catch (e) {}
+    var start = gel("rd-start"), pick = gel("rd-pick");
+    if (vis(start) || vis(pick)) { return false; }
+    if (intro) { return false; }
+    return !!gel("actions");
+  }
+  function paintBarGate() {
+    var on = runActive();
+    document.documentElement.classList.toggle("rd-v21-on", on);
+    if (on) { updateBar(); }
+  }
+
+  /* A live fight is never hidden out from under the player by the
+     bar: leaving a fight is the walk-off, and the bar does not
+     invent a second way out of one. */
+  function hideVenueExcept(keepIds) {
+    VENUE_IDS.forEach(function (id) {
+      if (keepIds.indexOf(id) >= 0 || id === "rd-v14-fight") { return; }
+      var el = venueEl(id);
+      if (el && vis(el)) { el.classList.add("hidden"); }
+    });
+  }
+  function hideAllOverlays() {
+    var all = document.querySelectorAll(".rd-overlay:not(.hidden)");
+    for (var i = 0; i < all.length; i += 1) {
+      var id = all[i].id;
+      if (id === "rd-start" || id === "rd-pick" || id === "rd-veil" || id === "rd-v14-fight") { continue; }
+      all[i].classList.add("hidden");
+    }
+    var rooms = ["office-room", "wire-room", "signing-room", "market-room", "legend-room", "minigame-room", "advisor-room", "beef-room", "computer-room", "instructions", "nw-interview"];
+    rooms.forEach(function (id) {
+      var el = gel(id);
+      if (el && vis(el)) { el.classList.add("hidden"); }
+    });
+  }
+
+  function navigate(dest) {
+    saveScrolls();
+    var fromTop = topVenue();
+    var fromId = fromTop ? fromTop.id : null;
+    navigating = true;
+    try {
+      if (dest === "dash") {
+        hideAllOverlays();
+        setTimeout(function () { window.scrollTo(0, dashScroll); }, 60);
+      } else if (dest === "party") {
+        hideVenueExcept(["rdn-party"]);
+        if (!vis(venueEl("rdn-party"))) {
+          if (typeof window.RapDreamParty === "function") { window.RapDreamParty(); }
+          else { var stunt = document.querySelector("[data-act='stunt']"); if (stunt) { stunt.click(); } }
+        }
+        restoreScroll("rdn-party");
+      } else if (dest === "basement") {
+        /* the party stays standing underneath: down and back up is
+           one place, and leaving the basement lands in the party */
+        hideVenueExcept(["rdn-party", "rd-v14-base"]);
+        if (typeof window.RapDreamBasement === "function") { window.RapDreamBasement(); }
+        else { var b = venueEl("rd-v14-base"); if (b) { b.classList.remove("hidden"); } }
+        restoreScroll("rd-v14-base");
+      } else if (dest === "booth") {
+        hideVenueExcept(["rd-dj"]);
+        if (!vis(venueEl("rd-dj"))) {
+          if (typeof window.RapDreamDJ === "function") { window.RapDreamDJ(); }
+          else { var djBtn = gel("rd-open-dj"); if (djBtn) { djBtn.click(); } }
+        }
+        restoreScroll("rd-dj");
+      } else if (dest === "room") {
+        hideVenueExcept(["rd-room"]);
+        if (!vis(venueEl("rd-room"))) {
+          var rb = gel("rd-room-btn");
+          if (rb) { rb.click(); }
+          else { var r = venueEl("rd-room"); if (r) { r.classList.remove("hidden"); } }
+        }
+        restoreScroll("rd-room");
+      }
+    } catch (e) {}
+    setTimeout(function () {
+      navigating = false;
+      /* The bar is a tab switch, not a door: the chain resets here.
+         The one entry a bar switch keeps is the venue's own shape:
+         the basement sits under the party, so arriving there from
+         the party keeps the party as its way back up. (The game's
+         dialog discipline hides the party as the basement opens;
+         the entry record is what reopens it on the way out.) */
+      try {
+        if (dest === "basement") { entryOf["rd-v14-base"] = (fromId === "rdn-party") ? "rdn-party" : null; }
+        if (dest === "party") { entryOf["rdn-party"] = null; }
+        if (dest === "booth") { entryOf["rd-dj"] = null; }
+        if (dest === "room") { entryOf["rd-room"] = null; }
+        syncStack();
+      } catch (e) {}
+      updateBar();
+    }, 480);
+    updateBar();
+  }
+
+  paintBarGate();
+  setInterval(paintBarGate, 350);
+  var introEl = gel("rd-intro");
+  if (introEl && window.MutationObserver) {
+    new MutationObserver(function () { paintBarGate(); }).observe(introEl, { attributes: true, attributeFilter: ["class"] });
+  }
+  syncStack();
+
+  window.RapDreamV21 = {
+    version: "V21",
+    typeScale: TYPE_SCALE,
+    primary: PRIMARY.slice(),
+    navigate: navigate,
+    groupActions: groupActions,
+    currentDest: currentDest,
+    stack: function () { return openStack.map(function (el) { return el.id; }); },
+    entries: function () { var out = {}; for (var k in entryOf) { out[k] = entryOf[k]; } return out; }
   };
 })();
 </script>
