@@ -142,9 +142,9 @@
   </div>
   <div class="wrap ticker">
     <span class="ticker-chip">Latest</span>
-    <a href="changelog/v21.html">V21: You always know where you are</a>
+    <a data-wire href="changelog/v21.html">V21: You always know where you are</a>
   </div>
-  <script>(function(){var el=document.querySelector('[data-dateline]');if(el){el.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+' \u00B7 Jersey City';}})();</script>
+  <script>(function(){var el=document.querySelector('[data-dateline]');if(el){el.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+' \u00B7 Jersey City';var wire=document.querySelector('[data-wire]');if(wire&&window.fetch){var prefix=/\/changelog\//.test(location.pathname)?'../':'';fetch(prefix+'changelog.html').then(function(r){return r.ok?r.text():'';}).then(function(html){if(!html)return;var doc=new DOMParser().parseFromString(html,'text/html');var entries=doc.querySelectorAll('.log .entry');for(var i=0;i<entries.length;i++){var ver=entries[i].querySelector('.ver');if(!ver)continue;var v=ver.textContent.trim();if(!/^V\d+$/.test(v))continue;var h2=entries[i].querySelector('h2');if(!h2)continue;var a=h2.querySelector('a');var raw=a?a.getAttribute('href'):null;var href;if(raw&&/^https?:/i.test(raw)){href=raw;}else if(raw&&raw.indexOf('changelog/')===0){href=prefix+raw;}else if(raw){href=raw;}else{href=prefix+'changelog/'+v.toLowerCase()+'.html';}wire.textContent=v+': '+h2.textContent.trim();wire.setAttribute('href',href);break;}}).catch(function(){});}}})();</script>
 </header>
 
 <main>
