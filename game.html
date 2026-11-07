@@ -17567,7 +17567,7 @@ render();
      tag stays off the page and the beacons still log to
      window.RapDreamBeacons, so nothing about the wiring is a lie
      either way. */
-  var RD_GC_CODE = "";
+  var RD_GC_CODE = "rapdream";
   if (RD_GC_CODE) {
     try {
       var gcScript = document.createElement("script");
@@ -20471,5 +20471,690 @@ render();
   };
 })();
 </script>
+<script>
+"use strict";
+/* ==================================================================
+   V22: You leave better than you came.
+   The Leave Better build: the day ends on a Night Card in a fixed
+   order (honest chapter headline, up to 3 true small wins, a loss
+   line carrying at least 3 keepsakes on loss days, the day shown
+   complete with its suggested focuses, an optional parked intention
+   with an equally good rest choice, and a closing sting that
+   resolves only here), a Morning Card that leads with the player's
+   own record before any demand, loss-as-chapter framing on the
+   run's final frame, and the exit-without-punishment audit held as
+   hard constraints (no consecutive-day streak anywhere, a total
+   days record instead, nothing expires, world time advances only
+   when played, no guilt copy, no energy or pay-to-skip added).
+   The 2-week test ships instrumented: exit type (structural vs
+   abrupt) and a short exit-affect check are recorded from day one.
+   Riders in this build: START THE DAY moves up into the primary
+   zone of the morning panel (Rider 1); the FANS tile always shows
+   the full exact count with stepped type and the engine caps fans
+   at exactly 100,000,000 (Rider 2); the bottom bar labels scale
+   down instead of colliding in narrow frames (Rider 3); the
+   GoatCounter code is set so in-game beacons reach the dashboard
+   (edited in the V13 beacon block, not here).
+   State: v22 state rides the one save payload through
+   RapDreamPersist; test telemetry keeps its own local key because
+   it must be writable synchronously on pagehide.
+   ================================================================== */
+(function () {
+  function gel(id) { return document.getElementById(id); }
+  function mkEl(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) { n.className = cls; }
+    if (text != null) { n.textContent = text; }
+    return n;
+  }
+  function fmt(n) { return new Intl.NumberFormat("en-US").format(Math.round(n || 0)); }
+  function picked() {
+    try { return !!(window.RapDreamStart && window.RapDreamStart.picked); } catch (e) { return false; }
+  }
+  function curS() { try { return (typeof S !== "undefined" && S) ? S : null; } catch (e) { return null; } }
+
+  var FANS_CAP = 100000000;
+
+  /* ---------------- v22 state ---------------- */
+  function v22Defaults() {
+    return {
+      totalDays: 0, parked: null, lastNightDay: 0,
+      peakFans: 0, startFans: null,
+      focuses: [], focusDay: 0
+    };
+  }
+  var v22 = v22Defaults();
+  var v22RestoredAt = 0;
+
+  (function v22Persist() {
+    var P = window.RapDreamPersist;
+    if (!P || typeof P.collect !== "function" || typeof P.restore !== "function") { return; }
+    var collect0 = P.collect, restore0 = P.restore;
+    P.collect = function () {
+      var base = null;
+      try { base = collect0(); } catch (e) {}
+      if (!base || typeof base !== "object") { base = {}; }
+      base.v22 = {
+        totalDays: v22.totalDays, parked: v22.parked, lastNightDay: v22.lastNightDay,
+        peakFans: v22.peakFans, startFans: v22.startFans,
+        focuses: v22.focuses, focusDay: v22.focusDay
+      };
+      return base;
+    };
+    P.restore = function (x) {
+      try { restore0(x); } catch (e) {}
+      try {
+        if (x && x.v22 && typeof x.v22 === "object") {
+          var v = x.v22, d = v22Defaults();
+          if (typeof v.totalDays === "number") { d.totalDays = v.totalDays; }
+          if (typeof v.parked === "string" && v.parked) { d.parked = v.parked; }
+          if (typeof v.lastNightDay === "number") { d.lastNightDay = v.lastNightDay; }
+          if (typeof v.peakFans === "number") { d.peakFans = v.peakFans; }
+          if (typeof v.startFans === "number") { d.startFans = v.startFans; }
+          if (Array.isArray(v.focuses)) { d.focuses = v.focuses.filter(function (f) { return f && typeof f.label === "string"; }).slice(0, 3); }
+          if (typeof v.focusDay === "number") { d.focusDay = v.focusDay; }
+          v22 = d;
+          v22RestoredAt = Date.now();
+        }
+      } catch (e) {}
+    };
+  })();
+
+  /* ---------------- test telemetry ----------------
+     Exit type and exit affect, recorded for the pre-committed
+     2-week test: failure days neutral-or-better, at least 70
+     percent structural exits, pressure items flat even if
+     retention rises. Retention alone passes nothing. */
+  var TELE_KEY = "rapdream.v22.telemetry.v1";
+  var tele = { events: [] };
+  try {
+    var rawTele = localStorage.getItem(TELE_KEY);
+    if (rawTele) { var parsedTele = JSON.parse(rawTele); if (parsedTele && Array.isArray(parsedTele.events)) { tele = parsedTele; } }
+  } catch (e) {}
+  function teleSave() {
+    try { localStorage.setItem(TELE_KEY, JSON.stringify(tele)); } catch (e) {}
+  }
+  /* Reload vs exit: an abrupt exit is only real if the tab does
+     not come back in the same session. sessionStorage survives a
+     reload (including the game's own bootguard reload) but not a
+     tab close, so a pending abrupt written on pagehide is scrubbed
+     if the next load finds the session flag still standing. */
+  var PEND_KEY = "rapdream.v22.pendingexit.v1";
+  try {
+    var pendRaw = localStorage.getItem(PEND_KEY);
+    if (pendRaw) {
+      var pend = JSON.parse(pendRaw);
+      var sameSession = false;
+      try { sameSession = !!sessionStorage.getItem("rapdream.v22.session"); } catch (e) {}
+      if (sameSession && pend && typeof pend.at === "number") {
+        tele.events = tele.events.filter(function (e) { return !(e.type === "exit" && e.value === "abrupt" && e.at === pend.at); });
+        teleSave();
+      }
+      localStorage.removeItem(PEND_KEY);
+    }
+    try { sessionStorage.setItem("rapdream.v22.session", "1"); } catch (e) {}
+  } catch (e) {}
+  function telePush(ev) {
+    ev.at = Date.now();
+    tele.events.push(ev);
+    if (tele.events.length > 160) { tele.events = tele.events.slice(-160); }
+    teleSave();
+  }
+  function gcEvent(name) {
+    try {
+      if (window.goatcounter && typeof window.goatcounter.count === "function") {
+        window.goatcounter.count({ path: "/event/" + name, title: name, event: true });
+      }
+    } catch (e) {}
+  }
+
+  /* ---------------- styles ---------------- */
+  var css = document.createElement("style");
+  css.id = "rd-v22-css";
+  css.textContent = ""
+    /* Rider 2: the fans tile never clips and never abbreviates */
+    + "#st-fans{min-width:0}"
+    + "#st-fans .val{white-space:nowrap;overflow:visible;text-overflow:clip}"
+    + "#st-fans.rd-fans-mid .val{font-size:20px!important;letter-spacing:0}"
+    + "#st-fans.rd-fans-small .val{font-size:15px!important;letter-spacing:0}"
+    /* Rider 3: the bottom bar fits narrow frames, labels scale down */
+    + "#rd-v21-bar button{min-width:0}"
+    + "#rd-v21-bar .rd-v21-lab{overflow:hidden}"
+    + "@media (max-width:380px){#rd-v21-bar .rd-v21-lab{font-size:10px;letter-spacing:0}#rd-v21-bar .rd-v21-ico{font-size:13px}#rd-v21-bar button{padding:6px 0;min-height:52px}}"
+    /* Rider 1: START THE DAY in the primary zone of the morning panel */
+    + "#start-day.rd-v22-start{margin:14px 0 18px;padding:14px 16px;font-size:15px}"
+    + ".rd-v22-morning{margin:0 0 2px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--panel,#0b0f16)}"
+    + ".rd-v22-morning h3{margin:6px 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}"
+    + ".rd-v22-morning p{margin:0 0 5px;font-size:12.5px;line-height:1.45}"
+    + ".rd-v22-morning ul{margin:2px 0 5px 16px;font-size:12.5px;line-height:1.45}"
+    + ".rd-v22-morning .rd-v22-parked-line{border-top:1px solid var(--line-soft,#2a2f38);padding-top:8px}"
+    + ".rd-v22-mini-btn{margin-left:8px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);cursor:pointer;font-size:12px}"
+    /* the Night Card */
+    + "#rd-v22-night{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:16px;background:rgba(4,5,7,.94)}"
+    + "#rd-v22-night.hidden{display:none}"
+    + ".rd-v22-card{width:min(620px,100%);max-height:calc(100vh - 32px);overflow-y:auto;padding:clamp(20px,5vw,36px);background:var(--surface);border:2px solid var(--signal);border-radius:18px;box-shadow:10px 10px 0 rgba(0,0,0,.5);color:var(--ink)}"
+    + ".rd-v22-kicker{display:block;margin-bottom:6px;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}"
+    + ".rd-v22-card h2{margin:0 0 10px;font-size:clamp(26px,6vw,38px);line-height:1.05}"
+    + ".rd-v22-card h3{margin:16px 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}"
+    + ".rd-v22-card p{font-size:14px;line-height:1.6;margin:0 0 8px}"
+    + ".rd-v22-card ul{margin:4px 0 8px 18px;font-size:14px;line-height:1.6}"
+    + ".rd-v22-done{font-weight:700}"
+    + ".rd-v22-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}"
+    + ".rd-v22-chip{padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);cursor:pointer;font-size:13px}"
+    + ".rd-v22-chip[aria-pressed='true']{background:var(--signal);color:var(--signal-ink);border-color:var(--signal)}"
+    + ".rd-v22-parkrow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}"
+    + ".rd-v22-parkrow input{flex:1 1 200px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel,#0b0f16);color:var(--ink);font-size:14px}"
+    + ".rd-v22-btn{padding:10px 16px;border:1px solid var(--signal);border-radius:10px;background:var(--signal);color:var(--signal-ink);font-weight:700;cursor:pointer;font-size:14px}"
+    + ".rd-v22-btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}"
+    + ".rd-v22-affect{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}"
+    + ".rd-v22-affect span{font-size:12px;color:var(--muted);margin-right:2px}"
+    + ".rd-v22-sleep{width:100%;margin-top:16px;padding:14px 16px;font-size:15px}"
+    + ".rd-v22-daysline{font-size:12px;color:var(--muted);letter-spacing:.04em;margin-top:4px}";
+  document.head.appendChild(css);
+
+  /* ---------------- day tracking ---------------- */
+  function songsLen() {
+    try { if (Array.isArray(window.RapDreamSongs)) { return window.RapDreamSongs.length; } } catch (e) {}
+    var s = curS(); return s ? (s.tracks || 0) : 0;
+  }
+  function snap() {
+    var s = curS(); if (!s) { return null; }
+    var counts = {};
+    try { var ac = s.actionCounts || {}; for (var k in ac) { counts[k] = ac[k] || 0; } } catch (e) {}
+    return {
+      day: s.day || 1, fans: s.fans || 0, money: s.money || 0, tracks: s.tracks || 0,
+      rep: s.rep || 0, network: s.network || 0, hype: s.hype || 0,
+      songs: songsLen(), artists: (s.artists || []).length,
+      wins: s.careerWins || 0, losses: s.careerLosses || 0,
+      champs: s.championships || 0, tier: s.tier || 1, edu: s.education || 0,
+      counts: counts
+    };
+  }
+  var dayStart = null;
+  var lastSeen = null;
+  var pendingNight = null;
+
+  function countDelta(a, b, key) { return ((b.counts && b.counts[key]) || 0) - ((a.counts && a.counts[key]) || 0); }
+
+  function buildNight(endedDay, a, b) {
+    var s = curS();
+    var dFans = b.fans - a.fans, dMoney = b.money - a.money, dTracks = b.tracks - a.tracks;
+    var dWins = b.wins - a.wins, dChamps = b.champs - a.champs, dArtists = b.artists - a.artists;
+    var runOver = !!(s && s.over && s.over !== "win");
+    var rec = null;
+    try { if (typeof rdRecordAny === "function") { rec = rdRecordAny(endedDay); } } catch (e) {}
+    var wins = [];
+    if (dChamps > 0) { wins.push({ p: 0, t: "A championship landed today. The belt is on the record." }); }
+    if (dArtists > 0) { wins.push({ p: 1, t: "A new artist signed today. The roster stands at " + b.artists + "." }); }
+    if (dTracks > 0) { wins.push({ p: 2, t: "You put " + dTracks + (dTracks === 1 ? " new track" : " new tracks") + " on the record. The catalog stands at " + b.tracks + "." }); }
+    if (dWins > 0) { wins.push({ p: 3, t: "You won " + dWins + (dWins === 1 ? " battle" : " battles") + " today." }); }
+    if (rec && rec.firsts > 0) { wins.push({ p: 4, t: rec.firsts + (rec.firsts === 1 ? " first" : " firsts") + " today: moves this run had never made before." }); }
+    if (dFans > 0) { wins.push({ p: 5, t: "+" + fmt(dFans) + " fans today. The room is bigger than it was this morning." }); }
+    if (b.tier > a.tier) { wins.push({ p: 6, t: "The setup stepped up to tier " + b.tier + " today." }); }
+    if (dMoney > 0) { wins.push({ p: 7, t: "Cash up $" + fmt(dMoney) + " on the day." }); }
+    if (b.rep - a.rep >= 5) { wins.push({ p: 8, t: "Rep up " + fmt(b.rep - a.rep) + ". The name carries further tonight." }); }
+    wins.sort(function (x, y) { return x.p - y.p; });
+    wins = wins.slice(0, 3).map(function (w) { return w.t; });
+    if (!wins.length) {
+      wins.push("You kept the run alive another day. Day " + endedDay + " is on the record.");
+      if (b.tracks > 0) { wins.push("The catalog held: " + b.tracks + (b.tracks === 1 ? " track" : " tracks") + " standing, all still yours."); }
+      else if (b.fans > a.fans || b.fans > 50) { wins.push("The fans held: " + fmt(b.fans) + " people who know the name."); }
+    }
+    var isLoss = runOver || (dMoney < 0 && dFans <= 0 && dTracks <= 0);
+    var loss = null;
+    if (isLoss) {
+      var keepsakes = [];
+      keepsakes.push("The story: day " + endedDay + " made the wire, and tonight's headlines run in the morning paper.");
+      if (b.tracks > 0) { keepsakes.push("The catalog: " + b.tracks + (b.tracks === 1 ? " track" : " tracks") + " still standing, still yours, still paying attention back."); }
+      else if (b.songs > 0) { keepsakes.push("The songs: " + b.songs + (b.songs === 1 ? " song" : " songs") + " written and kept."); }
+      else { keepsakes.push("The fans: " + fmt(Math.max(b.fans, 0)) + " people who know the name. They stay."); }
+      keepsakes.push("The record: " + (v22.totalDays + 1) + " total days played, and a peak of " + fmt(Math.max(v22.peakFans, b.fans)) + " fans that no single day can take back.");
+      if (keepsakes.length < 3) { keepsakes.push("The battle record: " + b.wins + " wins and " + b.losses + " losses, all of it experience you keep."); }
+      loss = {
+        line: runOver ? "The cash ran below the line and this run could not cover its bills." : "Cash went out faster than it came in today.",
+        change: runOver ? "What changes it: keep a cushion above rent and overhead before the big spends." : "What changes it: one paying move before the spending moves tomorrow.",
+        keepsakes: keepsakes
+      };
+    }
+    var headline;
+    if (runOver) { headline = "Day " + endedDay + ": the chapter closes"; }
+    else if (isLoss) { headline = "Day " + endedDay + ": a hard day. The chapter continues."; }
+    else if (dFans >= 500 || dChamps > 0 || dArtists > 0) { headline = "Day " + endedDay + ": a loud day"; }
+    else if (wins.length === 1 && dFans <= 0 && dTracks <= 0) { headline = "Day " + endedDay + ": a quiet day, kept"; }
+    else { headline = "Day " + endedDay + ": a good day's work"; }
+    var focusStates = (v22.focusDay === endedDay ? v22.focuses : []).map(function (f) {
+      return { label: f.label, done: countDelta(a, b, f.key) > 0 };
+    });
+    return {
+      day: endedDay, headline: headline, wins: wins, loss: loss, runOver: runOver,
+      focusStates: focusStates, fans: b.fans, tracks: b.tracks,
+      totalDaysAfter: v22.totalDays + 1
+    };
+  }
+
+  function finalizeNight() {
+    var s = curS(); if (!s || !dayStart || !lastSeen) { return; }
+    var endedDay = (s.day || 1) - 1;
+    if (endedDay < 1 || dayStart.day !== endedDay || lastSeen.day !== endedDay) { return; }
+    if (v22.lastNightDay >= endedDay || (pendingNight && pendingNight.day === endedDay)) { return; }
+    pendingNight = buildNight(endedDay, dayStart, lastSeen);
+  }
+
+  /* ---------------- sound: the closing sting, only here ---------------- */
+  var audioCtx = null;
+  function tone(freq, at, dur, type, vol) {
+    var osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(vol, at + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(at); osc.stop(at + dur + 0.05);
+  }
+  function playSting(isLoss) {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { return; }
+      if (!audioCtx) { audioCtx = new AC(); }
+      if (audioCtx.state === "suspended") { audioCtx.resume(); }
+      var t0 = audioCtx.currentTime + 0.03;
+      if (isLoss) { tone(330, t0, 1.1, "triangle", 0.07); tone(262, t0 + 0.55, 1.3, "triangle", 0.07); tone(196, t0 + 1.1, 1.8, "sine", 0.08); }
+      else { tone(392, t0, 0.9, "triangle", 0.06); tone(330, t0 + 0.45, 1.0, "triangle", 0.06); tone(262, t0 + 0.9, 1.8, "sine", 0.08); }
+    } catch (e) {}
+  }
+  function playMorningMotif() {
+    try {
+      if (!audioCtx) { return; }
+      if (audioCtx.state === "suspended") { audioCtx.resume(); }
+      var t0 = audioCtx.currentTime + 0.03;
+      tone(262, t0, 0.7, "sine", 0.05); tone(330, t0 + 0.35, 0.7, "sine", 0.05); tone(392, t0 + 0.7, 1.1, "triangle", 0.05);
+    } catch (e) {}
+  }
+
+  /* ---------------- the Night Card ---------------- */
+  var nightEl = null, nightSleepBtn = null, parkInput = null, tonightChoice = null;
+  var pendingMorning = null, nightOpen = false;
+  function buildNightEl() {
+    nightEl = mkEl("div", "hidden", null);
+    nightEl.id = "rd-v22-night";
+    nightEl.setAttribute("role", "dialog");
+    nightEl.setAttribute("aria-modal", "true");
+    nightEl.setAttribute("aria-label", "Night card");
+    document.body.appendChild(nightEl);
+  }
+  function showNight(data) {
+    if (!nightEl) { buildNightEl(); }
+    tonightChoice = null;
+    nightEl.innerHTML = "";
+    var card = mkEl("div", "rd-v22-card", null);
+    card.appendChild(mkEl("span", "rd-v22-kicker", "Night card · day " + data.day));
+    card.appendChild(mkEl("h2", null, data.headline));
+    card.appendChild(mkEl("p", null, "Total days played: " + data.totalDaysAfter + ". The record stands whether tonight felt big or small."));
+    card.appendChild(mkEl("h3", null, "What landed today"));
+    var ul = mkEl("ul", null, null);
+    data.wins.forEach(function (w) { ul.appendChild(mkEl("li", null, w)); });
+    card.appendChild(ul);
+    if (data.loss) {
+      card.appendChild(mkEl("h3", null, "The loss, kept honest"));
+      card.appendChild(mkEl("p", null, data.loss.line + " " + data.loss.change));
+      var kul = mkEl("ul", null, null);
+      data.loss.keepsakes.forEach(function (k) { kul.appendChild(mkEl("li", null, k)); });
+      card.appendChild(kul);
+    }
+    card.appendChild(mkEl("h3", null, "Done for today"));
+    if (data.focusStates.length) {
+      var ful = mkEl("ul", null, null);
+      data.focusStates.forEach(function (f) {
+        ful.appendChild(mkEl("li", null, (f.done ? "Done: " : "Let go: ") + f.label));
+      });
+      card.appendChild(ful);
+    }
+    card.appendChild(mkEl("p", "rd-v22-done", "Done for today. Nothing else needs you tonight."));
+    /* parked intention: the build's one innovation token */
+    card.appendChild(mkEl("h3", null, "One intention, if you want one"));
+    card.appendChild(mkEl("p", null, "Park a single plan for tomorrow and the mind lets tonight go. Resting with no plan is just as good."));
+    var chips = mkEl("div", "rd-v22-chips", null);
+    var suggestions = [];
+    data.focusStates.forEach(function (f) { if (!f.done) { suggestions.push(f.label); } });
+    if (data.tracks === 0) { suggestions.push("Record your first track"); }
+    suggestions.push("Work the room at the party");
+    suggestions = suggestions.filter(function (v, i, arr) { return arr.indexOf(v) === i; }).slice(0, 3);
+    suggestions.forEach(function (sg) {
+      var chip = mkEl("button", "rd-v22-chip", sg);
+      chip.type = "button";
+      chip.setAttribute("aria-pressed", "false");
+      chip.addEventListener("click", function () {
+        if (parkInput) { parkInput.value = sg; }
+        var all = chips.querySelectorAll(".rd-v22-chip");
+        for (var i = 0; i < all.length; i++) { all[i].setAttribute("aria-pressed", "false"); }
+        chip.setAttribute("aria-pressed", "true");
+      });
+      chips.appendChild(chip);
+    });
+    card.appendChild(chips);
+    var parkRow = mkEl("div", "rd-v22-parkrow", null);
+    parkInput = mkEl("input", null, null);
+    parkInput.type = "text";
+    parkInput.maxLength = 90;
+    parkInput.placeholder = "Tomorrow I might...";
+    parkInput.setAttribute("aria-label", "Park an intention for tomorrow");
+    parkRow.appendChild(parkInput);
+    var parkBtn = mkEl("button", "rd-v22-btn ghost", "Park it");
+    parkBtn.type = "button";
+    parkBtn.addEventListener("click", function () {
+      var val = (parkInput.value || "").trim();
+      if (!val) { parkInput.focus(); return; }
+      v22.parked = val; tonightChoice = "parked";
+      parkBtn.textContent = "Parked";
+    });
+    parkRow.appendChild(parkBtn);
+    var restBtn = mkEl("button", "rd-v22-btn ghost", "No plan: just rest");
+    restBtn.type = "button";
+    restBtn.addEventListener("click", function () {
+      v22.parked = null; tonightChoice = "rest";
+      restBtn.textContent = "Resting";
+      if (parkInput) { parkInput.value = ""; }
+    });
+    parkRow.appendChild(restBtn);
+    card.appendChild(parkRow);
+    /* the exit-affect check: short, optional, never blocks the exit */
+    card.appendChild(mkEl("h3", null, "One tap for the record (optional)"));
+    var affRow = mkEl("div", "rd-v22-affect", null);
+    affRow.appendChild(mkEl("span", null, "Leaving feeling:"));
+    [["better", "Better"], ["same", "Same"], ["worse", "Worse"]].forEach(function (pair) {
+      var b = mkEl("button", "rd-v22-chip", pair[1]);
+      b.type = "button"; b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () {
+        var all = affRow.querySelectorAll(".rd-v22-chip");
+        for (var i = 0; i < all.length; i++) { all[i].setAttribute("aria-pressed", "false"); }
+        b.setAttribute("aria-pressed", "true");
+        telePush({ type: "affect", value: pair[0], day: data.day, loss: !!data.loss });
+      });
+      affRow.appendChild(b);
+    });
+    card.appendChild(affRow);
+    var presRow = mkEl("div", "rd-v22-affect", null);
+    presRow.appendChild(mkEl("span", null, "Today I played because:"));
+    [["wanted", "I wanted to"], ["hadto", "I felt I had to"]].forEach(function (pair) {
+      var b = mkEl("button", "rd-v22-chip", pair[1]);
+      b.type = "button"; b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () {
+        var all = presRow.querySelectorAll(".rd-v22-chip");
+        for (var i = 0; i < all.length; i++) { all[i].setAttribute("aria-pressed", "false"); }
+        b.setAttribute("aria-pressed", "true");
+        telePush({ type: "pressure", value: pair[0], day: data.day, loss: !!data.loss });
+      });
+      presRow.appendChild(b);
+    });
+    card.appendChild(presRow);
+    nightSleepBtn = mkEl("button", "rd-v22-btn rd-v22-sleep", "Sleep. See the morning.");
+    nightSleepBtn.type = "button";
+    nightSleepBtn.addEventListener("click", proceedToMorning);
+    card.appendChild(nightSleepBtn);
+    nightEl.appendChild(card);
+    nightEl.classList.remove("hidden");
+    nightOpen = true;
+    playSting(!!data.loss);
+    try { nightSleepBtn.focus(); } catch (e) {}
+  }
+  function proceedToMorning() {
+    if (!nightOpen || !pendingNight) { return; }
+    var data = pendingNight;
+    if (tonightChoice !== "parked") { v22.parked = null; }
+    if (v22.lastNightDay < data.day) {
+      v22.totalDays += 1;
+      v22.lastNightDay = data.day;
+    }
+    telePush({ type: "exit", value: "structural", day: data.day, loss: !!data.loss });
+    gcEvent("structural_exit");
+    pendingNight = null;
+    nightOpen = false;
+    if (nightEl) { nightEl.classList.add("hidden"); }
+    var morning = pendingMorning; pendingMorning = null;
+    if (morning) { morning(); }
+  }
+  /* Origination (V22, unconfirmed): the Night Card answers Escape
+     like every other dialog in the game since V11, so the exit is
+     never a hunt for the one right button. */
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && nightOpen) { proceedToMorning(); }
+  });
+
+  /* ---------------- the Morning Card ---------------- */
+  function computeFocuses(s) {
+    var out = [];
+    if ((s.money || 0) < 200) { out.push({ key: "job", label: "Work the day job and steady the cash" }); }
+    else if ((s.fans || 0) < 1000) { out.push({ key: "promo", label: "Promo a release and grow the room" }); }
+    else { out.push({ key: "catalog", label: "Check the catalog and let it pay" }); }
+    if ((s.tracks || 0) === 0) { out.push({ key: "record", label: "Record your first track in the booth" }); }
+    else { out.push({ key: "record", label: "Record in the booth and stack the catalog" }); }
+    if ((s.network || 0) === 0) { out.push({ key: "stunt", label: "Work the room at the party" }); }
+    else if ((s.careerWins || 0) === 0) { out.push({ key: "battle", label: "Take one battle in the basement" }); }
+    else { out.push({ key: "stunt", label: "Visit the party and keep a bond warm" }); }
+    return out.slice(0, 3);
+  }
+  function moveStartDay() {
+    var sd = gel("start-day");
+    if (!sd || sd.classList.contains("rd-v22-start")) { return; }
+    var cash = gel("new-day-cashflow");
+    if (cash && cash.parentNode) {
+      cash.parentNode.insertBefore(sd, cash);
+      sd.classList.add("rd-v22-start");
+    }
+  }
+  function paintMorning() {
+    moveStartDay();
+    var s = curS(); if (!s) { return; }
+    var inner = document.querySelector(".dayflash-inner");
+    if (!inner) { return; }
+    var sec = gel("rd-v22-morning");
+    if (!sec) {
+      sec = mkEl("section", "rd-v22-morning", null);
+      sec.id = "rd-v22-morning";
+      sec.setAttribute("aria-label", "Your record and today");
+      var sd = gel("start-day");
+      if (sd && sd.parentNode === inner) { inner.insertBefore(sec, sd); }
+      else { inner.appendChild(sec); }
+    }
+    if (v22.startFans == null) { v22.startFans = s.fans || 0; }
+    if (v22.focusDay !== (s.day || 1) || !v22.focuses.length) {
+      v22.focuses = computeFocuses(s);
+      v22.focusDay = s.day || 1;
+    }
+    sec.innerHTML = "";
+    sec.appendChild(mkEl("h3", null, "Your record, before anything is asked"));
+    sec.appendChild(mkEl("p", null, "Day " + (s.day || 1) + " of the run. " + v22.totalDays + (v22.totalDays === 1 ? " day" : " total days") + " played and banked. Peak fans: " + fmt(Math.max(v22.peakFans, s.fans || 0)) + ". Before and after: " + fmt(v22.startFans) + " fans when this record began, " + fmt(s.fans || 0) + " today. The catalog stands at " + (s.tracks || 0) + (s.tracks === 1 ? " track." : " tracks.")));
+    if (v22.parked) {
+      var pl = mkEl("p", "rd-v22-parked-line", "Last night you parked: " + v22.parked + ". It is waiting if you like.");
+      var nb = mkEl("button", "rd-v22-mini-btn", "Not today");
+      nb.type = "button";
+      nb.addEventListener("click", function () {
+        v22.parked = null;
+        if (pl.parentNode) { pl.parentNode.removeChild(pl); }
+      });
+      pl.appendChild(nb);
+      sec.appendChild(pl);
+    }
+    sec.appendChild(mkEl("h3", null, "Today's shape"));
+    var ul = mkEl("ul", null, null);
+    v22.focuses.forEach(function (f) { ul.appendChild(mkEl("li", null, f.label)); });
+    sec.appendChild(ul);
+    sec.appendChild(mkEl("p", null, "Three suggested focuses, about 9 minutes for the three. Suggestions only: the rest of the day is yours."));
+  }
+
+  /* dayFlash wrap: the Night Card stands between the day that
+     ended and the morning that follows it. The morning itself is
+     the game's own card, with the V22 record section leading it. */
+  if (typeof dayFlash === "function") {
+    var prevDayFlash22 = dayFlash;
+    dayFlash = function (day) {
+      try { finalizeNight(); } catch (e) {}
+      var self = this, args = arguments;
+      if (pendingNight && picked()) {
+        var data = pendingNight;
+        pendingMorning = function () {
+          var out = prevDayFlash22.apply(self, args);
+          setTimeout(function () { try { paintMorning(); playMorningMotif(); } catch (e) {} }, 40);
+          return out;
+        };
+        showNight(data);
+        return;
+      }
+      var out2 = prevDayFlash22.apply(self, args);
+      setTimeout(function () { try { paintMorning(); } catch (e) {} }, 40);
+      return out2;
+    };
+  }
+
+  /* ---------------- render hooks: cap, tile, tracking ---------------- */
+  var lastS = null;
+  function renderTick() {
+    var s = curS(); if (!s) { return; }
+    /* Rider 2 engine cap: fans never pass 100,000,000 */
+    if ((s.fans || 0) > FANS_CAP) { s.fans = FANS_CAP; }
+    if ((s.fans || 0) > v22.peakFans) { v22.peakFans = s.fans || 0; }
+    var tile = gel("st-fans");
+    if (tile) {
+      var digits = String(Math.max(0, Math.floor(s.fans || 0))).length;
+      tile.classList.toggle("rd-fans-mid", digits >= 7 && digits <= 9);
+      tile.classList.toggle("rd-fans-small", digits >= 10);
+      tile.setAttribute("data-rd-fans-digits", String(digits));
+    }
+    if (lastS !== s) {
+      var prevDay = lastSeen ? lastSeen.day : null;
+      lastS = s;
+      /* A state swap is a new run only when the new state actually
+         looks like one: day 1 with a starter record, arriving from
+         a later day (or from a day-1 state whose v22 record is all
+         zeros anyway). A Continue that swaps its state object late
+         (after the restore window) keeps the restored v22 record:
+         same day, same career, no wipe. (Hotfix from the V22
+         verification pass: a late Continue swap zeroed totalDays.) */
+      var freshRun = (s.day || 1) === 1 && (prevDay === null || prevDay > 1 || ((s.tracks || 0) === 0 && (s.fans || 0) <= 50));
+      if (Date.now() - v22RestoredAt > 800 && freshRun) {
+        v22 = v22Defaults();
+      }
+      dayStart = null; lastSeen = null; pendingNight = null;
+    }
+    if (!picked()) { return; }
+    var now = snap(); if (!now) { return; }
+    if (v22.startFans == null) { v22.startFans = now.fans; }
+    if (!dayStart || dayStart.day > now.day) { dayStart = now; lastSeen = now; return; }
+    if (now.day === dayStart.day) { lastSeen = now; return; }
+    if (now.day > dayStart.day) {
+      try { finalizeNight(); } catch (e) {}
+      dayStart = now; lastSeen = now;
+    }
+  }
+  if (window.RapDreamRenderPipe) {
+    window.RapDreamRenderPipe.pre.push(function () {
+      var s = curS();
+      if (s && (s.fans || 0) > FANS_CAP) { s.fans = FANS_CAP; }
+    });
+    window.RapDreamRenderPipe.post.push(function () {
+      try { renderTick(); } catch (e) {}
+      try { fixEndCard(); } catch (e) {}
+      try { paintDaysLine(); } catch (e) {}
+    });
+  }
+
+  /* total days record on the dash: a record, never a streak */
+  function paintDaysLine() {
+    if (!picked()) { return; }
+    var fans = gel("st-fans");
+    if (!fans || !fans.parentNode || !fans.parentNode.parentNode) { return; }
+    var line = gel("rd-v22-daysline");
+    if (!line) {
+      line = mkEl("div", "rd-v22-daysline", null);
+      line.id = "rd-v22-daysline";
+      fans.parentNode.parentNode.appendChild(line);
+    }
+    var s = curS();
+    line.textContent = "total days played: " + v22.totalDays + " · peak fans: " + fmt(Math.max(v22.peakFans, (s && s.fans) || 0));
+  }
+
+  /* ---------------- loss-as-chapter: the final frame ---------------- */
+  function fixEndCard() {
+    var s = curS(); if (!s || !s.over || s.over === "win") { return; }
+    var card = gel("endcard");
+    if (!card || card.classList.contains("hidden")) { return; }
+    var title = gel("endtitle");
+    if (title && title.textContent === "GAME OVER") {
+      title.textContent = "The chapter closes";
+      var txt = gel("endtext");
+      if (txt && !txt.getAttribute("data-rd-v22-legacy")) {
+        txt.setAttribute("data-rd-v22-legacy", "1");
+        txt.textContent = txt.textContent + " Legacy: " + (s.day || 1) + " days, a peak of " + fmt(Math.max(v22.peakFans, s.fans || 0)) + " fans, " + (s.tracks || 0) + " tracks on the record, " + (s.careerWins || 0) + " battle wins. The name stays in the city.";
+      }
+    }
+  }
+
+  /* ---------------- abrupt exits: closing the tab mid-day ----------------
+     The save already rides the game's own autosave (renders mark
+     the run dirty, hiding the tab writes it out), so a mid-day
+     close resumes with nothing lost and nothing said about it.
+     Here we only record the exit type for the test. */
+  var abruptSent = false;
+  function noteAbrupt() {
+    if (abruptSent) { return; }
+    abruptSent = true;
+    try {
+      var s = curS();
+      if (!s || !picked() || nightOpen) { return; }
+      if (v22.lastNightDay >= (s.day || 1)) { return; }
+      var df = gel("dayflash");
+      if (df && !df.classList.contains("hidden")) { return; }
+      var already = tele.events.some(function (e) { return e.type === "exit" && e.value === "abrupt" && e.day === (s.day || 1); });
+      if (already) { return; }
+      var evObj = { type: "exit", value: "abrupt", day: s.day || 1, loss: false };
+      telePush(evObj);
+      try { localStorage.setItem(PEND_KEY, JSON.stringify({ day: evObj.day, at: evObj.at })); } catch (e) {}
+    } catch (e) {}
+  }
+  /* Only an actual unload counts as an abrupt exit. A tab that is
+     merely hidden (switched away from, minimized) is not an exit:
+     the player may come right back, and the core autosave already
+     rides visibilitychange for the save itself. (Hotfix from the
+     V22 verification pass: counting hides inflated abrupt exits
+     and failed the structural-share check on a clean run.) */
+  window.addEventListener("pagehide", noteAbrupt);
+
+  function testSummary() {
+    var exits = tele.events.filter(function (e) { return e.type === "exit"; });
+    var structural = exits.filter(function (e) { return e.value === "structural"; }).length;
+    var failureAffects = tele.events.filter(function (e) { return e.type === "affect" && e.loss; });
+    var failureOk = failureAffects.filter(function (e) { return e.value === "better" || e.value === "same"; }).length;
+    var pressure = tele.events.filter(function (e) { return e.type === "pressure"; });
+    var hadto = pressure.filter(function (e) { return e.value === "hadto"; }).length;
+    return {
+      exits: exits.length,
+      structural: structural,
+      structuralShare: exits.length ? +(structural / exits.length).toFixed(3) : null,
+      failureAffectChecks: failureAffects.length,
+      failureNeutralOrBetterShare: failureAffects.length ? +(failureOk / failureAffects.length).toFixed(3) : null,
+      pressureChecks: pressure.length,
+      pressureHadToShare: pressure.length ? +(hadto / pressure.length).toFixed(3) : null,
+      passConditions: "failure days neutral-or-better; structural share >= 0.70; pressure flat week over week even if retention rises"
+    };
+  }
+
+  moveStartDay();
+  setInterval(function () { try { fixEndCard(); } catch (e) {} }, 600);
+
+  window.RapDreamV22 = {
+    version: "V22",
+    state: v22,
+    fansCap: FANS_CAP,
+    telemetry: function () { return tele.events.slice(); },
+    resetTelemetry: function () { tele = { events: [] }; teleSave(); },
+    testSummary: testSummary,
+    nightPending: function () { return pendingNight; },
+    paintMorning: paintMorning,
+    proceed: proceedToMorning,
+    sting: playSting
+  };
+})();
+</script>
+
 </body>
 </html>
