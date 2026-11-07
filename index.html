@@ -77,27 +77,43 @@
   a{color:var(--accent)}
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
 
-  /* ---------- top strip ---------- */
+  /* ---------- masthead ---------- */
   header{
-    position:sticky;top:0;z-index:10;
-    background:rgba(7,9,15,.82);
-    backdrop-filter:blur(10px);
-    -webkit-backdrop-filter:blur(10px);
-    border-bottom:1px solid rgba(255,255,255,.06);
+    background:rgba(7,9,15,.9);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
-  .strip{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}
-  .wordmark{
-    font-weight:900;letter-spacing:.14em;font-size:20px;color:var(--ink);
-    text-decoration:none;text-transform:uppercase;white-space:nowrap;
-  }
+  .util{border-bottom:1px solid rgba(255,255,255,.06)}
+  .util-in{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .dateline{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;padding:7px 0}
+  .util-links{display:flex;gap:18px}
+  .util-links a{color:var(--muted);text-decoration:none;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-height:32px;display:inline-flex;align-items:center}
+  .util-links a:hover{color:var(--accent)}
+  .mast{text-align:center;padding:26px 0 20px}
+  .wordmark{font-weight:900;letter-spacing:.06em;font-size:clamp(34px,6vw,44px);line-height:1;color:var(--ink);text-decoration:none;text-transform:uppercase;white-space:nowrap}
   .wordmark span{color:var(--accent)}
-  nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-  nav a{
-    color:var(--muted);text-decoration:none;font-weight:600;font-size:16px;
-    padding:10px 14px;border-radius:999px;min-height:48px;display:inline-flex;align-items:center;
-    transition:color .2s ease,background .2s ease;
+  .tagline{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;margin-top:10px}
+  .navbar{
+    position:sticky;top:0;z-index:10;
+    background:rgba(7,9,15,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);
   }
-  nav a:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+  nav{display:flex;justify-content:space-between;gap:8px}
+  nav a{
+    color:var(--muted);text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;
+    padding:0 10px;min-height:48px;display:inline-flex;align-items:center;white-space:nowrap;
+    transition:color .2s ease;
+  }
+  nav a:hover{color:var(--accent)}
+  nav a.play{color:var(--accent)}
+  .wordmark:focus-visible,nav a:focus-visible,.util-links a:focus-visible,.ticker a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:999px}
+  .ticker{display:flex;align-items:center;gap:12px;padding-top:10px;padding-bottom:12px}
+  .ticker-chip{font-weight:900;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:4px 12px;white-space:nowrap}
+  .ticker a{color:var(--ink);text-decoration:none;font-weight:600;font-size:15px}
+  .ticker a:hover{color:var(--accent)}
+  @media (max-width:820px){
+    .mast{padding:20px 0 16px}
+    .navbar nav{overflow-x:auto;justify-content:flex-start;gap:4px;-webkit-overflow-scrolling:touch}
+  }
 
   /* ---------- hero ---------- */
   .hero{padding:84px 0 30px;text-align:left}
@@ -334,25 +350,43 @@
     .music-art{width:190px;height:190px}
     .hero{padding:56px 0 24px}
     section{padding:40px 0}
-    .strip{flex-direction:column;align-items:flex-start}
-    nav{justify-content:flex-start}
   }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="wrap strip">
-    <a class="wordmark" href="https://rapdream.link/">RAP <span>DREAM</span></a>
-    <nav aria-label="Site">
-      <a href="game.html">Play</a>
-      <a href="#the-game">The Game</a>
-      <a href="#the-music">The Music</a>
-      <a href="#the-builder">The Builder</a>
-      <a href="changelog.html">Changelog</a>
-      <a href="#own-it">Own It</a>
-    </nav>
+  <div class="util">
+    <div class="wrap util-in">
+      <span class="dateline" data-dateline>Jersey City</span>
+      <span class="util-links">
+        <a href="https://x.com/kanye" data-goatcounter-click="x-kanye">X</a>
+        <a href="https://open.spotify.com/artist/6pGOaet5SCp0qg9WEbAkN2" data-goatcounter-click="spotify-artist">Spotify</a>
+        <a href="https://rapdream.itch.io/rap-dream" data-goatcounter-click="itch-own">itch.io</a>
+      </span>
+    </div>
   </div>
+  <div class="wrap mast">
+    <a class="wordmark" href="https://rapdream.link/">RAP <span>DREAM</span></a>
+    <p class="tagline">A rap career sim by Reginald Doucet Jr.</p>
+  </div>
+  <div class="navbar">
+    <div class="wrap">
+      <nav aria-label="Site">
+        <a href="game.html" class="play">Play</a>
+        <a href="#the-game">The Game</a>
+        <a href="#the-music">The Music</a>
+        <a href="#the-builder">The Builder</a>
+        <a href="changelog.html">Changelog</a>
+        <a href="#own-it">Own It</a>
+      </nav>
+    </div>
+  </div>
+  <div class="wrap ticker">
+    <span class="ticker-chip">Latest</span>
+    <a href="changelog.html">V21: You always know where you are</a>
+  </div>
+  <script>(function(){var el=document.querySelector('[data-dateline]');if(el){el.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+' \u00B7 Jersey City';}})();</script>
 </header>
 
 <main>
