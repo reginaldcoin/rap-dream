@@ -329,6 +329,7 @@
     padding:10px 12px;border-radius:var(--radius-pill);min-height:48px;display:inline-flex;align-items:center;
   }
   .foot-links a:hover{color:var(--accent)}
+  .hours-line{color:var(--muted);font-size:12px;text-align:center;padding:0 20px 34px;position:relative;z-index:1}
 
   /* ---------- entrance motion ---------- */
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -539,6 +540,20 @@
     </div>
   </div>
 </footer>
+
+<div class="hours-line"><span id="hours-count">74</span> hours worked on Rap Dream</div>
+<script>
+(function(){
+  fetch('hours.json', {cache:'no-store'})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      if (d && typeof d.hours === 'number') {
+        document.getElementById('hours-count').textContent = d.hours.toLocaleString('en-US');
+      }
+    })
+    .catch(function(){});
+})();
+</script>
 
 <script id="hero-embed-script">
 (function(){
