@@ -11,7 +11,9 @@
 <meta property="og:description" content="Start broke with a day job. Build the name, the catalog, and the empire. A Y2K browser rap tycoon, free to play.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://rapdream.link/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://rapdream.link/assets/louisiana-creole-cover.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://rapdream.link/assets/louisiana-creole-cover.jpg">
 <meta name="twitter:title" content="Rap Dream — Browser Rap Tycoon Game">
 <meta name="twitter:description" content="Start broke with a day job. Build the name, the catalog, and the empire. A Y2K browser rap tycoon, free to play.">
 <script type="application/ld+json">
@@ -158,18 +160,27 @@
     background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));
     border:1px solid rgba(255,255,255,.08);
     display:flex;flex-direction:column;justify-content:space-between;gap:8px;
+    color:inherit;text-decoration:none;
+    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
   }
+  a.tile:hover{transform:translateY(-3px);border-color:rgba(55,242,162,.5);box-shadow:0 14px 30px rgba(0,0,0,.4), 0 0 22px rgba(55,242,162,.1)}
+  a.tile:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  a.tile:active{transform:translateY(-1px) scale(.99)}
   .tile.hot{border-color:rgba(55,242,162,.45);box-shadow:0 0 30px rgba(55,242,162,.13) inset, 0 0 24px rgba(55,242,162,.08)}
   .tile.locked{opacity:.45}
   .tile .t-name{font-weight:900;letter-spacing:.12em;font-size:15px}
   .tile .t-sub{font-size:13px;color:var(--muted);line-height:1.45}
   .tile .t-sub b{color:var(--accent)}
   .screen-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
-  .screen-nav span{
+  .screen-nav a, .screen-nav span{
     font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--muted);
     border-radius:999px;padding:8px 16px;border:1px solid rgba(255,255,255,.07);
+    text-decoration:none;min-height:40px;display:inline-flex;align-items:center;
+    transition:color .2s ease,border-color .2s ease,background .2s ease;
   }
-  .screen-nav span.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+  .screen-nav a:hover{color:var(--ink);border-color:rgba(55,242,162,.45)}
+  .screen-nav a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .screen-nav a.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
 
   /* ---------- marquee ---------- */
   .marquee{
@@ -324,23 +335,23 @@
       </div>
     </div>
 
-    <div class="screen rise rise-3" role="img" aria-label="The Rap Dream daily loop: work, cypher, record, battle, and build the catalog, one day at a time">
+    <div class="screen rise rise-3" aria-label="The Rap Dream deck: every tile is a working button">
       <div class="screen-inner">
         <div class="screen-top">
           <div class="screen-title">THE <span>DAILY LOOP</span></div>
           <div class="hud"><span>CASH <b>$2,856</b></span><span>FANS <b>100</b></span><span>DAY <b>14</b></span></div>
         </div>
         <div class="tiles">
-          <div class="tile"><span class="t-name">WORK</span><span class="t-sub">The day job pays <b>+$45 to $75</b>. Rent is real.</span></div>
-          <div class="tile"><span class="t-name">CYPHER</span><span class="t-sub">Win the circle, <b>+5 rep</b>. The room remembers.</span></div>
-          <div class="tile hot"><span class="t-name">RECORD</span><span class="t-sub">Hook first, off real life. Make the one they replay.</span></div>
-          <div class="tile"><span class="t-name">RELEASE</span><span class="t-sub">Put it out and the city decides what it is worth.</span></div>
-          <div class="tile"><span class="t-name">BATTLE</span><span class="t-sub">Named battlers, real records, your name on the card.</span></div>
-          <div class="tile"><span class="t-name">CATALOG</span><span class="t-sub">Every record you own keeps working while you sleep.</span></div>
-          <div class="tile"><span class="t-name">PARTY</span><span class="t-sub">Where the doors open and the stories start.</span></div>
-          <div class="tile locked"><span class="t-name">SLEEP</span><span class="t-sub">Locked. You are not tired. It is time to grind.</span></div>
+          <a class="tile" href="game.html" data-goatcounter-click="play-free"><span class="t-name">PLAY</span><span class="t-sub">Run the game. Free, in your browser.</span></a>
+          <a class="tile" href="#the-music"><span class="t-name">RECORD</span><span class="t-sub">The records behind the game.</span></a>
+          <a class="tile" href="https://youtube.com/playlist?list=PLWmOIA9FkXwXsDyuk60dy7Ulj_Hzw9pah" data-goatcounter-click="doucet-forever"><span class="t-name">CYPHER</span><span class="t-sub">DOUCET Forever: all the songs.</span></a>
+          <a class="tile" href="changelog.html"><span class="t-name">RELEASE</span><span class="t-sub">Every version, as it shipped.</span></a>
+          <a class="tile" href="https://youtube.com/playlist?list=PLWmOIA9FkXwU2lNv4Tv9SWr3DivPuzwVH" data-goatcounter-click="best-of-battles"><span class="t-name">BATTLE</span><span class="t-sub">Best of Reginald Loud.</span></a>
+          <a class="tile" href="https://open.spotify.com/artist/6pGOaet5SCp0qg9WEbAkN2" data-goatcounter-click="spotify-artist"><span class="t-name">CATALOG</span><span class="t-sub">DOUCET on Spotify.</span></a>
+          <a class="tile" href="https://x.com/kanye" data-goatcounter-click="x-kanye"><span class="t-name">PARTY</span><span class="t-sub">@kanye on X.</span></a>
+          <div class="tile locked" aria-disabled="true"><span class="t-name">SLEEP</span><span class="t-sub">Locked. You are not tired. It is time to grind.</span></div>
         </div>
-        <div class="screen-nav"><span class="on">DASH</span><span>PARTY</span><span>BASEMENT</span><span>BOOTH</span><span>MY ROOM</span></div>
+        <div class="screen-nav"><a class="on" href="https://rapdream.link/">DASH</a><a href="game.html">PLAY</a><a href="#the-music">MUSIC</a><a href="#the-builder">BUILDER</a><a href="changelog.html">LOG</a></div>
       </div>
     </div>
 
@@ -387,7 +398,7 @@
       </div>
       <div class="builder-box">
         <div class="music-flex">
-          <img class="music-art" src="https://i.scdn.co/image/ab67616d00001e023ea7ce2b7a4437ece44db156" alt="LOUISIANA CREOLE album cover art" width="230" height="230" loading="lazy">
+          <img class="music-art" src="assets/louisiana-creole-cover.jpg" alt="LOUISIANA CREOLE album cover: Doucet and his father with brass instruments, red monotone" width="230" height="230" loading="lazy">
           <div class="music-body">
             <p>The catalog: <b>LOUISIANA CREOLE</b>, the 2026 album, nine songs with Hay and LUKAS on it. Three EPs the same year: FLOW STATE, THE UNIVERSE SPEAKS JAZZ, EMOTIONAL CONTENT. The singles that started it: Hay and LUKAS, 2024. He makes his own beats about half the time, so the sound is his before the words ever land.</p>
             <div class="link-row">
