@@ -398,7 +398,7 @@
       <h1 class="rise rise-1">Start broke. Build the <span class="accent">empire.</span></h1>
       <p class="lede rise rise-2">A Y2K browser rap tycoon. Write the songs, work the day job, stack the catalog, take the city.</p>
       <div class="hero-actions rise rise-3">
-        <a class="btn btn-primary" href="game.html" data-goatcounter-click="play-free">PLAY FREE</a>
+        <a class="btn btn-primary" href="game.html" data-goatcounter-click="play-free" data-goatcounter-no-session="true">PLAY FREE</a>
         <a class="text-link" href="https://rapdream.itch.io/rap-dream" data-goatcounter-click="itch-own">Own it on itch</a>
       </div>
     </div>
@@ -420,7 +420,7 @@
           <a class="tile" href="https://x.com/kanye" data-goatcounter-click="x-kanye"><span class="t-name">PARTY</span><span class="t-sub">@kanye on X.</span></a>
           <div class="tile locked" aria-disabled="true"><span class="t-name">SLEEP</span><span class="t-sub">Locked. You are not tired. It is time to grind.</span></div>
         </div>
-        <div class="screen-nav"><a class="on" href="https://rapdream.link/">DASH</a><a href="game.html">PLAY</a><a href="#the-music">MUSIC</a><a href="#the-builder">BUILDER</a><a href="changelog.html">LOG</a></div>
+        <div class="screen-nav"><a class="on" href="https://rapdream.link/">DASH</a><a href="game.html" data-goatcounter-click="play-free" data-goatcounter-no-session="true">PLAY</a><a href="#the-music">MUSIC</a><a href="#the-builder">BUILDER</a><a href="changelog.html">LOG</a></div>
         </div>
         <div id="game-view" hidden>
           <div class="embed-bar">
@@ -550,7 +550,7 @@
   if (!playBtn || !deckView || !gameView || !gameSlot || !backBtn) return;
   function firePlayFree(tries){
     if (window.goatcounter && typeof window.goatcounter.count === 'function') {
-      window.goatcounter.count({ path: 'play-free', title: 'Play Free', event: true });
+      window.goatcounter.count({ path: 'play-free', title: 'Play Free', event: true, no_session: true });
     } else if (tries < 10) {
       setTimeout(function(){ firePlayFree(tries + 1); }, 200);
     }
