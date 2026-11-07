@@ -20486,8 +20486,9 @@ render();
    hard constraints (no consecutive-day streak anywhere, a total
    days record instead, nothing expires, world time advances only
    when played, no guilt copy, no energy or pay-to-skip added).
-   The 2-week test ships instrumented: exit type (structural vs
-   abrupt) and a short exit-affect check are recorded from day one.
+   Hotfix 2026-11-07 (Doucet's order): the Night Card exit survey
+   and its test telemetry are cut. The card ends at Sleep now;
+   nothing about the exit is recorded.
    Riders in this build: START THE DAY moves up into the primary
    zone of the morning panel (Rider 1); the FANS tile always shows
    the full exact count with stepped type and the engine caps fans
@@ -20496,8 +20497,7 @@ render();
    GoatCounter code is set so in-game beacons reach the dashboard
    (edited in the V13 beacon block, not here).
    State: v22 state rides the one save payload through
-   RapDreamPersist; test telemetry keeps its own local key because
-   it must be writable synchronously on pagehide.
+   RapDreamPersist.
    ================================================================== */
 (function () {
   function gel(id) { return document.getElementById(id); }
@@ -20560,46 +20560,6 @@ render();
     };
   })();
 
-  /* ---------------- test telemetry ----------------
-     Exit type and exit affect, recorded for the pre-committed
-     2-week test: failure days neutral-or-better, at least 70
-     percent structural exits, pressure items flat even if
-     retention rises. Retention alone passes nothing. */
-  var TELE_KEY = "rapdream.v22.telemetry.v1";
-  var tele = { events: [] };
-  try {
-    var rawTele = localStorage.getItem(TELE_KEY);
-    if (rawTele) { var parsedTele = JSON.parse(rawTele); if (parsedTele && Array.isArray(parsedTele.events)) { tele = parsedTele; } }
-  } catch (e) {}
-  function teleSave() {
-    try { localStorage.setItem(TELE_KEY, JSON.stringify(tele)); } catch (e) {}
-  }
-  /* Reload vs exit: an abrupt exit is only real if the tab does
-     not come back in the same session. sessionStorage survives a
-     reload (including the game's own bootguard reload) but not a
-     tab close, so a pending abrupt written on pagehide is scrubbed
-     if the next load finds the session flag still standing. */
-  var PEND_KEY = "rapdream.v22.pendingexit.v1";
-  try {
-    var pendRaw = localStorage.getItem(PEND_KEY);
-    if (pendRaw) {
-      var pend = JSON.parse(pendRaw);
-      var sameSession = false;
-      try { sameSession = !!sessionStorage.getItem("rapdream.v22.session"); } catch (e) {}
-      if (sameSession && pend && typeof pend.at === "number") {
-        tele.events = tele.events.filter(function (e) { return !(e.type === "exit" && e.value === "abrupt" && e.at === pend.at); });
-        teleSave();
-      }
-      localStorage.removeItem(PEND_KEY);
-    }
-    try { sessionStorage.setItem("rapdream.v22.session", "1"); } catch (e) {}
-  } catch (e) {}
-  function telePush(ev) {
-    ev.at = Date.now();
-    tele.events.push(ev);
-    if (tele.events.length > 160) { tele.events = tele.events.slice(-160); }
-    teleSave();
-  }
   function gcEvent(name) {
     try {
       if (window.goatcounter && typeof window.goatcounter.count === "function") {
@@ -20857,36 +20817,6 @@ render();
     });
     parkRow.appendChild(restBtn);
     card.appendChild(parkRow);
-    /* the exit-affect check: short, optional, never blocks the exit */
-    card.appendChild(mkEl("h3", null, "One tap for the record (optional)"));
-    var affRow = mkEl("div", "rd-v22-affect", null);
-    affRow.appendChild(mkEl("span", null, "Leaving feeling:"));
-    [["better", "Better"], ["same", "Same"], ["worse", "Worse"]].forEach(function (pair) {
-      var b = mkEl("button", "rd-v22-chip", pair[1]);
-      b.type = "button"; b.setAttribute("aria-pressed", "false");
-      b.addEventListener("click", function () {
-        var all = affRow.querySelectorAll(".rd-v22-chip");
-        for (var i = 0; i < all.length; i++) { all[i].setAttribute("aria-pressed", "false"); }
-        b.setAttribute("aria-pressed", "true");
-        telePush({ type: "affect", value: pair[0], day: data.day, loss: !!data.loss });
-      });
-      affRow.appendChild(b);
-    });
-    card.appendChild(affRow);
-    var presRow = mkEl("div", "rd-v22-affect", null);
-    presRow.appendChild(mkEl("span", null, "Today I played because:"));
-    [["wanted", "I wanted to"], ["hadto", "I felt I had to"]].forEach(function (pair) {
-      var b = mkEl("button", "rd-v22-chip", pair[1]);
-      b.type = "button"; b.setAttribute("aria-pressed", "false");
-      b.addEventListener("click", function () {
-        var all = presRow.querySelectorAll(".rd-v22-chip");
-        for (var i = 0; i < all.length; i++) { all[i].setAttribute("aria-pressed", "false"); }
-        b.setAttribute("aria-pressed", "true");
-        telePush({ type: "pressure", value: pair[0], day: data.day, loss: !!data.loss });
-      });
-      presRow.appendChild(b);
-    });
-    card.appendChild(presRow);
     nightSleepBtn = mkEl("button", "rd-v22-btn rd-v22-sleep", "Sleep. See the morning.");
     nightSleepBtn.type = "button";
     nightSleepBtn.addEventListener("click", proceedToMorning);
@@ -20905,7 +20835,6 @@ render();
       v22.totalDays += 1;
       v22.lastNightDay = data.day;
     }
-    telePush({ type: "exit", value: "structural", day: data.day, loss: !!data.loss });
     gcEvent("structural_exit");
     pendingNight = null;
     nightOpen = false;
@@ -21089,55 +21018,6 @@ render();
     }
   }
 
-  /* ---------------- abrupt exits: closing the tab mid-day ----------------
-     The save already rides the game's own autosave (renders mark
-     the run dirty, hiding the tab writes it out), so a mid-day
-     close resumes with nothing lost and nothing said about it.
-     Here we only record the exit type for the test. */
-  var abruptSent = false;
-  function noteAbrupt() {
-    if (abruptSent) { return; }
-    abruptSent = true;
-    try {
-      var s = curS();
-      if (!s || !picked() || nightOpen) { return; }
-      if (v22.lastNightDay >= (s.day || 1)) { return; }
-      var df = gel("dayflash");
-      if (df && !df.classList.contains("hidden")) { return; }
-      var already = tele.events.some(function (e) { return e.type === "exit" && e.value === "abrupt" && e.day === (s.day || 1); });
-      if (already) { return; }
-      var evObj = { type: "exit", value: "abrupt", day: s.day || 1, loss: false };
-      telePush(evObj);
-      try { localStorage.setItem(PEND_KEY, JSON.stringify({ day: evObj.day, at: evObj.at })); } catch (e) {}
-    } catch (e) {}
-  }
-  /* Only an actual unload counts as an abrupt exit. A tab that is
-     merely hidden (switched away from, minimized) is not an exit:
-     the player may come right back, and the core autosave already
-     rides visibilitychange for the save itself. (Hotfix from the
-     V22 verification pass: counting hides inflated abrupt exits
-     and failed the structural-share check on a clean run.) */
-  window.addEventListener("pagehide", noteAbrupt);
-
-  function testSummary() {
-    var exits = tele.events.filter(function (e) { return e.type === "exit"; });
-    var structural = exits.filter(function (e) { return e.value === "structural"; }).length;
-    var failureAffects = tele.events.filter(function (e) { return e.type === "affect" && e.loss; });
-    var failureOk = failureAffects.filter(function (e) { return e.value === "better" || e.value === "same"; }).length;
-    var pressure = tele.events.filter(function (e) { return e.type === "pressure"; });
-    var hadto = pressure.filter(function (e) { return e.value === "hadto"; }).length;
-    return {
-      exits: exits.length,
-      structural: structural,
-      structuralShare: exits.length ? +(structural / exits.length).toFixed(3) : null,
-      failureAffectChecks: failureAffects.length,
-      failureNeutralOrBetterShare: failureAffects.length ? +(failureOk / failureAffects.length).toFixed(3) : null,
-      pressureChecks: pressure.length,
-      pressureHadToShare: pressure.length ? +(hadto / pressure.length).toFixed(3) : null,
-      passConditions: "failure days neutral-or-better; structural share >= 0.70; pressure flat week over week even if retention rises"
-    };
-  }
-
   moveStartDay();
   setInterval(function () { try { fixEndCard(); } catch (e) {} }, 600);
 
@@ -21145,9 +21025,6 @@ render();
     version: "V22",
     state: v22,
     fansCap: FANS_CAP,
-    telemetry: function () { return tele.events.slice(); },
-    resetTelemetry: function () { tele = { events: [] }; teleSave(); },
-    testSummary: testSummary,
     nightPending: function () { return pendingNight; },
     paintMorning: paintMorning,
     proceed: proceedToMorning,
