@@ -1,5 +1,7 @@
 # Rap Dream
 
+`index.html` is the site (rapdream.link). `game.html` is the game itself.
+
 Start broke with a day job. Build the name, the catalog, and the empire.
 
 A rap career game that runs entirely in your browser. One file, no installs, no accounts. Your run lives and dies in the tab.
