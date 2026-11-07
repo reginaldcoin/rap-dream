@@ -253,11 +253,12 @@
   .cred-tag{color:var(--accent);font-weight:700;letter-spacing:.22em;text-transform:uppercase;font-size:12px;display:block;margin-bottom:14px}
   .cred-line{color:var(--muted);font-size:17px;max-width:66ch;margin-bottom:16px}
   .cred-line b{color:var(--ink);font-weight:700}
-  .cred-list{display:flex;flex-wrap:wrap;gap:10px;list-style:none}
-  .cred-list li{
-    border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:10px 18px;min-height:48px;
-    display:inline-flex;align-items:center;font-weight:700;font-size:15px;color:var(--ink);background:rgba(255,255,255,.03);
-  }
+  .cred-names{color:var(--muted);font-size:15px;line-height:1.75;max-width:62ch}
+  .proof-line{margin-top:14px}
+  .proof-line a{color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(55,242,162,.4);padding-bottom:2px}
+  .link-row.slim{gap:6px 24px;margin-top:22px}
+  .link-row.slim a{min-height:0;padding:4px 0;border:none;border-radius:0;background:none;color:var(--muted);font-size:15px;font-weight:600}
+  .link-row.slim a:hover{color:var(--ink);background:none;transform:none;text-decoration:underline}
 
   .own{
     text-align:center;
@@ -423,23 +424,10 @@
         <p>Built by Reginald Doucet Jr., aka Reginald Loud, aka DOUCET: a Black indie dev in Jersey City building hip-hop worlds. Battle rapper first, programmer by specification: he designs the systems, directs the build, playtests and corrects every version himself.</p>
         <div class="cred">
           <span class="cred-tag">As Reginald Loud, the battler</span>
-          <p class="cred-line">Battle-tested across <b>nine leagues</b>.</p>
-          <ul class="cred-list">
-            <li>No Coast Raps</li>
-            <li>ULB (Upper Leftchelon)</li>
-            <li>SkyTier Northwest</li>
-            <li>Get You Some</li>
-            <li>Face Off Battle League</li>
-            <li>For MCs By MCs</li>
-            <li>Smoov TV</li>
-            <li>The Live Rap Circle</li>
-            <li>Don't Flop (tryout)</li>
-          </ul>
-          <div class="link-row">
-            <a href="https://youtube.com/playlist?list=PLWmOIA9FkXwU2lNv4Tv9SWr3DivPuzwVH" data-goatcounter-click="best-of-battles">Best of Reginald Loud: watch the battles</a>
-          </div>
+          <p class="cred-line">Battle-tested across <b>nine leagues</b>: <span class="cred-names">No Coast Raps · ULB (Upper Leftchelon) · SkyTier Northwest · Get You Some · Face Off Battle League · For MCs By MCs · Smoov TV · The Live Rap Circle · Don't Flop (tryout)</span></p>
+          <p class="proof-line"><a href="https://youtube.com/playlist?list=PLWmOIA9FkXwU2lNv4Tv9SWr3DivPuzwVH" data-goatcounter-click="best-of-battles">Watch: Best of Reginald Loud</a></p>
         </div>
-        <div class="link-row">
+        <div class="link-row slim">
           <a href="https://rapdream.itch.io/rap-dream" data-goatcounter-click="itch-own">Rap Dream on itch.io</a>
           <a href="https://github.com/reginaldcoin/rap-dream">Rap Dream source on GitHub</a>
           <a href="https://charleshamilton.app">charleshamilton.app, his other build</a>
