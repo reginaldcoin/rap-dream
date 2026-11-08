@@ -654,6 +654,40 @@
     .screen-nav a:hover{border-color:transparent}
     .screen-nav a.on{background:none;border-color:transparent;color:var(--accent)}
   }
+
+  /* ---------- phone composition, consolidated (FINAL WORD at phone widths) ----------
+     Every load-bearing phone value for the home lives in this one block, placed
+     after all other blocks so it wins the cascade by source order at equal
+     specificity. Earlier phone blocks (masthead, panel, home-screen) scattered
+     the winners; this block is the single readable truth for <=820px.
+     Design: the deck is a phone home screen of bare icons, not cards; the hero
+     is a headline, not a poster. The kicker hides on phone only: its sentence
+     is the lede's first sentence, so the words stay on screen exactly once
+     (the kicker remains in the HTML and on desktop). */
+  @media (max-width:820px){
+    /* header stack */
+    .mast{padding:8px 0 6px}
+    .js .mast{padding:8px 0 6px}
+    .wordmark{font-size:30px}
+    nav a{min-height:38px}
+    .ticker{padding-top:5px;padding-bottom:6px}
+    /* hero: headline, not poster */
+    .js .hero{padding:6px 0 0}
+    .js .kicker{display:none}
+    .js h1{font-size:34px;line-height:1.0;margin-bottom:8px}
+    .js .lede{font-size:15px;line-height:1.4;margin-bottom:12px}
+    .btn{min-height:46px}
+    /* deck: bare icons at a fixed fluid size; PLAY keeps its filled box */
+    .js .screen{margin-top:10px}
+    .tiles{row-gap:12px;column-gap:10px}
+    .tile{gap:5px}
+    .t-glyph{
+      width:min(56px,15vw);height:min(56px,15vw);aspect-ratio:auto;
+      background:none;border:none;border-radius:16px;font-size:24px;
+    }
+    .screen-nav{margin-top:14px}
+    .screen-nav a,.screen-nav span{min-height:40px}
+  }
 </style>
 </head>
 <body>
