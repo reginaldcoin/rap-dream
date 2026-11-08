@@ -450,6 +450,36 @@
   @media (prefers-reduced-motion: reduce){
     .spar-prompt.flash .spar-text{animation:none}
   }
+
+  /* ---------- COMPUTER: the terminal ---------- */
+  .comp-screen{
+    background:#050B12;border:1px solid rgba(105,189,255,.22);border-radius:14px;
+    padding:18px 18px 14px;
+    font-family:ui-monospace,"IBM Plex Mono",Menlo,Consolas,monospace;
+    color:#DCD7C9;
+  }
+  .comp-log{
+    min-height:220px;max-height:46vh;overflow-y:auto;
+    display:flex;flex-direction:column;gap:9px;
+    font-size:17px;line-height:1.45;scrollbar-width:thin;
+  }
+  .comp-line{margin:0;overflow-wrap:anywhere}
+  .comp-line.sys{color:#8B93A1}
+  .comp-line.you{color:#69BDFF}
+  .comp-line.you::before{content:"> ";color:#8B93A1}
+  .comp-foot{display:flex;gap:8px;align-items:baseline;margin-top:12px;color:#8B93A1;font-size:15px}
+  .comp-caret{display:inline-block;color:var(--accent);animation:compblink 1.05s steps(1) infinite}
+  @keyframes compblink{50%{opacity:0}}
+  .comp-choices{display:grid;gap:8px;margin-top:14px}
+  .comp-choice{
+    padding:11px 13px;color:#DCD7C9;background:#0A1622;
+    border:1px solid rgba(105,189,255,.35);border-radius:10px;
+    font:inherit;font-size:16px;line-height:1.3;text-align:left;cursor:pointer;
+  }
+  .comp-choice:hover,.comp-choice:focus-visible{background:#0E2136;outline:2px solid var(--accent);outline-offset:2px}
+  .comp-choice .comp-key{margin-right:9px;color:var(--accent);font-weight:700}
+  @media (prefers-reduced-motion: reduce){ .comp-caret{animation:none} }
+  @media (max-width:620px){ .comp-log{min-height:190px;font-size:16px} }
   @media (max-width:820px){
     .js section.panel{width:calc(100vw - 16px);max-height:calc(100dvh - 20px);padding:20px 18px 26px}
     .js .hero{padding:34px 0 0}
@@ -593,6 +623,7 @@
           <a class="tile" href="#the-music" data-goatcounter-title="RECORD"><span class="t-glyph" aria-hidden="true">●</span><span class="t-name">RECORD</span><span class="t-sub">The records behind the game.</span></a>
           <a class="tile" href="#release" data-goatcounter-title="RELEASE"><span class="t-glyph" aria-hidden="true">↑</span><span class="t-name">RELEASE</span><span class="t-sub">Every version, as it shipped.</span></a>
           <a class="tile" href="#spar" data-goatcounter-title="SPAR"><span class="t-glyph" aria-hidden="true">◉</span><span class="t-name">SPAR</span><span class="t-sub">The freestyle clock. Rounds, angles, no hiding.</span></a>
+          <a class="tile" href="#computer" data-goatcounter-title="COMPUTER"><span class="t-glyph" aria-hidden="true">&gt;_&#xFE0E;</span><span class="t-name">COMPUTER</span><span class="t-sub">Talks about life.</span></a>
         </div>
         <div class="screen-nav"><a class="on" href="https://rapdream.link/">DASH</a><a href="game.html" data-goatcounter-click="play-free" data-goatcounter-no-session="true">PLAY</a><a href="#the-music">MUSIC</a><a href="#the-builder">BUILDER</a><a href="changelog.html">LOG</a></div>
         </div>
@@ -755,6 +786,20 @@
       </div>
     </section>
 
+    <section id="computer" class="panel">
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="section-head">
+        <span class="section-tag">Computer</span>
+        <h2>A quiet terminal</h2>
+        <p class="section-sub">It talks about life. Sit as long as you like. Leave whenever.</p>
+      </div>
+      <div class="comp-screen" id="comp-screen">
+        <div class="comp-log" id="comp-log"></div>
+        <div class="comp-foot"><span>guest@rapdream:~$</span><span class="comp-caret" aria-hidden="true">▌</span></div>
+        <div class="comp-choices" id="comp-choices"></div>
+      </div>
+    </section>
+
   </div>
 </main>
 
@@ -905,8 +950,8 @@
 </script>
 <script id="panel-script">
 (function(){
-  var ids = ['the-game','the-music','the-builder','own-it','spar','release'];
-  var names = {'the-game':'Game','the-music':'Music','the-builder':'Builder','own-it':'Own It','spar':'SPAR','release':'Release'};
+  var ids = ['the-game','the-music','the-builder','own-it','spar','release','computer'];
+  var names = {'the-game':'Game','the-music':'Music','the-builder':'Builder','own-it':'Own It','spar':'SPAR','release':'Release','computer':'Computer'};
   var panels = {}, openers = {}, state = {}, i;
   for (i = 0; i < ids.length; i++) {
     var p = document.getElementById(ids[i]);
@@ -1081,6 +1126,9 @@
     /* SPAR hook fires only on a fresh open: restoring a minimized SPAR must not
        reset a running round. */
     if (id === 'spar' && typeof window.__sparOpen === 'function') window.__sparOpen();
+    /* COMPUTER hook fires only on a fresh open: the terminal starts its session
+       here; restoring or bringing it to front must not restart the conversation. */
+    if (id === 'computer' && typeof window.__computerOpen === 'function') window.__computerOpen();
     panel.classList.remove('min');
     panel.setAttribute('aria-hidden', 'false');
     panel.scrollTop = 0;
@@ -1340,5 +1388,941 @@
 })();
 </script>
 <script data-goatcounter="https://rapdream.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script id="computer-script">
+(function(){
+  var panel = document.getElementById('computer');
+  var logEl = document.getElementById('comp-log');
+  var choicesEl = document.getElementById('comp-choices');
+  var screenEl = document.getElementById('comp-screen');
+  if (!panel || !logEl || !choicesEl || !screenEl) return;
+
+  var DAO_THREADS = [
+    {
+      open: "Nothing in the world is softer than water, and nothing is better at wearing down what is hard. You do not have to push your way through today. Go around. Settle low, keep moving, and you will get there without breaking yourself.",
+      turns: [
+        { opts: ["Pushing is all I know", "Going around feels like losing"],
+          say: ["Pushing works, until it costs you the thing you are pushing for. Water never argues with the rock. It just keeps being water, and one day the rock is a path.",
+                "It only looks like losing from the side of the rock. The river does not lose. It arrives later, whole, with everything it carried still in its hands."] },
+        { opts: ["I don't want to arrive late", "What if I stop moving entirely?"],
+          say: ["Late is a story told by people watching clocks. The low places fill first. Arrive as yourself, not as a hurry.",
+                "Still water and moving water are both water. Rest is not quitting. Even the river has slow bends where nothing is asked of it."] },
+        { opts: ["I can try softer today", "The hard way got me this far"],
+          say: ["Then just today. Soften the grip, not the goal. Watch how much gets done when you stop spending yourself on the fight.",
+                "It did. Honor that. And notice what it cost. A way can carry you a long way and still not be the way you finish."] },
+        { opts: ["Okay. Around, not through", "I'll sit with that"],
+          say: ["Around, not through. Low, not loud. You will be surprised how much of the mountain was optional.",
+                "Sit, then. Water sitting still is still water. Nothing about you is wasted while you rest."] }
+      ]
+    },
+    {
+      open: "When water is muddy, the way to clear it is to leave it alone. Stirring never made anything clear. If your head is loud today, the kindest move might be no move at all: let the silt fall on its own.",
+      turns: [
+        { opts: ["I don't have time to wait", "Everything feels stirred up"],
+          say: ["Waiting is not the empty part of the day. It is the part where the day sorts itself. Ten quiet minutes can do what an hour of stirring cannot.",
+                "Of course it does. Stirred is a season, not a sentence. Feelings settle the way silt does: slowly, and only downward, if you let them."] },
+        { opts: ["What do I do while I wait?", "Stillness feels like giving up"],
+          say: ["Small, ordinary things. Eat something warm. Step outside. Let the hands do simple work while the water clears itself upstairs.",
+                "Giving up drops the bucket. Stillness just sets it down gently and keeps hold of the rope. Different thing entirely."] },
+        { opts: ["My thoughts keep racing", "I keep checking if it's clear yet"],
+          say: ["Thoughts race when they are chased. Let them pass like weather over a pond. You are the pond, not the weather.",
+                "Checking is stirring. Trust the bottom of you to do its quiet work. Check less. It clears faster in the dark, unwatched."] },
+        { opts: ["Alright. Hands off the water", "I'll give it an hour of quiet"],
+          say: ["Hands off. By the time you look again, you will be able to see the bottom: and the bottom is where you actually live.",
+                "An hour of quiet, then. Whatever is still true after the silt settles is the thing worth answering. The rest was just weather."] }
+      ]
+    },
+    {
+      open: "There is no bigger loss than not knowing when you have enough. Enough is not a small life. Enough is the ground a good life stands on. Look at what is already in your hands today before reaching for more.",
+      turns: [
+        { opts: ["It never feels like enough", "More is how I stay safe"],
+          say: ["That is because enough is not a number. It is a feeling that arrives when you stop measuring for a minute. Give it a minute.",
+                "Safety bought with more has a way of raising its price. At some point the guarding costs more than the thing being guarded."] },
+        { opts: ["How do I know my enough?", "People around me keep wanting more"],
+          say: ["Your enough is the point where taking more starts taking from you: sleep, ease, the people you like being. You will feel the trade before you can name it.",
+                "Their hunger is not your assignment. A full bowl looks the same from every chair at the table, even if the neighbors are still ordering."] },
+        { opts: ["I'm scared to stop reaching", "What if enough makes me lazy?"],
+          say: ["Stopping the reach is not stopping the life. Trees stop growing taller and start growing rings. There is more than one direction to grow.",
+                "Rest has never made anything lazy. It makes roots. What grows from rested ground lasts longer than what grows from panic."] },
+        { opts: ["I have more than I admit", "Enough. I'll practice the word"],
+          say: ["Say it plainly, then: I have enough to begin. Everything after that sentence is decoration.",
+                "Practice it out loud once a day. Small word. Heavy door. It opens easier every time you use it."] }
+      ]
+    },
+    {
+      open: "Getting wise works backwards from what most people expect: less, not more. Drop one thing a day: one grudge, one should, one noise: and eventually you arrive at carrying nothing that is not yours.",
+      turns: [
+        { opts: ["My life is already too full", "What would I even drop first?"],
+          say: ["Full is exactly where subtraction begins. You do not need a plan for the whole house. One drawer. One honest no.",
+                "Drop the thing you picked up to please somebody who is not even watching anymore. You already know which one it is."] },
+        { opts: ["Dropping things feels risky", "I keep adding instead"],
+          say: ["Carrying everything is the riskier bet. It just charges you slowly, so it feels safe. Put one thing down and notice the sky does not move.",
+                "Adding is easy to praise and hard to live inside. Try a week of one-in, one-out. Watch your shoulders learn the news before your head does."] },
+        { opts: ["Some of it isn't mine to drop", "Quiet feels empty to me"],
+          say: ["Then drop only your grip on it. You can set down your side of a heavy thing. That is always yours to do.",
+                "Quiet feels empty the way a cleared table looks empty: right before a good meal lands on it. Space is an ingredient, not an absence."] },
+        { opts: ["One thing down, starting now", "Less, not more. Okay"],
+          say: ["Good. Feel how the hand opens. That open hand is the whole teaching: everything else is commentary.",
+                "Less, not more. And when you are down to what is actually yours, you will find it was enough to build a life on all along."] }
+      ]
+    },
+    {
+      open: "A tree that fills your arms starts as a sprout. A tower starts as a basket of dirt. A walk of a thousand miles starts under your feet: not at the horizon, under your feet, where you already are.",
+      turns: [
+        { opts: ["The whole road scares me", "I've started over so many times"],
+          say: ["The road was never yours to walk all at once. Only this step is. The rest of it will introduce itself when you get there.",
+                "Starting over means you know where the start is. Most people never learn that. Your feet already know the way back to the path."] },
+        { opts: ["My steps feel too small", "Everyone seems further ahead"],
+          say: ["Small is how big things are made when nobody is clapping. The sprout does not apologize for not being shade yet.",
+                "You are comparing your beginning to their middle. Compare you to last season's you, and the race turns back into a walk."] },
+        { opts: ["What if I fall behind?", "I want it to happen faster"],
+          say: ["Behind whom? The path is not a line, it is weather: everybody's season turns on its own clock. Yours is not broken. It is yours.",
+                "Faster has a tax, and it collects in the body. Steady arrives with the person still intact. Choose the arrival you can live in."] },
+        { opts: ["Just the next step, then", "Under my feet. I can do that"],
+          say: ["Just the next step. Take it small and take it true. The road does the rest: it always has.",
+                "Under your feet is the only place a life has ever started. You are already standing on the beginning. Go on, then."] }
+      ]
+    },
+    {
+      open: "What bends does not break. The willow lets the snow slide off because it bows. Being bent by a hard season is not being beaten by it: it is how living things stay alive through winter.",
+      turns: [
+        { opts: ["Bending feels like weakness", "I've been bent a long time"],
+          say: ["The stiff tree is the one the storm takes. Strength that cannot bow is just a slower kind of breaking. Your bend is a skill.",
+                "A long bend still ends. Seasons do not ask permission, but they do finish. Stay rooted. Root work is happening even when nothing shows."] },
+        { opts: ["People might see me bow", "What if I can't straighten back up?"],
+          say: ["Let them see. A bow seen honestly teaches the whole room something a pose never could. There is no shame in weather.",
+                "Green wood remembers its shape. You straighten the way you bent: gradually, in the light, a little more each warm day."] },
+        { opts: ["I want to just snap back", "Rest feels unearned right now"],
+          say: ["Snapping is the thing to avoid. Rise like sap, not like a spring. Slow return, full height, nothing torn.",
+                "The field rests every winter without asking permission. Rest is not a wage. It is a season, and you are in one."] },
+        { opts: ["I'll bow and stay rooted", "Winter isn't forever. Okay"],
+          say: ["Bow, stay rooted, let the snow slide off on its own schedule. Spring has never once forgotten an address.",
+                "Not forever. And when it lifts, you will still be here: which is more than the stiff ones can say."] }
+      ]
+    },
+    {
+      open: "A cup is useful because of the space inside it. A room is useful because of the emptiness you can live in. What you have matters: but the room you leave open is what lets anything good arrive.",
+      turns: [
+        { opts: ["My days have no space in them", "Empty feels like I'm failing"],
+          say: ["Then the work today is one small clearing. Ten unclaimed minutes guarded like they matter: because they are where the day gets to breathe.",
+                "A full cup cannot receive tea. Emptiness is not the failure of the vessel. It is the entire point of having one."] },
+        { opts: ["I fill space the second it opens", "What should the space be for?"],
+          say: ["Notice the reach for the phone, the noise, the task. That reach is a habit, not a need. Let one opening stay open today and see what visits.",
+                "Nothing. That is the discipline of it. Space with a job is just another task wearing quiet clothes. Let it be unassigned and alive."] },
+        { opts: ["Rest makes me restless", "People need me in every gap"],
+          say: ["Restlessness is just energy with nowhere kind to go. It settles. Give it three breaths before you give it a screen.",
+                "A door that is always open lets the weather in too. Closing sometimes is how you stay a house instead of a hallway."] },
+        { opts: ["I'll guard ten open minutes", "Space is an ingredient. Okay"],
+          say: ["Ten minutes, unclaimed, defended like a garden gate. What grows in there might be the best part of your week.",
+                "An ingredient. Yes. Stir some emptiness into the day and watch the whole flavor change."] }
+      ]
+    },
+    {
+      open: "Knowing other people is smart. Knowing yourself is the deeper light. Winning against others takes muscle. Winning against your own worst weather takes something rarer: and it lasts.",
+      turns: [
+        { opts: ["I don't really know what I want", "I'm hard on myself a lot"],
+          say: ["Wanting gets quiet under everybody else's noise. Sit with the question instead of answering it fast. The true one speaks low.",
+                "Hardness is not honesty. You can tell yourself the truth in a kind voice: the truth does not change, but the hearing of it does."] },
+        { opts: ["My moods run the whole house", "I compare myself constantly"],
+          say: ["Moods are weather moving through rooms. You are the house. A storm inside does not make the house a storm.",
+                "Comparison is just looking at your life through somebody else's window. Come back to your own side of the glass. The view is information there."] },
+        { opts: ["How do I start knowing myself?", "Being content feels like settling"],
+          say: ["Watch what you do when nobody is grading. That unobserved you is the real syllabus. It teaches quietly, so listen quietly.",
+                "Contentment is not the end of wanting. It is wanting from solid ground instead of from a hole. The view changes everything."] },
+        { opts: ["I'll be the house, not the storm", "Kinder voice. Same truth"],
+          say: ["The house, yes. Let the weather pass through and keep the lamps lit. That is the whole practice, some days.",
+                "Kinder voice, same truth. Carry that pair with you and most rooms you enter will get easier to be in."] }
+      ]
+    },
+    {
+      open: "Fill a bowl to the brim and it spills. Sharpen a blade past its edge and it dulls. The old teaching says: do the work, then step back. Stepping back is not losing the thing. It is how the thing stays yours.",
+      turns: [
+        { opts: ["I don't know when to stop", "Stepping back feels like quitting"],
+          say: ["Stop one breath before full. Leave a little room in the cup, the day, the sentence. That margin is where ease lives.",
+                "Quitting drops the work. Stepping back sets it down finished, like a tool cleaned and hung up. Your hands are free, not empty."] },
+        { opts: ["I keep polishing past done", "Others might take the credit"],
+          say: ["Past done, the polishing starts sanding the shine off. Call it at good. Good kept is worth more than perfect ruined.",
+                "Credit is weather; the work is the house. What you built keeps your fingerprints whether or not the room says your name today."] },
+        { opts: ["Rest after work feels itchy", "I tie my worth to the grind"],
+          say: ["The itch fades. Sit on your hands through three breaths of it. On the other side is a quieter kind of pride.",
+                "Then the grind owns the worth and sets its price daily. Your worth was issued before your first shift. It does not clock in."] },
+        { opts: ["Done is enough. Stepping back", "I'll stop one breath before full"],
+          say: ["Stepping back with the work intact and your hands free: that is mastery wearing plain clothes. Walk on.",
+                "One breath before full. Watch how much lighter the carry gets when nothing is spilling."] }
+      ]
+    },
+    {
+      open: "The old book keeps three treasures: kindness, making do with little, and not needing to be first. That is the whole list. Everything heavy you are carrying today: check whether it is one of those three in disguise.",
+      turns: [
+        { opts: ["Kindness feels hard lately", "I hate not being first"],
+          say: ["Kindness gets hard when the well runs low. You cannot pour from an empty cup: rest first, and count that as part of the kindness.",
+                "First is a lonely chair and everybody is aiming at it. Second row has room to breathe, learn, and arrive whole."] },
+        { opts: ["Making do feels like giving up", "I spend kindness on everyone but me"],
+          say: ["Making do is a craft, not a surrender. A meal from what is in the house can feed you better than a feast you went into debt for.",
+                "Then start the rounds at home. The first person on your route is you. Even one kind sentence, said inward, counts."] },
+        { opts: ["Not being first scares me", "Little never feels like enough out there"],
+          say: ["Behind the front is where the whole picture is. The front sees the road. The back sees the road and the people. Better view, honestly.",
+                "Out there is a loud place with rented standards. In here, little plus peace outweighs much plus noise. Do the math at home."] },
+        { opts: ["Three treasures. I can carry those", "Kindness first, starting with me"],
+          say: ["Light luggage, those three. Walk far on them. People have crossed whole lives on less.",
+                "Starting with you, then outward like rings in water. That is not selfish. That is how the pond works."] }
+      ]
+    },
+    {
+      open: "The oldest teaching starts with a warning: the way that can be fully explained is not the whole way. The name you can give a thing is never the whole thing. Some of today will not fit in words: and that part is not broken. It is the root.",
+      turns: [
+        { opts: ["I need everything named", "Words keep failing me"],
+          say: ["Naming helps you carry things. It does not make them what they are. Hold the name lightly and the thing itself stays in reach.",
+                "Words failing is not you failing. It is the map admitting it is a map. Stand in the territory a while. It teaches without talking."] },
+        { opts: ["Silence makes me nervous", "The root. I can sit with that"],
+          say: ["Nerves at silence are just the mind asking for its usual job. Let it rest. Under the noise there is something older doing fine without commentary.",
+                "Sit with it, then. Everything you will ever name grows out of the unnamed part first."] }
+      ]
+    },
+    {
+      open: "Hard and soft are not enemies. They raise each other. Long needs short to mean anything, high needs low, easy needs hard. Whatever today is: its opposite is standing right beside it, holding it up.",
+      turns: [
+        { opts: ["Today is all hard", "I keep fighting my opposites"],
+          say: ["All hard still contains the soft it leans on. Look for the small easy thing hiding inside the hard day. It is load-bearing.",
+                "Fighting your opposite is fighting your own other half. A coin cannot spend only one of its sides."] },
+        { opts: ["So the bad day helps?", "They raise each other. Okay"],
+          say: ["Helps is a strong word. Belongs, maybe. The low day is how the high one gets its height. No valley, no mountain: just flat.",
+                "Hold both, then, and stop asking which one is really you. The pair is you."] }
+      ]
+    },
+    {
+      open: "The old book says: do not put the clever on pedestals and people stop fighting over scraps. Do not flash what you have and nobody reaches for it. Quiet display is not hiding. It is removing the spark from the powder.",
+      turns: [
+        { opts: ["I like being seen winning", "People envy anyway"],
+          say: ["Being seen winning and needing to be seen winning are different rooms. Visit the first whenever it happens. Try not to live in the second.",
+                "Some will. You cannot govern other people's weather. You can only stop handing out umbrellas made of your own good news."] },
+        { opts: ["Quiet display, then", "I'll keep it lower today"],
+          say: ["Quiet, not hidden. A lamp does not announce itself. It just makes the room usable. Be light, not a headline.",
+                "Lower, and watch how much calmer the room gets: including the room inside your own chest."] }
+      ]
+    },
+    {
+      open: "What is empty inside a person is called the valley, and the valley is never full and never exhausted. Everything real in you runs downhill toward the quiet places. Make room down low and life keeps flowing in.",
+      turns: [
+        { opts: ["I feel hollow lately", "Low places feel like failure"],
+          say: ["Hollow is the valley's other name, and the valley is where the river chooses to live. Feeling empty and being useless are not the same report.",
+                "Rivers disagree with you. Everything that sustains life collects low. Pride dries on the ridge. The valley feeds the whole country."] },
+        { opts: ["I'll make room down low", "Never exhausted. Okay"],
+          say: ["Room down low, gates open. What is meant for you knows how to flow. You do not have to chase water uphill.",
+                "Never exhausted because it never pretends to be the source. Stay valley and the source keeps visiting."] }
+      ]
+    },
+    {
+      open: "Heaven and earth do not play favorites. The sun does not check your worth before it rises. That is not coldness: it is the deepest fairness there is: the rain falls on the just and the unjust, and both get to grow.",
+      turns: [
+        { opts: ["The world feels rigged for others", "Impartial sounds lonely"],
+          say: ["Look again at what falls free: light, air, rain, mornings. The impartial gifts are the biggest ones. You have been receiving them your whole life without asking.",
+                "Impartial is only lonely if you needed the universe to be a parent. As weather, it is honest company: it never lies about what season it is."] },
+        { opts: ["Rain on everybody, then", "I'll take the free gifts"],
+          say: ["On everybody. So stop auditing who deserved their rain. Tend your own field while the weather is generous.",
+                "Take them standing up, with both hands. Gratitude is just noticing the delivery was never actually stopped."] }
+      ]
+    },
+    {
+      open: "The valley spirit does not die, the old book says: it is the door everything comes through. The quiet, receptive part of you is not the weak part. It is the generative part. Protect it like a source, because it is one.",
+      turns: [
+        { opts: ["My quiet part gets no respect", "I push output all day"],
+          say: ["Respect it yourself first. The source does not advertise. Everything downstream owes it anyway, whether they say so or not.",
+                "Output is downstream. Pushing it while the source runs dry is how people end up loud and empty. Rest is maintenance on the spring itself."] },
+        { opts: ["Protect the source", "Receptive is a strength. Okay"],
+          say: ["Fence it gently. Not everything gets to drink from the headwaters. Some hours of you are not for distribution.",
+                "A strength, and the oldest one. Everything you have ever made started as something you first received quietly."] }
+      ]
+    },
+    {
+      open: "The selfless thing lasts. Heaven and earth endure because they do not live for themselves: the sun is not trying to get somewhere. What you do today without keeping score has a strange way of still standing years from now.",
+      turns: [
+        { opts: ["I keep score constantly", "Unscored work feels invisible"],
+          say: ["Score-keeping is heavy luggage and the game it tracks is mostly imaginary. Set it down for one task today and notice your shoulders.",
+                "Invisible to the tally, not to the world. Trees do not publish their shade. People still sit in it, grateful, for a hundred years."] },
+        { opts: ["One task, no score", "Lasting beats loud. Okay"],
+          say: ["One task done clean, no ledger. That is the whole practice, and it compounds like interest nobody can tax.",
+                "Loud fades on schedule. Lasting just keeps being there when people come back looking. Build for the return visit."] }
+      ]
+    },
+    {
+      open: "Five colors at once and the eye goes dull. Five flavors at once and the tongue goes numb. Too much of everything is a way of tasting nothing. Today might not need more sensation. It might need less, so the real one can register.",
+      turns: [
+        { opts: ["I scroll to feel something", "More is my default setting"],
+          say: ["Scrolling is the tongue asking for a sixth flavor because the first five went numb. Put it down mid-craving once. The numbness lifting feels like boredom, then like peace.",
+                "Defaults can be re-set. One meal, one song, one window at a time: watch how loud a single flavor gets when it is alone."] },
+        { opts: ["Less, so it registers", "One thing at a time today"],
+          say: ["Less, chosen on purpose, is not deprivation. It is turning the volume of the world down so you can hear your own instrument again.",
+                "One thing at a time, done with your whole attention. That used to be called ordinary life. It is now nearly a superpower."] }
+      ]
+    },
+    {
+      open: "Favor and disgrace both rattle a person, the old book notices. Win the prize and you fear losing it. Lose it and you fear everything. The trouble is not winning or losing. It is handing your steadiness to either one.",
+      turns: [
+        { opts: ["Good news shakes me too", "I ride every verdict"],
+          say: ["That shaking is the tell. When praise and blame both move you the same amount, neither is information anymore: it is weather you live outdoors in. Build a house.",
+                "Verdicts arrive daily and expire daily. You do not have to sign for every delivery. Let some sit on the porch unopened."] },
+        { opts: ["Steady either way, then", "The house, not the weather"],
+          say: ["Steady is not flat. It is rooted. The tree still feels the wind: it just does not relocate for it.",
+                "House, yes. Lamps lit, door that closes. Weather does what it does. You remain an address, not a forecast."] }
+      ]
+    },
+    {
+      open: "Look for it and you do not see it. Listen for it and you do not hear it. The most important things in a life are like that: love, trust, the feeling of home. They do not perform for the senses. They are known another way.",
+      turns: [
+        { opts: ["I only trust what I can check", "The unseen stuff scares me"],
+          say: ["Checking has its place. But your own heartbeat runs unchecked all day, faithfully. Some things are trusted precisely because they never demanded proof.",
+                "It scared everyone, once. Then you learn the inventory of a life is mostly invisible: and that the visible part was never the valuable part."] },
+        { opts: ["Known another way. Okay", "I'll stop demanding proof today"],
+          say: ["Known the way you know a room is warm. No instrument, no argument. Just the honest report of being in it.",
+                "One day of unproven trust, then. Watch how much energy comes back when the audits stop."] }
+      ]
+    },
+    {
+      open: "Stillness has a destination: everything returns to the root. Leaves fall, noise settles, careers and seasons and tempers all come back to the quiet they started from. Returning is not the end of the story. It is what the story is for.",
+      turns: [
+        { opts: ["I feel far from my root", "Everything in me is noise lately"],
+          say: ["Far is a feeling, not a distance. The root has not moved once. Your attention has. Attention can come home in a single unhurried breath.",
+                "Noise is just the branches in wind. Underneath, the root system is doing quiet, unbothered work. You contain both. Feed the underneath."] },
+        { opts: ["Returning is the point", "One unhurried breath"],
+          say: ["The point, yes. Not arriving somewhere new: coming back somewhere true, with everything the road taught you still in your hands.",
+                "One is a start the old teachers would accept. The root recognizes honest small offerings."] }
+      ]
+    },
+    {
+      open: "The best leaders are barely noticed, the old book says. Under them, the work gets done and the people say: we did it ourselves. That is not failed leadership. That is leadership so clean it leaves no fingerprint.",
+      turns: [
+        { opts: ["I want credit for helping", "Invisible work feels thankless"],
+          say: ["Credit is a sugar: quick energy, quick crash. The meal is the thing itself still standing in ten years, whoever the room applauds.",
+                "Thankless to the eye, not to the outcome. Rooms remember who steadied them long after they forget who spoke. Be the steadiness."] },
+        { opts: ["We did it ourselves: good sign", "Clean, no fingerprint"],
+          say: ["The best sign there is. If people believe the strength was theirs, they will use it again without you in the room. That is the whole harvest.",
+                "Clean. Plant, water, walk off. The garden does not need your name carved in the gate to feed people."] }
+      ]
+    },
+    {
+      open: "Give up the performance of being clever, the book says, and people relax a hundredfold. Give up performing goodness and real goodness walks back in the door it left by. Most of what exhausts you is a costume that never needed wearing.",
+      turns: [
+        { opts: ["Performing is my whole day", "What if plain me underwhelms?"],
+          say: ["Then the day is heavier than it needs to be. Costumes are hot and they itch. One hour today in your own face: watch the room breathe easier too.",
+                "Plain you is the only version anyone can actually love. The performance can only be applauded, and applause is a thin soup to live on."] },
+        { opts: ["One hour, no costume", "Real over performed. Okay"],
+          say: ["One hour. You may find the hour extends itself. Ease has a way of applying for more time.",
+                "Real is quieter and lasts longer. Performed needs feeding daily. Choose the one that can feed you back."] }
+      ]
+    },
+    {
+      open: "Others are busy and bright and sure of themselves, and maybe today you feel none of that: dull, behind, out of the parade. The old book smiles at this. The one fed at the source does not need the parade. The parade passes. The source stays.",
+      turns: [
+        { opts: ["Everyone looks ahead of me", "I feel dull next to people"],
+          say: ["Parades are loud and brief and mostly walking in circles for an audience. Compare your root system to their confetti and the comparison itself is the injury.",
+                "Dull is sometimes just deep running quiet. Rivers at their deepest make almost no sound at all."] },
+        { opts: ["The source stays", "Out of the parade, on purpose"],
+          say: ["Stays, and stays yours. Let them have the loop around the square. You are building the thing the square will gather in later.",
+                "On purpose is the whole difference between exile and retreat. Same quiet, opposite meaning."] }
+      ]
+    },
+    {
+      open: "There is something formless that was here before heaven and earth: silent, whole, unchanging, the mother of everything shaped. You do not have to believe in it. Just notice: every form you love rose out of something you cannot point at.",
+      turns: [
+        { opts: ["I only trust solid things", "Formless sounds like nothing"],
+          say: ["Solid things had a morning when they did not exist yet, and something carried them over that line. Trust the solid. Respect the crossing.",
+                "Nothing and not-yet are different countries. The seed is not the tree's nothing. It is the tree, early and quiet."] },
+        { opts: ["Respect the crossing", "Early and quiet. Okay"],
+          say: ["Every visible success crossed it. Honoring the invisible part of your own work keeps you patient with the parts still crossing.",
+                "Early and quiet is a respectable address. Most great things lived there a long time before anyone knocked."] }
+      ]
+    },
+    {
+      open: "Yield and overcome. Bend and stay whole. Stay low and get filled. The old book keeps handing out these backwards keys: the door you want opens toward you, not away. Pull where you have been pushing and listen for the click.",
+      turns: [
+        { opts: ["Yielding feels like surrender", "Backwards keys frustrate me"],
+          say: ["Surrender drops the thing. Yielding keeps hold and changes angle. Water yields to every bank and still reaches the sea with all its power.",
+                "Frustration is the sound of the old key collection failing. Good. Empty pockets are how new keys get carried."] },
+        { opts: ["Pull, not push", "Bend and stay whole"],
+          say: ["Pull gently, then. Half the stuck things in a life are doors mislabeled by habit. The click, when it comes, is embarrassingly quiet.",
+                "Whole is the word to keep. Bending that preserves you is not losing. It is the advanced form of standing."] }
+      ]
+    },
+    {
+      open: "Nature does not waste words. A storm does not last all morning; a downpour does not last all day. If heaven and earth cannot make a fuss last, neither can yours. The loud weather in your life right now is already on its way out.",
+      turns: [
+        { opts: ["My fuss feels permanent", "I talk to fix everything"],
+          say: ["Permanent is what weather calls itself while it is overhead. Check the record: every storm you have ever had has a date it ended. Including the worst one.",
+                "Words fix some things and stir others. Try the storm's economy: arrive fully, say it once, move on. Even thunder does not repeat itself."] },
+        { opts: ["It is already leaving", "Say it once. Okay"],
+          say: ["Already leaving, whether you escort it or not. Spend today on what you will plant in the cleared ground after.",
+                "Once, cleanly, in your own voice. Then let silence do the carrying. It has the stronger back."] }
+      ]
+    },
+    {
+      open: "Standing on tiptoe, nobody stays standing long. Straddling wide, nobody walks far. Showing off, nobody shines for long. The strain itself is the tell: what is true does not need to be held up by effort forever.",
+      turns: [
+        { opts: ["I live on tiptoe", "Effort is how I prove it"],
+          say: ["Tiptoe is a visit, not an address. Come down one inch today. The ground is not a demotion. It is where your weight was always meant to rest.",
+                "Proving is expensive and the receipt fades fast. Being needs no witness and keeps its value in the dark. Build on the second."] },
+        { opts: ["Flat feet, then", "True does not strain. Okay"],
+          say: ["Flat feet, full height: your real height, which was never the problem. Watch how much further a person walks unstrained.",
+                "Keep the tell. When something needs constant holding up, ask whether it is the thing that is wrong, or just the grip."] }
+      ]
+    },
+    {
+      open: "Before there was a name for anything, something complete was already standing there: silent, vast, owing nothing to anyone. The old book calls it great because every smaller word fails. You come from that scale. Small days do not shrink it.",
+      turns: [
+        { opts: ["Today feels very small", "Vast sounds far away"],
+          say: ["Small days are still days in the same life. The ocean does not apologize for its puddles. What you are is not measured by Tuesday.",
+                "Vast is not far. It is underneath. The surface ripples and argues; the depth stays exactly where it always was, in you too."] },
+        { opts: ["Same life, small day", "Underneath, not far. Okay"],
+          say: ["Same life. Let the small day be small all the way: cooked meal, early night, no verdicts. Depth is not impressed and neither should you be.",
+                "Underneath. Drop one quiet minute down there today and just visit. It recognizes you."] }
+      ]
+    },
+    {
+      open: "Heaviness is the root of lightness. Stillness is the master of motion. The person who carries their calm like ballast can cross a windy day without being blown off their own road. Anchor first, then travel.",
+      turns: [
+        { opts: ["I feel blown around daily", "Calm feels out of reach"],
+          say: ["Blown around is a ballast problem, not a wind problem. One heavy, honest thing done slowly each morning: that is weight in the right place.",
+                "Calm is not chased. It is what is left when the chasing pauses. Sit still for the length of one song and let it find you."] },
+        { opts: ["Anchor first", "Weight in the right place"],
+          say: ["Anchor, then sail. The order matters more than the effort. A rooted morning makes the whole day cheaper to live.",
+                "Right place, right weight. You already own heavy true things. Carry one of them on purpose today."] }
+      ]
+    },
+    {
+      open: "A good traveler leaves no tracks, the book says. A good speaker leaves nothing to attack. Good work done clean does not advertise its effort. Let some of today be traceless: done well, unannounced, already released.",
+      turns: [
+        { opts: ["I announce everything I do", "Traceless feels thankless"],
+          say: ["Announcing is a tax you pay to an audience that forgets by dinner. Keep one good thing today completely off the record and feel how much lighter it travels.",
+                "Thankless to the crowd, priceless to the work. The traceless version is the one you get to keep entirely."] },
+        { opts: ["One thing off the record", "Done well, unannounced"],
+          say: ["Off the record, fully yours. Some seeds only sprout in the dark, unobserved. You just planted one.",
+                "That is mastery in plain clothes. The river does not sign its banks."] }
+      ]
+    },
+    {
+      open: "Know the bright, but keep to the dark, the teaching says. Know the honor, but keep to the humble place. The bright is for visiting. The low, unlit ground is where a person becomes a valley the world can flow into.",
+      turns: [
+        { opts: ["I chase the bright side", "Humble places feel like losing"],
+          say: ["Visit the bright all you like: just do not move there. Nothing grows in full glare all day. Shade is part of the garden's design.",
+                "The humble place is where the water collects. Losing the spotlight and gaining the river is a trade the wise make smiling."] },
+        { opts: ["Visit bright, live low", "Become a valley. Okay"],
+          say: ["Visit, enjoy, come home low. The valley is not a punishment address. It is the one with the river running through it.",
+                "A valley, then. Watch what starts flowing toward a person who is not busy defending a peak."] }
+      ]
+    },
+    {
+      open: "Do not grab the world and try to improve it by force, the book warns. The world is a sacred instrument: it breaks under gripping hands. Whoever holds it loosely keeps it. Whoever squeezes, watches it crack and slip.",
+      turns: [
+        { opts: ["I grip everything I love", "Letting go feels careless"],
+          say: ["Gripping is fear wearing a caretaker's coat. Hold your hand flat under the thing instead of around it. Supported, not strangled: it stays longer that way.",
+                "Careless drops. Loose holds. The difference is attention: loose hands are still there, still warm, just not crushing."] },
+        { opts: ["Flat hand, not fist", "Loose holds, still here"],
+          say: ["Flat hand. Practice on one precious thing today and notice it does not immediately flee. Most things were staying voluntarily all along.",
+                "Still here is the whole art. Presence without pressure. People and plans both breathe easier in that weather."] }
+      ]
+    },
+    {
+      open: "Weapons are instruments of sorrow, the old book says plainly. The one who understands wins a battle and does not celebrate it: treats it like a funeral, because that is what it is. Win what you must. Grieve what it cost. Never feast on it.",
+      turns: [
+        { opts: ["I won something and feel hollow", "People expect me to celebrate"],
+          say: ["The hollowness is your accuracy working. Some victories have bodies under them. Feeling that is not weakness: it is the reason you can be trusted with winning.",
+                "Let them expect. You can be gracious without being gleeful. Quiet dignity reads louder than any victory lap."] },
+        { opts: ["Win, and stay human", "No feasting on it"],
+          say: ["Win what is yours to win, carry the cost honestly, and let the win make you gentler instead of louder. That is the rarest kind of strong.",
+                "No feast. Bread and thanks, maybe. The table manners of a person who intends to win again without losing themselves."] }
+      ]
+    },
+    {
+      open: "There is a simplicity too small and plain to have a name, and the book says it is stronger than empires. Desire gets quiet inside it. A life arranged around few wants and much room is not a lesser life. It is the ungovernable kind.",
+      turns: [
+        { opts: ["My wants run my house", "Plain sounds like poverty"],
+          say: ["Wants multiply like guests who invite friends. You are allowed to close the door of the house. One want uninvited today is a room reclaimed.",
+                "Plain is only poverty when the wanting is loud. Quiet the wanting and plain turns into spacious: the richest square footage there is."] },
+        { opts: ["One want uninvited", "Spacious, not poor"],
+          say: ["One out, and notice the quiet that moves into the vacancy like a good tenant. That quiet pays rent in sleep and patience.",
+                "Spacious. Arrange the day around the space, not the stuff. The old ones called this freedom and they were not exaggerating."] }
+      ]
+    },
+    {
+      open: "The great way flows everywhere: left and right, into everything, refusing nothing. It gives life to all of it and claims none of it, finishes the work and takes no title for it. That is the size of the pattern you are inside of.",
+      turns: [
+        { opts: ["I refuse plenty, honestly", "No title sounds thankless"],
+          say: ["Refusing is human and sometimes needed. Just notice the pattern does not refuse the rain to the field it dislikes. Widen by one refusal withdrawn this week.",
+                "The pattern skips the title and keeps the river. Titles hang on walls. Rivers feed countries. Choose your monument accordingly."] },
+        { opts: ["Widen by one", "Rivers over titles"],
+          say: ["One wider gate. That is how a pattern changes a person: not all at once, but by inches of welcome.",
+                "Rivers. When in doubt, ask what the water would do, and do the available human version of it."] }
+      ]
+    },
+    {
+      open: "The bright path sometimes looks dark. The straight road looks crooked, the greatest skill looks clumsy, the fullest voice sounds halting. Appearance grades on a curve the truth does not recognize. Today, distrust the obvious reading once.",
+      turns: [
+        { opts: ["I judge by first look", "My road looks crooked today"],
+          say: ["First looks are headlines. Sometimes accurate, often just fast. Give one thing today a second, slower reading before the verdict lands.",
+                "Rivers look crooked from the ridge and perfect from inside the current. Your road may only be winding, not wrong."] },
+        { opts: ["One slower reading", "Winding, not wrong"],
+          say: ["Slower reading, fairer sentence. Most of life improves under exactly that edit.",
+                "Winding is how water crosses a country without breaking itself. Keep winding. Arrive whole."] }
+      ]
+    },
+    {
+      open: "The deepest pattern does nothing: and leaves nothing undone. Not laziness: alignment. When a thing is lined up with how it actually works, the doing gets quiet and the results get loud. Force is just the tax on being out of line.",
+      turns: [
+        { opts: ["I force most outcomes", "Doing nothing sounds like quitting"],
+          say: ["Force works: at retail price. Before the next push, spend one minute asking how the thing wants to go. Its answer is usually cheaper than your plan.",
+                "Quitting abandons the field. Alignment stays in it, hands off the plow handles, watching the rows straighten themselves. Different posture entirely."] },
+        { opts: ["Ask how it wants to go", "Alignment over force"],
+          say: ["Ask, and actually listen. The thing has been telling you its preferred direction in the language of what keeps going wrong.",
+                "Aligned people look lucky from outside. It is not luck. It is the absence of the tax."] }
+      ]
+    },
+    {
+      open: "Real virtue does not know it is virtue: that is why it lasts. The performed kind announces itself and evaporates. Goodness that needs an audience is theater. Goodness that forgets itself is just a person, being one.",
+      turns: [
+        { opts: ["I perform being good", "Unseen good feels wasted"],
+          say: ["The performance is the expensive part and it buys nothing the act itself did not already contain. Do the good thing, skip the press release, keep the difference.",
+                "Unseen good is compound interest in a currency banks do not list. It pays out in who you are at 3 a.m., which is the audit that matters."] },
+        { opts: ["Skip the press release", "Good, forgetting itself"],
+          say: ["Skipped. Notice how the act got simpler the moment nobody was going to hear about it. That simplicity is the good thing, doubled.",
+                "Forgetting itself, yes. The left hand unbothered by the right. Walk like that and goodness stops being a project."] }
+      ]
+    },
+    {
+      open: "Returning is the motion of the way. Weakness is its method. Everything alive came out of nothing, does its brief bright work, and returns: and the returning is not a failure of the living. It is the living, completing its shape.",
+      turns: [
+        { opts: ["Endings frighten me", "Weakness as a method?"],
+          say: ["Endings frighten the part of you that thought it was exempt. The seasons are not exempt and they are not tragic. Let one ending be just a shape completing.",
+                "The reed's method. The water's method. What yields survives the storm that takes the rigid. Weakness, properly aimed, is engineering."] },
+        { opts: ["A shape completing", "Yielding is engineering"],
+          say: ["Completing, not collapsing. Read your endings with that grammar and whole years of your life change their meaning without changing a single fact.",
+                "Engineering. Bend radius, load distribution: the old book knew structures. Be a structure that lasts by moving."] }
+      ]
+    },
+    {
+      open: "The greatest music is barely a sound. The greatest image has no shape. The most important things operate below the threshold of showing: a house's love, a life's direction, a person's healing. Quiet is not their absence. It is their volume.",
+      turns: [
+        { opts: ["If it is quiet, I assume it is gone", "I need visible progress"],
+          say: ["Roots are invisible progress and they are most of the plant. Assume quiet means working for one day and see what your patience uncovers.",
+                "Visible progress is the last 10 percent announcing itself. The other 90 happened in the dark, on schedule, without asking you to applaud."] },
+        { opts: ["Quiet means working", "Trust the dark 90 percent"],
+          say: ["Working. Let the quiet rooms of your life be workshops again instead of waiting rooms. Something in there is almost ready and it hates being rushed.",
+                "The 90 percent thanks you. It has been carrying this whole project while the visible part took the photos."] }
+      ]
+    },
+    {
+      open: "One becomes two, two becomes three, three becomes the ten thousand things. Everything you are juggling today multiplied out of something singular and simple. When the ten thousand feel heavy, walk back down the numbers. Find the one.",
+      turns: [
+        { opts: ["Ten thousand things is right", "I lost the one a while ago"],
+          say: ["Then do not sort the ten thousand. Find the one they multiplied from: the want, the fear, the promise: and address the letter there. The branches quiet when the root is answered.",
+                "Lost is a strong word for misplaced. The one is patient and unimpressive-looking: one honest need under all the noise. It is still there."] },
+        { opts: ["Address the root", "Find the one"],
+          say: ["The root answers in a small voice, so get quiet enough to hear mail arrive. Then do the one thing it asks. Just the one.",
+                "One thing, honestly wanted, plainly done. Watch the ten thousand rearrange themselves around it like they were waiting for instructions."] }
+      ]
+    },
+    {
+      open: "The softest thing in the world rides through the hardest thing in the world. Water through stone, patience through a locked year, kindness through a guarded heart. Soft is not the opposite of strong. Soft is strong with time on its side.",
+      turns: [
+        { opts: ["Soft gets me nowhere fast", "My year feels locked"],
+          say: ["Nowhere fast, everywhere eventually. Fast is how hard things travel. Soft travels like water: and only one of them is still moving in a hundred years.",
+                "Locked years open like stone does: not to keys, to dripping. Your small daily soft thing is the drip. It is already working."] },
+        { opts: ["Soft, with time", "Keep dripping"],
+          say: ["Time is softness's whole strategy and it has never lost a long game. Sign the long contract with yourself.",
+                "Drip on schedule, rest off schedule. The stone is not mocking you. It is just slower at admitting defeat."] }
+      ]
+    },
+    {
+      open: "Great skill often looks clumsy. Great eloquence sometimes stumbles. What is fully straight can look bent, what is fullest sounds empty. The masters keep warning: mastery outgrows looking like mastery. Stop grading yourself by polish.",
+      turns: [
+        { opts: ["My work looks rough", "Polish is my proof"],
+          say: ["Rough might be the honest texture of a real thing at your current depth. The clumsy-looking stroke is sometimes the one with the whole arm behind it.",
+                "Polish proves the surface. Depth proves itself later, in whether the thing still works when nobody is admiring it."] },
+        { opts: ["Whole arm behind it", "Depth over polish"],
+          say: ["Whole arm, whole life behind it. That stroke does not need to be pretty. It needs to land, and it does.",
+                "Depth compounds quietly and cashes out suddenly. Keep building where the cameras are not."] }
+      ]
+    },
+    {
+      open: "When desire runs the house, the book says, racehorses haul manure and armies camp in the fields. When it does not, the same horses plow the same fields in peace. The inventory is identical. The master of the house is the whole difference.",
+      turns: [
+        { opts: ["Desire does run my house", "Same inventory, different master"],
+          say: ["Then today is an eviction of one small want: not the big one, the noisy tenant. Notice how the whole house gets quieter than the math predicted.",
+                "You heard it exactly. Nothing new to buy. Just a change of management in a house that was always big enough."] },
+        { opts: ["Evict one noisy want", "Change of management"],
+          say: ["One out. Management changes are not announced with trumpets. They are noticed weeks later, in the sleep and the patience.",
+                "New management, same you. The plowing version of your energy was available all along."] }
+      ]
+    },
+    {
+      open: "Without going out the door, you can know a great deal. Without looking out the window, you can see the pattern of things. The further out a person chases, sometimes the less they know. Your room is not a limitation. It is an instrument.",
+      turns: [
+        { opts: ["I chase everything out there", "My room feels like a cage"],
+          say: ["Chasing has a cost sheet and knowledge is not always on it. Try learning one thing today the still way: by watching what is already in front of you until it explains itself.",
+                "A cage and an instrument are the same box with different listening. Sit in it like a musician once, not like a prisoner."] },
+        { opts: ["The still way, once", "Instrument, not cage"],
+          say: ["The still way is slow and embarrassingly accurate. What is in front of you has been waiting to be understood at that depth.",
+                "Play the room, then. Small stage, full attention: some of the greatest work in history was done at exactly that scale."] }
+      ]
+    },
+    {
+      open: "The wise heart is not fixed on its own side. It makes room for other people's hearts: the good and the difficult alike: the way a house makes room for weather. Roominess is not weakness. It is square footage of the soul.",
+      turns: [
+        { opts: ["Difficult people get no room from me", "My side is the right side"],
+          say: ["No room is a policy you are allowed. Just count its price: a guarded house is a small house, however right it is. Rent one corner to patience today.",
+                "Your side may be right. The room point is separate: can a person disagree in your house without the temperature dropping? That is the measurement."] },
+        { opts: ["One corner to patience", "Roomier, then"],
+          say: ["One corner, good light. Patience grows well there and it tends to renovate the rest of the house on its own.",
+                "Roomier is stronger: ask any river. The wide ones carry more and flood less."] }
+      ]
+    },
+    {
+      open: "The way gives everything life and does not own any of it. It feeds and does not possess, works and does not hoard the credit, raises things up and does not rule them. That is the deepest power there is: generative, and empty-handed.",
+      turns: [
+        { opts: ["I hold tight to what I make", "Empty-handed feels like losing"],
+          say: ["Holding tight is one way to keep a thing. Releasing it into its own life is how it becomes ten things. Your grip decides which future it gets.",
+                "Empty hands are how the giver stays able to give. Full fists cannot catch the next thing either. Openness is equipment, not loss."] },
+        { opts: ["Release it to its own life", "Open hands are equipment"],
+          say: ["Watch it go with your blessing instead of your leash. What returns to you from freedom is worth more than what stayed from fear.",
+                "Equipment, yes: the kind that never wears out because it is mostly space. Carry more space."] }
+      ]
+    },
+    {
+      open: "Seeing the small is called clarity. Keeping the soft is called strength. The book keeps redefining the big words downward: clarity is noticing the tiny true thing early, and strength is refusing to harden. Re-read your own report card with those definitions.",
+      turns: [
+        { opts: ["I only notice things when they are big", "Hardening felt like maturing"],
+          say: ["Big is just small that was ignored at the polite stage. Practice catching one thing today while it still whispers. It is cheaper in every currency.",
+                "Hardening is one kind of growing up: the bark kind. There is also the root kind: softer, deeper, harder to kill. Choose your botany."] },
+        { opts: ["Catch it whispering", "Root kind of growing"],
+          say: ["Whisper-stage problems arrive with whisper-stage prices. Your attention is the discount. Spend it early and often.",
+                "Roots it is. Nobody applauds root work and everything depends on it. A familiar arrangement for you, honestly."] }
+      ]
+    },
+    {
+      open: "Well planted, a thing cannot be uprooted. Well held, it does not slip. The book is talking about foundations again: what is built into the ground of a life keeps working in every season, including the ones where nobody is watching the garden.",
+      turns: [
+        { opts: ["My foundations feel shaky", "I build fast and shallow"],
+          say: ["Shaky is information, not verdict. One foundation stone re-laid properly today outweighs a week of decorating the upper floors.",
+                "Fast and shallow impresses by Friday and leans by winter. Slow one thing down to foundation depth and let it become un-uprootable."] },
+        { opts: ["Re-lay one stone", "Foundation depth"],
+          say: ["One stone, true and level. Everything you later love about the house will quietly trace back to afternoons like this one.",
+                "Depth first. The seasons will audit the work, and the deep work is the only kind that enjoys the audit."] }
+      ]
+    },
+    {
+      open: "The newborn has soft bones and a strong grip, harmony without knowing the word for it. Adults trade that away for armor and call it growing. The book suggests the trade is refundable: softness was never the childhood part. It was the mastery part.",
+      turns: [
+        { opts: ["Armor is my adult setting", "Soft got me hurt before"],
+          say: ["Armor has its hours. The mistake is sleeping in it. Hang it by the door tonight and let the house-version of you walk around unarmored.",
+                "Soft got you hurt the way water gets a stone wet: the answer was never becoming stone. It was choosing your rivers better."] },
+        { opts: ["Armor by the door tonight", "Softness is the mastery part"],
+          say: ["By the door, in reach, not on the body. Notice what your shoulders do with the news. They have been on duty a long time.",
+                "Mastery part, yes. The grip of the newborn holds without clenching. Practice that grip on everything today: firm, unforced."] }
+      ]
+    },
+    {
+      open: "Those who know do not announce it. Those who announce it have more announcing than knowing. Shut the loud gates, the book says, soften the glare, and the knot of things loosens on its own. Volume was never the load-bearing wall.",
+      turns: [
+        { opts: ["I explain myself constantly", "Quiet feels like losing the argument"],
+          say: ["Explaining is often just fear of being misread. One explanation withheld today, kindly, is a brick of peace mortared into your house.",
+                "The argument is a room. You are allowed to leave rooms. What is true keeps working in the hallway, unbothered, unshouted."] },
+        { opts: ["One explanation withheld", "True works in the hallway"],
+          say: ["Withheld kindly: that is the craft. Silence with warmth in it is not a cold shoulder. It is a warm room with the door closed.",
+                "Unbothered and unshouted. Carry your truths at that volume and watch who leans in instead of backing off."] }
+      ]
+    },
+    {
+      open: "Rule a country the way you would cook a small fish: barely touch it, or it falls apart. Lives are the same. The over-handled day, the over-managed heart: both go to pieces under helpful fingers. A light touch is a form of respect.",
+      turns: [
+        { opts: ["I over-handle everything", "Light touch feels negligent"],
+          say: ["Over-handling is love with anxiety driving. Name one thing today and demote yourself from manager to witness. Watch it not fall apart.",
+                "Negligent abandons. Light touches once, correctly, and trusts the cooking. The fish can tell the difference even if your worry cannot."] },
+        { opts: ["Manager to witness, once", "Touch once, correctly"],
+          say: ["Witness is a promotion, not a demotion: you get the whole picture instead of the one your hands were blocking.",
+                "Once, correctly, then hands off. Most things finish cooking in the quiet you were about to interrupt."] }
+      ]
+    },
+    {
+      open: "Good fortune leans on misfortune's shoulder. Misfortune crouches inside good fortune, hiding. The wheel is not mocking you: it is just a wheel. The wise response to either visitor is the same: feed it, learn its name, do not marry it.",
+      turns: [
+        { opts: ["Good news makes me wait for the catch", "Bad luck feels personal"],
+          say: ["Waiting for the catch is wisdom with the joy drained out. Let the good fortune be good while it is here. The wheel turns on its own schedule, not your vigilance.",
+                "Luck is weather with a press agent. Personal is the one thing it has never been. Dress for the season and keep walking."] },
+        { opts: ["Feed it, do not marry it", "Dress for the season"],
+          say: ["A guest room, not a wedding. Both fortunes visit everyone eventually. The house that stays yours through both is the achievement.",
+                "Dressed and walking. The wheel respects pedestrians more than it respects arguers. It has never once stopped for an argument."] }
+      ]
+    },
+    {
+      open: "Thrift is not stinginess in the book. It is returning early to the source: spending nothing on noise so everything is available for signal. Guard the early hours and the deep reserves. A life that returns early never fully runs dry.",
+      turns: [
+        { opts: ["My reserves feel spent", "Thrift sounds like fear"],
+          say: ["Reserves refill at the source, not at the store. One early return today: an hour reclaimed from noise: is a deposit nobody can see and everybody benefits from.",
+                "Stinginess clutches. Thrift chooses. The first is afraid of the future. The second is funding it. Same wallet, different heart."] },
+        { opts: ["One hour reclaimed", "Choosing, not clutching"],
+          say: ["Reclaimed and spent at the source: quiet, food, sky, nothing. Deposits like that pay out as patience on the hard days.",
+                "Funding the future with today's calm. That is the only investment in this whole teaching, and it has never crashed."] }
+      ]
+    },
+    {
+      open: "Act before a thing exists. Manage it before it hardens into trouble. The great work of a day is mostly invisible: the hard conversation held while it is still small, the rest taken before the crash, the door closed before the storm.",
+      turns: [
+        { opts: ["I only act once it is a crisis", "Small problems bore me"],
+          say: ["Crises are just small problems that got promoted. Catch one today at the whisper stage and you will be amazed how little heroism it asks for.",
+                "Boredom is the tax on the cheapest solutions there are. Pay it gladly. It is so much smaller than the crisis bill."] },
+        { opts: ["Whisper stage, then", "Before it hardens"],
+          say: ["Whisper stage. Bring a small tool and a soft voice. That is all that size of trouble has ever required.",
+                "Before it hardens is when everything is still negotiable: including the story you will later tell about it."] }
+      ]
+    },
+    {
+      open: "Rivers and seas are kings of the valleys because they know how to stay lower than everything that feeds them. Want people to flow toward you? Be the low ground: easy to reach, impossible to threaten, always receiving. Altitude is lonely. Depth collects.",
+      turns: [
+        { opts: ["I like the high ground", "Low sounds like beneath people"],
+          say: ["High ground is a view and a target. Low ground is a watershed. One of those two positions gathers everything it needs without asking.",
+                "Beneath is a direction. Below is a function. The sea is beneath the rivers the way a heart is beneath the ribs: centrally, essentially."] },
+        { opts: ["Depth collects", "Be the low ground"],
+          say: ["Collects without chasing: that is the royal part. Arrange to be reachable and unthreatening and watch the flow change address.",
+                "Low ground, open gates. People flow toward the places where they do not have to perform being dry."] }
+      ]
+    },
+    {
+      open: "The good soldier is not violent. The good fighter is not angry. Winning without rage, arranging without forcing, engaging without contempt: the book calls this the power of not competing, and it has never once needed a rematch.",
+      turns: [
+        { opts: ["Anger fuels my fights", "Not competing sounds passive"],
+          say: ["Anger is fuel that burns the engine too. Spend it if you must, but know the exchange rate: every angry win bills you twice.",
+                "Passive waits. Not-competing arranges: the position, the timing, the ground: so thoroughly that the fight becomes a formality. It is the opposite of waiting."] },
+        { opts: ["Win without the second bill", "Arrange, do not force"],
+          say: ["Once-billed victories leave you with energy for the life after the fight. That is the whole point of fighting well.",
+                "Arranged ground, calm heart, clean result. People will call it luck for years. Let them."] }
+      ]
+    },
+    {
+      open: "There is no greater danger than taking an opponent lightly: or a task, or a day. Move like it matters, the book says, and even retreat becomes a strategy instead of a collapse. Respect is the cheapest armor ever issued.",
+      turns: [
+        { opts: ["I underestimate days constantly", "Everything feels small until it is not"],
+          say: ["Small days are where the record is actually written. The big ones just read it aloud. Move through today like it is armed with consequences, because it is.",
+                "That sentence is the whole teaching with its coat off. Nothing is small at the moment you are inside it. Price accordingly."] },
+        { opts: ["Today counts as armed", "Price it accordingly"],
+          say: ["Armed with consequences and opportunities in equal dress. Respect both and the day behaves like an ally instead of an ambush.",
+                "Priced and respected. Underestimation is the only opponent in this chapter, and you just stopped feeding it."] }
+      ]
+    },
+    {
+      open: "My words are easy to know and easy to do, the old teacher shrugs, and nobody does them. The gap is not knowledge. It never was. Somewhere between hearing and Tuesday morning, the simplest teachings in the world are waiting for one honest attempt.",
+      turns: [
+        { opts: ["I know it all and do half", "Simple feels too simple to work"],
+          say: ["Half is not the scandal: pretending the other half needs more information is. Pick the known thing you keep not-doing and give it one Tuesday-morning attempt.",
+                "Simple is suspicious to a mind that pays for complexity. Water is simple. Bread is simple. The list of simple things that work is the list of things alive."] },
+        { opts: ["One honest attempt", "Simple things that work"],
+          say: ["One attempt, honestly graded. The teaching does not need your belief. It needs your Tuesday.",
+                "Alive and working, most of them older than every complicated thing you own. Side with the old simple."] }
+      ]
+    },
+    {
+      open: "To know that you do not know: that is the highest. To not know, and think you know, is the sickness. The book is gentle about it: everyone is recovering from certainty about something. Health begins the moment the pretending stops.",
+      turns: [
+        { opts: ["Pretending is my job some days", "Not knowing feels unsafe"],
+          say: ["Some days, yes. Notice which rooms require the costume and which person you are in the rooms that do not. Spend more rent on the second list.",
+                "Not knowing is only unsafe where honesty is punished. In every other room it is the safest seat: nobody can knock you off a floor you are already standing on."] },
+        { opts: ["Stop pretending once today", "Stand on the floor"],
+          say: ["Once, out loud if possible: I do not know. Watch the room not end. Watch something in your own chest unclench instead.",
+                "The floor holds. It was always going to. Certainty was the wobbly furniture, not this."] }
+      ]
+    },
+    {
+      open: "Do not exalt yourself and people will not resent you. Do not display yourself and you will shine anyway: the way a lamp in a window shines without once discussing it. The book's whole publicity strategy is: be lit, be still, be findable.",
+      turns: [
+        { opts: ["If I do not push, I vanish", "Being findable feels passive"],
+          say: ["Lamps do not chase travelers. The road does the moving. Your job is the oil and the wick: the quality of the light, not the volume of the announcement.",
+                "Findable is a strategy with a long pedigree: every lighthouse ever built. None of them went door to door. All of them were found."] },
+        { opts: ["Oil and wick work", "Be lit, be still"],
+          say: ["Oil and wick: maintenance of the actual light. Unglamorous, nightly, and the entire difference between beacons and rumors.",
+                "Lit and still. The travelers of your life are already on roads that pass your window."] }
+      ]
+    },
+    {
+      open: "Heaven's net is wide: its mesh is huge, and nothing slips through. Slow is not escaped. Unfair seasons are not the final ledger. The book is not threatening you. It is telling you the accounting is patient, so yours can afford to be too.",
+      turns: [
+        { opts: ["Some people seem to escape everything", "Patient accounting feels slow"],
+          say: ["Seem is doing heavy work in that sentence. Nets with wide mesh look empty from a distance. Judge less from a distance, including your own case.",
+                "Slow accounting lets you stop being the world's auditor. That was never your job, and the pay was terrible. Resign today, effective immediately."] },
+        { opts: ["Resign as auditor", "Wide mesh, still a net"],
+          say: ["Resignation accepted by the management of the universe. Your evenings are your own again. Spend one on absolutely nothing owed.",
+                "Still a net. Trust the pattern to handle the pattern. Your hands are needed for nearer work."] }
+      ]
+    },
+    {
+      open: "Truthful words are not always beautiful, and beautiful words are not always truthful. The book ends there: no argument, no defense, no flourish. Say the true thing plainly today and let plain be the whole style.",
+      turns: [
+        { opts: ["Plain truth feels rude", "I dress everything up"],
+          say: ["Plain is rude only where decoration was the local tax. Said with a warm face and a steady voice, truth is mostly received as relief.",
+                "Dressing up is labor and the garment is heavy. One sentence today in its work clothes. Notice how far it walks on its own legs."] },
+        { opts: ["True thing, plainly", "Work clothes for words"],
+          say: ["Plainly, once, without the apology tour that usually follows. Then stop. The sentence can stand. It has legs.",
+                "Work clothes, honest work. The book ended on exactly this note, so you are in the oldest company there is."] }
+      ]
+    }
+  ]
+  var THREAD_THEMES = ["water", "still water", "enough", "less", "the next step", "bend and stay rooted", "open space", "the house, not the storm", "stepping back", "the three treasures",
+    "the nameless", "opposites", "quiet display", "the valley", "the impartial rain", "the valley spirit", "no score", "the dulled senses", "favor and disgrace", "the unseen", "the root", "the quiet ruler", "no costume", "the source, not the parade", "the formless mother", "yield and overcome", "spare words",
+    "flat feet", "the great", "the heavy root", "no tracks", "keep to the dark", "the loose hold", "winning without feasting", "the nameless simplicity", "the flow", "the dark bright path", "nothing undone", "virtue without an audience", "returning", "the faint music", "the one", "the softest rides",
+    "the clumsy stroke", "change of management", "the room as instrument", "the roomy heart", "empty hands", "seeing the small", "well planted", "the newborn grip", "the warm closed door", "cooking a small fish", "the wheel", "the early return", "before it hardens", "the low ground", "not competing", "respect for the day", "one honest attempt", "the floor of not knowing", "the lamp", "the wide net", "plain truth"];
+
+  var started = false;
+  var thread = null;
+  var threadIndex = -1;
+  var threadPhase = 0;
+  var step = 0;
+  var typing = null;
+  var run = 0;
+
+  function scrollLog(){ logEl.scrollTop = logEl.scrollHeight; }
+  function addLine(text, cls){
+    var p = document.createElement('p');
+    p.className = 'comp-line' + (cls ? ' ' + cls : '');
+    p.textContent = text;
+    logEl.appendChild(p);
+    scrollLog();
+    return p;
+  }
+  function typeVoice(text, done){
+    var myRun = run;
+    var p = addLine('');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { p.textContent = text; if (done) done(); return; }
+    var i = 0, finished = false;
+    var state = { finish: finish };
+    typing = state;
+    function finish(){
+      if (finished) return;
+      finished = true;
+      if (typing === state) typing = null;
+      p.textContent = text;
+      scrollLog();
+      if (done) done();
+    }
+    (function tick(){
+      if (finished || myRun !== run) return;
+      i += 2;
+      p.textContent = text.slice(0, i);
+      scrollLog();
+      if (i < text.length) { setTimeout(tick, 16); } else { finish(); }
+    })();
+  }
+  function themeName(){ return THREAD_THEMES[threadIndex] || 'the thread'; }
+  function continuationOpening(){
+    if (threadPhase <= 1) {
+      return "Stay with " + themeName() + ". We do not have to solve the whole of it. Just notice what has changed since it first landed: what feels different in the body, not just in the argument.";
+    }
+    return "Again with " + themeName() + ", then. Not to repeat it: to hear what is underneath it this time. The same words can open a different door on a different day.";
+  }
+  function continuationTurns(){
+    var theme = themeName();
+    return [
+      { opts: ["It feels closer now", "It still rubs a little"],
+        say: ["Closer is enough. " + theme + " was never a test to pass. It is a place to stand, and you are standing nearer to it than you were an hour ago.",
+              "The rub is information, not failure. " + theme + " does not demand you agree with it today. It only asks you not to lie about where it catches."] },
+      { opts: ["What do I carry into tomorrow?", "I keep circling the same part"],
+        say: ["Carry the smallest true piece. One sentence of it, worn lightly. Tomorrow does not need the whole teaching: it needs the part you actually lived.",
+              "Circling is how the mind knocks. Knock softer. The door this teaching guards opens inward, and it opens slow."] },
+      { opts: ["Part of me wants to force it", "Quiet is getting easier"],
+        say: ["Forcing is the old weather talking. Set the forcing down next to the problem and look at both of them. Only one of them is actually yours to solve today.",
+              "Then protect the quiet the way you would protect sleep. It is doing more work than the noise ever did."] },
+      { opts: ["I'll take the small true piece", "That one landed"],
+        say: ["The small true piece, carried honestly, outweighs the whole book carried as decoration. Go on with your day: it counts.",
+              "Then it did its work. Carry it lightly: the ones that land quiet tend to stay the longest."] }
+    ];
+  }
+  function currentTurns(){ return threadPhase === 0 ? thread.turns : continuationTurns(); }
+  function afterVoice(){
+    if (step < currentTurns().length) { showChoices(); } else { showThreadEnd(); }
+  }
+  function makeChoiceButton(label, fn){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'comp-choice';
+    var k = document.createElement('span');
+    k.className = 'comp-key';
+    k.textContent = '[' + (choicesEl.querySelectorAll('button').length + 1) + ']';
+    b.appendChild(k);
+    b.appendChild(document.createTextNode(label));
+    b.addEventListener('click', fn);
+    choicesEl.appendChild(b);
+    return b;
+  }
+  function showChoices(){
+    var turns = currentTurns();
+    if (step >= turns.length) { showThreadEnd(); return; }
+    var turn = turns[step];
+    choicesEl.innerHTML = '';
+    turn.opts.forEach(function(opt, idx){ makeChoiceButton(opt, function(){ pick(idx); }); });
+    var first = choicesEl.querySelector('button');
+    if (first) first.focus();
+  }
+  function showThreadEnd(){
+    choicesEl.innerHTML = '';
+    var first = null;
+    if (threadPhase === 0) {
+      first = makeChoiceButton('Go deeper on that', function(){ startContinuation(); });
+      makeChoiceButton('Tell me another one', function(){ startNewThread(); });
+    } else {
+      first = makeChoiceButton('Tell me another one', function(){ startNewThread(); });
+    }
+    if (first) first.focus();
+  }
+  function startContinuation(){
+    if (typing) return;
+    threadPhase = 1;
+    step = 0;
+    choicesEl.innerHTML = '';
+    typeVoice(continuationOpening(), afterVoice);
+  }
+  function startNewThread(){
+    if (typing) return;
+    var next = threadIndex;
+    if (DAO_THREADS.length > 1) {
+      while (next === threadIndex) { next = Math.floor(Math.random() * DAO_THREADS.length); }
+    }
+    threadIndex = next;
+    thread = DAO_THREADS[threadIndex];
+    threadPhase = 0;
+    step = 0;
+    choicesEl.innerHTML = '';
+    addLine('another one.', 'sys');
+    typeVoice(thread.open, afterVoice);
+  }
+  function pick(idx){
+    if (typing) return;
+    var turn = currentTurns()[step];
+    if (!turn) { showThreadEnd(); return; }
+    choicesEl.innerHTML = '';
+    addLine(turn.opts[idx], 'you');
+    step += 1;
+    typeVoice(turn.say[idx], afterVoice);
+  }
+  screenEl.addEventListener('click', function(){ if (typing) typing.finish(); });
+  window.__computerOpen = function(){
+    if (started) return;
+    started = true;
+    run += 1;
+    threadIndex = Math.floor(Math.random() * DAO_THREADS.length);
+    thread = DAO_THREADS[threadIndex];
+    threadPhase = 0;
+    step = 0;
+    choicesEl.innerHTML = '';
+    addLine('$ rapdream --connect', 'sys');
+    addLine('link open.', 'sys');
+    typeVoice(thread.open, afterVoice);
+  };
+  window.__computerReset = function(){
+    run += 1;
+    if (typing) { var t = typing; typing = null; t.finish(); }
+    started = false;
+    thread = null; threadIndex = -1; threadPhase = 0; step = 0;
+    logEl.innerHTML = '';
+    choicesEl.innerHTML = '';
+  };
+})();
+</script>
+
 </body>
 </html>
