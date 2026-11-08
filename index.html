@@ -502,11 +502,18 @@
   .js section.panel.min{display:none}
   /* Mode swaps (small/full/shrunk) never play the open pop or a transition. */
   .js section.panel.noanim{animation:none;transition:none}
-  /* SMALL: the default chunk, sized so four share the screen in a 2x2.
-     Content scrolls inside it and reflows to its width. New windows open
-     small by default, one per screen quadrant. */
+  /* SMALL (the size cycle's QUARTER stage): the chunk sized so four share
+     the screen in a 2x2. Content scrolls inside it and reflows to its
+     width. New windows no longer open here: they open at OPEN size. */
   .js section.panel.small{
     width:min(400px,44vw);height:min(340px,38dvh);max-height:38dvh;
+  }
+  /* OPEN: the fresh-open size, ready to flow with whatever the window
+     holds. A big sheet, centered; from here the user squeezes it to a
+     quarter, snaps it into the grid, shrinks it, docks it, or takes it
+     full. The page does NOT lock behind it (that stays full-only). */
+  .js section.panel.openwin{
+    width:min(680px,90vw);height:min(600px,82dvh);max-height:82dvh;
   }
   /* A corner-resized window is its own box: custom size rides CSS vars. */
   .js section.panel.custom{width:var(--cw);height:var(--ch);max-height:var(--ch)}
@@ -518,13 +525,17 @@
     background:repeating-linear-gradient(135deg,transparent 0 5px,rgba(var(--ink-rgb),.45) 5px 7px,transparent 7px 12px);
   }
   @media (pointer:fine){ .js .win-grip{cursor:nwse-resize} }
-  .js section.panel:not(.small) .win-grip{display:none}
+  .js section.panel:not(.small):not(.openwin) .win-grip{display:none}
   /* SHRUNK (minimize level 1): the window collapses to its bar and stays on
      screen at its position, still draggable. FULL is the base rule above:
      the centered sheet, width min(920px,...), height fit-content. */
   .js section.panel.shrunk{
     width:fit-content;max-width:calc(100vw - 16px);
-    height:auto;max-height:none;overflow:visible;padding-bottom:0;
+    /* fit-content, never auto: on a position:fixed inset:0 box, an auto
+       height solves to FILL the viewport, and the "bar" became a tall empty
+       slab (the owner's twice-photographed blank window). fit-content wraps
+       the bar, like the full mode's sheet wraps its content. */
+    height:fit-content;max-height:none;overflow:visible;padding-bottom:0;
   }
   .js section.panel.shrunk > *:not(.panel-bar){display:none}
   .js section.panel.shrunk .panel-bar{margin-bottom:0;border-radius:var(--radius-lg)}
@@ -536,6 +547,35 @@
   .rel-list a:hover{color:var(--accent)}
   .rel-ver{font-weight:900;color:var(--accent);min-width:46px}
   .rel-date{margin-left:auto;color:var(--muted);font-size:14px}
+  /* Snap ghost: the quarter a drag is hovering over. One reusable outline,
+     theme accent at low alpha, never touchable, under the windows. */
+  #snap-ghost{display:none}
+  #snap-ghost.on{
+    display:block;position:fixed;z-index:55;pointer-events:none;
+    border:2px solid rgba(var(--glow-rgb),.55);background:rgba(var(--glow-rgb),.07);
+    border-radius:var(--radius-lg);
+  }
+  /* Snap button: header chrome, same voice as the theme switch. */
+  .snap-btn{display:none}
+  .js .snap-btn{
+    display:inline-flex;align-items:center;
+    font:inherit;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);background:none;border:1px solid transparent;border-radius:var(--radius-pill);
+    min-height:30px;padding:5px 10px;cursor:pointer;transition:color .15s ease,background .15s ease;
+  }
+  .js .snap-btn:hover{color:var(--ink)}
+  .js .snap-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* Text gloss: the interactive layer never starts a text grab. The whole
+     window (contents included), the deck, the nav, the header, the strip:
+     dragging inside the OS must never paint a selection. One deliberate
+     exception: the Computer's lines stay copyable, her screen never drags.
+     During any drag or resize, a body class glosses EVERYTHING, so a fast
+     drag that leaves the panel cannot select the page behind it either. */
+  .js section.panel,.js .tiles,.js .tile,.js .win-chip,.js .screen-nav,.js header,.js #win-strip,.js .panel-bar,.js .marquee,.js #os-clock,.js #snap-ghost{
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  }
+  .js .comp-line{-webkit-user-select:text;user-select:text}
+  body.os-dragging,body.os-dragging *{-webkit-user-select:none!important;user-select:none!important}
   /* OS clock: desktop furniture, bottom-left, never touchable. */
   #os-clock{display:none}
   .js #os-clock{
@@ -637,8 +677,9 @@
     .js section.panel{width:calc(100vw - 16px);max-height:calc(100dvh - 20px);padding:0 18px 26px}
     .js .panel-bar{margin:0 -18px 18px;padding:8px 10px 8px 14px}
     .js section.panel.small{width:46vw;height:30dvh;max-height:30dvh}
+    .js section.panel.openwin{width:min(92vw,560px);height:62dvh;max-height:62dvh}
     .js section.panel.custom{width:var(--cw);height:var(--ch);max-height:var(--ch)}
-    .js section.panel.shrunk{width:fit-content;max-width:calc(100vw - 16px);height:auto;max-height:none}
+    .js section.panel.shrunk{width:fit-content;max-width:calc(100vw - 16px);height:fit-content;max-height:none}
     .js .hero{padding:34px 0 0}
   }
 
@@ -844,6 +885,7 @@
         <a href="https://open.spotify.com/artist/6pGOaet5SCp0qg9WEbAkN2" data-goatcounter-click="spotify-artist">Spotify</a>
         <a href="https://rapdream.itch.io/rap-dream" data-goatcounter-click="itch-own">itch.io</a>
       </span>
+      <button type="button" class="snap-btn" id="snap-btn" aria-label="Snap open windows into quarters">Snap</button>
       <div class="theme-switch" role="group" aria-label="Color theme">
         <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
         <button type="button" data-theme-btn="rapdream" aria-pressed="false">Rap Dream</button>
@@ -1051,6 +1093,7 @@
         <p class="section-sub">The recent drops. The full log runs back to launch day.</p>
       </div>
       <ul class="rel-list">
+        <li><a href="changelog.html"><span class="rel-ver">SITE</span>Windows open ready now<span class="rel-date">Nov 8, 2026</span></a></li>
         <li><a href="changelog.html"><span class="rel-ver">SITE</span>The OS gets themes, a clock, and smaller windows<span class="rel-date">Nov 8, 2026</span></a></li>
         <li><a href="changelog.html"><span class="rel-ver">SITE</span>Windows learn their manners<span class="rel-date">Nov 8, 2026</span></a></li>
         <li><a href="changelog.html"><span class="rel-ver">SITE</span>The whole home fits one screen<span class="rel-date">Nov 8, 2026</span></a></li>
@@ -1095,6 +1138,7 @@
 
 <div class="panel-backdrop" id="panel-backdrop" hidden></div>
 <div id="os-clock" aria-hidden="true"></div>
+<div id="snap-ghost" aria-hidden="true"></div>
 <div id="win-strip" hidden aria-label="Minimized windows"></div>
 
 <footer>
@@ -1239,6 +1283,20 @@
   };
 })();
 </script>
+<script id="computer-open-hook">
+(function(){
+  /* Computer open hook, pre-registered BEFORE the panel script, the pattern
+     __sparOpen set: the real hook lives in the last script in the file, so
+     any open that fires before it loads (hash arrival, a fast tile tap)
+     called a hook that did not exist yet and the request vanished into a
+     typeof guard. This stub records the request instead; when the real
+     hook registers it starts the session if a start was queued or the
+     panel is already open. Defense in depth for a blank terminal. */
+  if (typeof window.__computerOpen !== 'function') {
+    window.__computerOpen = function(){ window.__computerStartQueued = true; };
+  }
+})();
+</script>
 <script id="panel-script">
 (function(){
   var ids = ['the-game','the-music','the-builder','own-it','spar','release','computer'];
@@ -1246,7 +1304,7 @@
   var panels = {}, openers = {}, state = {}, i;
   for (i = 0; i < ids.length; i++) {
     var p = document.getElementById(ids[i]);
-    if (p) { panels[ids[i]] = p; openers[ids[i]] = []; state[ids[i]] = { open:false, min:false, z:0, opener:null, x:0, y:0, moved:false, mode:'small', fromMode:'small', dockMode:'small', custom:null }; }
+    if (p) { panels[ids[i]] = p; openers[ids[i]] = []; state[ids[i]] = { open:false, min:false, z:0, opener:null, x:0, y:0, moved:false, mode:'open', fromMode:'open', dockMode:'open', custom:null, snapped:null }; }
   }
   var backdrop = document.getElementById('panel-backdrop');
   if (!backdrop) return;
@@ -1333,22 +1391,41 @@
     var oy = Math.max(48 - r.height, Math.min(vh - 48, cy)) - cy;
     if (ox || oy) { st.x += ox; st.y += oy; setPos(id); }
   }
-  function quadrant(id){
-    /* Fresh opens land in screen quadrants (index 0 top-left, 1 top-right,
-       2 bottom-left, 3 bottom-right, then cycling with a small extra step):
-       four small windows can share the screen at once. Panels are centered
-       by inset/margin-auto, so the translate that puts a window's center on
-       a quadrant center is just quadrant-center minus viewport-center.
-       Once the user drags a window, its dropped position wins forever. */
-    var st = state[id];
-    if (st.moved) { setPos(id); clampPos(id); return; }
-    var idx = ids.indexOf(id);
+  /* Quarter rects: the 2x2 workflow grid. 8px outer margin and a 16px
+     center gutter: qw = floor(vw/2) - 16, qh = floor(vh/2) - 16. A snapped
+     window takes its quarter's rect exactly (custom size + position). */
+  function quarterRect(q){
     var vw = window.innerWidth || 1024, vh = window.innerHeight || 768;
-    var col = idx % 2, row = Math.floor(idx / 2) % 2, cyc = Math.floor(idx / 4);
-    var cx = vw * (col ? 0.74 : 0.26) + cyc * 14;
-    var cy = vh * (row ? 0.74 : 0.27) + cyc * 14;
-    st.x = Math.round(cx - vw / 2); st.y = Math.round(cy - vh / 2);
+    var qw = Math.floor(vw / 2) - 16, qh = Math.floor(vh / 2) - 16;
+    var x = (q === 'TR' || q === 'BR') ? vw - 8 - qw : 8;
+    var y = (q === 'BL' || q === 'BR') ? vh - 8 - qh : 8;
+    return { x:x, y:y, w:qw, h:qh };
+  }
+  function quarterAt(px, py){
+    /* The cross gutter (24px around the center lines) is no-snap ground: a
+       drop there stays free. */
+    var vw = window.innerWidth || 1024, vh = window.innerHeight || 768;
+    if (Math.abs(px - vw / 2) <= 12 || Math.abs(py - vh / 2) <= 12) return null;
+    return (py < vh / 2 ? 'T' : 'B') + (px < vw / 2 ? 'L' : 'R');
+  }
+  function snapTo(id, q){
+    var st = state[id];
+    if (!st) return;
+    var r = quarterRect(q);
+    st.custom = { w:r.w, h:r.h };
+    st.snapped = q;
+    st.moved = true;
+    st.x = Math.round(r.x + r.w / 2 - (window.innerWidth || 1024) / 2);
+    st.y = Math.round(r.y + r.h / 2 - (window.innerHeight || 768) / 2);
+    swapMode(id, function(){ applyMode(id); });
     setPos(id);
+  }
+  function placeFresh(id){
+    /* Fresh opens land centered at OPEN size. A window the user once
+       dragged reopens where it was dropped; its size stage restarts. */
+    var st = state[id];
+    if (st.moved) { setPos(id); return; }
+    st.x = 0; st.y = 0; setPos(id);
   }
   /* ---------- corner resize ---------- */
   var resize = null;
@@ -1356,12 +1433,16 @@
     var st = state[id];
     if (st.custom) return { w: st.custom.w, h: st.custom.h };
     var vw = window.innerWidth || 1024, vh = window.innerHeight || 768;
+    if (st.mode === 'open') {
+      if (vw <= 820) return { w: Math.round(Math.min(vw * 0.92, 560)), h: Math.round(vh * 0.62) };
+      return { w: Math.round(Math.min(680, vw * 0.90)), h: Math.round(Math.min(600, vh * 0.82)) };
+    }
     if (vw <= 820) return { w: Math.round(vw * 0.46), h: Math.round(vh * 0.30) };
     return { w: Math.round(Math.min(400, vw * 0.44)), h: Math.round(Math.min(340, vh * 0.38)) };
   }
   function startResize(id, e){
     var st = state[id];
-    if (!st || !st.open || st.min || st.mode !== 'small') return;
+    if (!st || !st.open || st.min || (st.mode !== 'small' && st.mode !== 'open')) return;
     if (e.button !== undefined && e.button !== 0) return;
     if (e.preventDefault) e.preventDefault();
     if (e.stopPropagation) e.stopPropagation();
@@ -1369,6 +1450,7 @@
     var r = panels[id].getBoundingClientRect();
     if (r && r.width) sz = { w: Math.round(r.width), h: Math.round(r.height) };
     resize = { id:id, pid:e.pointerId, sx:e.clientX, sy:e.clientY, w:sz.w, h:sz.h };
+    document.body.classList.add('os-dragging');
     bringToFront(id);
     var g = panels[id].querySelector('[data-grip]');
     if (g) {
@@ -1391,12 +1473,14 @@
     st.x += Math.round((w - prev.w) / 2);
     st.y += Math.round((h - prev.h) / 2);
     st.custom = { w: w, h: h };
+    st.snapped = null;
     st.moved = true;
     applyMode(resize.id);
     setPos(resize.id);
   }
   function onResizeEnd(e){
     if (!resize || (e && e.pointerId !== undefined && e.pointerId !== resize.pid)) return;
+    document.body.classList.remove('os-dragging');
     var g = panels[resize.id].querySelector('[data-grip]');
     if (g) {
       g.removeEventListener('pointermove', onResizeMove);
@@ -1407,6 +1491,16 @@
     resize = null;
   }
   var drag = null;
+  var dragSnap = null;
+  var ghost = document.getElementById('snap-ghost');
+  function showGhost(q){
+    if (!ghost) return;
+    if (!q) { ghost.classList.remove('on'); return; }
+    var r = quarterRect(q);
+    ghost.style.left = r.x + 'px'; ghost.style.top = r.y + 'px';
+    ghost.style.width = r.w + 'px'; ghost.style.height = r.h + 'px';
+    ghost.classList.add('on');
+  }
   function startDrag(id, e){
     if (e.button !== undefined && e.button !== 0) return;
     var st = state[id];
@@ -1425,6 +1519,7 @@
     if (!drag.active) {
       if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
       drag.active = true;
+      document.body.classList.add('os-dragging');
       panels[drag.id].classList.add('dragging');
       bringToFront(drag.id);
       var bar0 = panels[drag.id].querySelector('.panel-bar');
@@ -1434,6 +1529,12 @@
     st.x = drag.ox + dx; st.y = drag.oy + dy; st.moved = true;
     setPos(drag.id);
     clampPos(drag.id);
+    /* Snap preview: floating windows (never full, never a shrunk bar) show
+       the quarter under the pointer; the center cross is no-snap ground. */
+    if (st.mode !== 'full' && st.mode !== 'shrunk') {
+      dragSnap = quarterAt(e.clientX, e.clientY);
+      showGhost(dragSnap);
+    }
   }
   function onDragEnd(e){
     if (!drag || (e && e.pointerId !== undefined && e.pointerId !== drag.pid)) return;
@@ -1445,18 +1546,31 @@
       bar.removeEventListener('pointercancel', onDragEnd);
       if (bar.releasePointerCapture && drag.pid !== undefined) { try { bar.releasePointerCapture(drag.pid); } catch (err) {} }
     }
-    if (drag.active) {
+    var wasActive = drag.active, snapQ = dragSnap, dragId = drag.id;
+    document.body.classList.remove('os-dragging');
+    showGhost(null); dragSnap = null;
+    if (wasActive) {
       panel.classList.remove('dragging');
       panel.classList.add('open');
-    } else if (e && state[drag.id] && state[drag.id].mode === 'shrunk') {
+    } else if (e && state[dragId] && state[dragId].mode === 'shrunk') {
       /* A bar press that never became a drag is a click: on a shrunk window
          it expands the window back to its remembered mode. */
-      var sid = drag.id;
       drag = null;
-      expandWindow(sid);
+      expandWindow(dragId);
       return;
     }
     drag = null;
+    /* Drop inside a quarter: the window snaps into the grid. Drop anywhere
+       else: the free position the drag just left stands (a snapped window
+       pulled free keeps its quarter size as a custom box). */
+    if (wasActive && snapQ) {
+      var dst = state[dragId];
+      if (dst && dst.mode !== 'full' && dst.mode !== 'shrunk') snapTo(dragId, snapQ);
+    } else if (wasActive && state[dragId] && state[dragId].snapped) {
+      var fst = state[dragId];
+      fst.snapped = null;
+      swapMode(dragId, function(){ applyMode(dragId); });
+    }
   }
   function updateLock(){
     /* The page locks only behind a FULL frontmost window (phone widths).
@@ -1465,15 +1579,21 @@
     var lock = !!f && state[f].mode === 'full' && window.innerWidth <= 820;
     document.body.classList.toggle('win-lock', lock);
   }
-  /* Mode machine per window: mode is 'small', 'full' or 'shrunk'; a custom
-     corner-resized box is a variant of 'small' (st.custom). Docked is
-     the separate st.min flag (level 2, the strip). fromMode remembers what a
-     shrunk window expands back to; dockMode remembers what a chip restore
-     lands on (always a real window, never a bar). */
+  /* Mode machine per window: mode is 'open' (the fresh, ready size),
+     'small' (the cycle's quarter stage), 'full' or 'shrunk'. A custom
+     corner-resized box (st.custom) can branch off open or small; a snapped
+     window (st.snapped) is any floating mode wearing its quarter's rect as
+     a custom box, and it carries the small class so the narrow-width
+     content reflow applies at quarter width too. Docked is the separate
+     st.min flag (level 2, the strip). fromMode remembers what a shrunk
+     window expands back to; dockMode remembers what a chip restore lands
+     on (always a real window, never a bar). */
   function applyMode(id){
     var st = state[id], p = panels[id];
-    p.classList.toggle('small', st.mode === 'small');
-    p.classList.toggle('custom', st.mode === 'small' && !!st.custom);
+    p.classList.toggle('small', st.mode === 'small' || !!st.snapped);
+    p.classList.toggle('openwin', st.mode === 'open');
+    p.classList.toggle('snapped', !!st.snapped);
+    p.classList.toggle('custom', !!st.custom);
     if (st.custom) {
       p.style.setProperty('--cw', st.custom.w + 'px');
       p.style.setProperty('--ch', st.custom.h + 'px');
@@ -1485,7 +1605,7 @@
     var st = state[id], p = panels[id];
     var sb = p.querySelector('[data-size]');
     if (sb) {
-      var lbl = st.mode === 'shrunk' ? 'Expand window' : (st.mode === 'small' ? 'Full size' : 'Small size');
+      var lbl = st.mode === 'shrunk' ? 'Expand window' : (st.mode === 'open' ? 'Quarter size' : (st.mode === 'small' ? 'Full size' : 'Open size'));
       sb.setAttribute('aria-label', lbl); sb.setAttribute('title', lbl);
     }
     var mb = p.querySelector('[data-min]');
@@ -1514,7 +1634,7 @@
   function expandWindow(id){
     var st = state[id];
     if (!st || !st.open || st.min || st.mode !== 'shrunk') return;
-    swapMode(id, function(){ st.mode = st.fromMode || 'small'; applyMode(id); });
+    swapMode(id, function(){ st.mode = st.fromMode || 'open'; applyMode(id); });
     bringToFront(id);
     clampPos(id);
     updateLock();
@@ -1524,13 +1644,15 @@
     if (!st || !st.open || st.min) return;
     if (st.mode === 'shrunk') { expandWindow(id); return; }
     swapMode(id, function(){
-      if (st.mode === 'small') { st.mode = 'full'; }
-      else {
-        /* Full -> small is the reset: the custom box is cleared. */
-        st.mode = 'small'; st.custom = null;
-        panels[id].style.removeProperty('--cw');
-        panels[id].style.removeProperty('--ch');
-      }
+      /* Three stages: open -> quarter -> full -> open. Landing on a stage
+         is a reset: any custom box or snap is cleared, the stage's own
+         size rules rule. */
+      if (st.mode === 'open') { st.mode = 'small'; }
+      else if (st.mode === 'small') { st.mode = 'full'; }
+      else { st.mode = 'open'; }
+      st.custom = null; st.snapped = null;
+      panels[id].style.removeProperty('--cw');
+      panels[id].style.removeProperty('--ch');
       applyMode(id);
     });
     clampPos(id);
@@ -1539,7 +1661,7 @@
   function dockWindow(id){
     var st = state[id];
     if (!st || !st.open || st.min) return;
-    st.dockMode = (st.mode === 'shrunk') ? (st.fromMode || 'small') : st.mode;
+    st.dockMode = (st.mode === 'shrunk') ? (st.fromMode || 'open') : st.mode;
     st.min = true;
     panels[id].classList.add('min');
     panels[id].setAttribute('aria-hidden', 'true');
@@ -1598,13 +1720,14 @@
     }
     if (st.open && st.min) { restoreWindow(id); return; }
     st.open = true; st.min = false; st.opener = opener || null;
-    /* New windows open SMALL by default at every width, in their quadrant. */
-    st.mode = 'small'; st.fromMode = 'small'; st.dockMode = 'small'; st.custom = null;
+    /* New windows open at OPEN size, centered: ready to flow with whatever
+       they hold. Squeeze, snap, shrink or dock from there. */
+    st.mode = 'open'; st.fromMode = 'open'; st.dockMode = 'open'; st.custom = null; st.snapped = null;
     panel.style.removeProperty('--cw');
     panel.style.removeProperty('--ch');
     applyMode(id);
     panel.classList.add('open');
-    quadrant(id);
+    placeFresh(id);
     clampPos(id);
     bringToFront(id);
     /* SPAR hook fires only on a fresh open: restoring a minimized SPAR must not
@@ -1627,7 +1750,7 @@
     if (!st || !st.open || !st.min) return;
     st.min = false;
     /* A chip restore lands on the remembered window mode, never on a bar. */
-    swapMode(id, function(){ st.mode = st.dockMode || 'small'; applyMode(id); });
+    swapMode(id, function(){ st.mode = st.dockMode || 'open'; applyMode(id); });
     panels[id].classList.remove('min');
     panels[id].setAttribute('aria-hidden', 'false');
     bringToFront(id);
@@ -1643,12 +1766,14 @@
     if (drag && drag.id === id) onDragEnd(null);
     if (resize && resize.id === id) onResizeEnd(null);
     st.open = false; st.min = false;
-    st.mode = 'small'; st.fromMode = 'small'; st.dockMode = 'small'; st.custom = null;
+    st.mode = 'open'; st.fromMode = 'open'; st.dockMode = 'open'; st.custom = null; st.snapped = null;
     panels[id].style.removeProperty('--cw');
     panels[id].style.removeProperty('--ch');
     panels[id].classList.remove('open');
     panels[id].classList.remove('min');
     panels[id].classList.remove('small');
+    panels[id].classList.remove('openwin');
+    panels[id].classList.remove('snapped');
     panels[id].classList.remove('custom');
     panels[id].classList.remove('shrunk');
     panels[id].setAttribute('aria-hidden', 'true');
@@ -1682,6 +1807,21 @@
     for (var k = 0; k < ids.length; k++) {
       if (state[ids[k]] && state[ids[k]].open && !state[ids[k]].min) clampPos(ids[k]);
     }
+  });
+  var snapBtn = document.getElementById('snap-btn');
+  if (snapBtn) snapBtn.addEventListener('click', function(){
+    /* Snap: the frontmost floating windows take the quarters in z-order,
+       frontmost first (TL, TR, BL, BR). One window snaps to TL. Past four,
+       the rest stay where they are: snapping arranges, it never limits. */
+    var qs = ['TL','TR','BL','BR'];
+    var floating = [];
+    for (var k = 0; k < ids.length; k++) {
+      var st = state[ids[k]];
+      if (st && st.open && !st.min && st.mode !== 'full' && st.mode !== 'shrunk') floating.push(ids[k]);
+    }
+    floating.sort(function(a, b){ return state[b].z - state[a].z; });
+    for (var j = 0; j < Math.min(4, floating.length); j++) snapTo(floating[j], qs[j]);
+    updateLock();
   });
   var hsh = (location.hash || '').slice(1);
   if (hsh && panels[hsh]) openWindow(hsh, null);
@@ -2850,9 +2990,25 @@
   };
   /* If the window manager already opened this panel before this script
      loaded (the #computer hash path runs inside panel-script, earlier in
-     the file, when __computerOpen did not exist yet), start now: a fresh
-     open must never leave a blank terminal, whatever path opened it. */
-  if (panel.classList.contains('open')) window.__computerOpen();
+     the file), the pre-registered stub queued the start: honor the queue,
+     or the open panel, now. A fresh open must never leave a blank
+     terminal, whatever path opened it. */
+  if (window.__computerStartQueued || panel.classList.contains('open')) window.__computerOpen();
+  /* Belt and braces, all idempotent (the started flag refuses a second
+     session): one retry when the page finishes loading, and a watchdog
+     shortly after this script lands. If the panel stands open with an
+     empty log, the session is not running whatever the flags say, so
+     (re)start it: a blank terminal on an open Computer is the one state
+     that must not survive. */
+  window.addEventListener('load', function(){
+    if (panel.classList.contains('open') && !(logEl && logEl.textContent.trim())) window.__computerOpen();
+  });
+  setTimeout(function(){
+    if (!panel.classList.contains('open') || panel.classList.contains('min')) return;
+    if (logEl && logEl.textContent.trim()) return;
+    if (started) window.__computerReset();
+    window.__computerOpen();
+  }, 600);
 })();
 </script>
 
