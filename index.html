@@ -353,9 +353,9 @@
   .site-level .lv-fill{height:100%;background:var(--accent);border-radius:var(--radius-pill)}
 
   /* ---------- dashboard panels (JS enhanced) ---------- */
-  .panel-close{display:none}
+  .panel-close,.panel-min{display:none}
   .panel-bar{display:none}
-  .panel-backdrop{position:fixed;inset:0;z-index:55;background:rgba(3,6,10,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+  .panel-backdrop{display:none}
   .panel-backdrop[hidden]{display:none}
   .js .mast{padding:18px 0 14px}
   .js .hero{padding:44px 0 4px}
@@ -370,27 +370,43 @@
     border:1px solid var(--panel-edge);border-radius:var(--radius-lg);
     box-shadow:0 40px 110px rgba(0,0,0,.65), 0 0 70px rgba(55,242,162,.07);
     opacity:0;visibility:hidden;pointer-events:none;
-    transform:none;
+    transform:translate(var(--wx,0px),var(--wy,0px));
     transition:opacity .2s ease,visibility 0s linear .2s;
   }
-  @keyframes panelPop{from{opacity:0;transform:scale(.965)}to{opacity:1;transform:scale(1)}}
+  @keyframes panelPop{from{opacity:0;transform:translate(var(--wx,0px),var(--wy,0px)) scale(.965)}to{opacity:1;transform:translate(var(--wx,0px),var(--wy,0px)) scale(1)}}
   .js section.panel.open{
     opacity:1;visibility:visible;pointer-events:auto;
-    transform:none;
+    transform:translate(var(--wx,0px),var(--wy,0px));
     animation:panelPop .2s ease;
     transition:opacity .2s ease,visibility 0s;
   }
   .js section.panel .own{margin:0}
-  .js .panel-bar{display:flex;justify-content:flex-end;position:sticky;top:0;z-index:3;margin-bottom:10px}
-  .js .panel-close{
+  .js .panel-bar{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:3;margin-bottom:10px}
+  .js .panel-close,.js .panel-min{
     display:inline-flex;align-items:center;min-height:44px;padding:9px 18px;cursor:pointer;
     border:1px solid var(--panel-edge);border-radius:var(--radius-pill);
     background:#0E1424;color:var(--ink);
     font:inherit;font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
   }
-  .js .panel-close:hover{background:rgba(55,242,162,.14);border-color:rgba(55,242,162,.5)}
-  .js .panel-close:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-  body.panel-open{overflow:hidden}
+  .js .panel-close:hover,.js .panel-min:hover{background:rgba(55,242,162,.14);border-color:rgba(55,242,162,.5)}
+  .js .panel-close:focus-visible,.js .panel-min:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  body.win-lock{overflow:hidden}
+  .js section.panel.min{display:none}
+  .win-embed{display:none}
+  .js .win-embed{display:block;position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.08)}
+  .win-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .win-embed + .link-row,.rel-list + .link-row{margin-top:18px}
+  .rel-list{list-style:none;margin:0;padding:0}
+  .rel-list li{border-top:1px solid rgba(255,255,255,.07)}
+  .rel-list a{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;padding:13px 4px;color:var(--ink);text-decoration:none}
+  .rel-list a:hover{color:var(--accent)}
+  .rel-ver{font-weight:900;color:var(--accent);min-width:46px}
+  .rel-date{margin-left:auto;color:var(--muted);font-size:14px}
+  #win-strip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:500;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 16px)}
+  #win-strip[hidden]{display:none}
+  .win-chip{display:inline-flex;align-items:center;min-height:44px;padding:9px 18px;cursor:pointer;border:1px solid var(--panel-edge);border-radius:var(--radius-pill);background:#0E1424;color:var(--ink);font:inherit;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 14px 34px rgba(0,0,0,.5)}
+  .win-chip:hover{background:rgba(55,242,162,.14);border-color:rgba(55,242,162,.5)}
+  .win-chip:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 
   /* ---------- SPAR: the freestyle clock ---------- */
   .spar-app{max-width:640px;margin:0 auto;text-align:center}
@@ -434,7 +450,7 @@
     .spar-prompt.flash .spar-text{animation:none}
   }
   @media (max-width:820px){
-    .js section.panel{width:calc(100vw - 16px);max-height:calc(100dvh - 20px);padding:20px 18px 26px}
+    .js section.panel{width:calc(100vw - 16px);max-height:calc(100dvh - 20px);padding:20px 18px 26px;transform:none}
     .js .hero{padding:34px 0 0}
   }
 
@@ -573,12 +589,12 @@
         </div>
         <div class="tiles">
           <button type="button" class="tile" id="play-tile"><span class="t-glyph" aria-hidden="true">▶</span><span class="t-name">PLAY</span><span class="t-sub">Run the game. Free, in your browser.</span></button>
-          <a class="tile" href="#the-music"><span class="t-glyph" aria-hidden="true">●</span><span class="t-name">RECORD</span><span class="t-sub">The records behind the game.</span></a>
-          <a class="tile" href="changelog.html"><span class="t-glyph" aria-hidden="true">↑</span><span class="t-name">RELEASE</span><span class="t-sub">Every version, as it shipped.</span></a>
-          <a class="tile" href="https://youtube.com/playlist?list=PLWmOIA9FkXwU2lNv4Tv9SWr3DivPuzwVH" data-goatcounter-click="best-of-battles"><span class="t-glyph" aria-hidden="true">⚔︎</span><span class="t-name">BATTLE</span><span class="t-sub">Best of Reginald Loud.</span></a>
-          <a class="tile" href="https://youtube.com/playlist?list=PLWmOIA9FkXwXsDyuk60dy7Ulj_Hzw9pah" data-goatcounter-click="doucet-forever"><span class="t-glyph" aria-hidden="true">♪</span><span class="t-name">CATALOG</span><span class="t-sub">DOUCET Forever: all the songs.</span></a>
-          <a class="tile" href="https://x.com/kanye" data-goatcounter-click="x-kanye"><span class="t-glyph" aria-hidden="true">✦</span><span class="t-name">PARTY</span><span class="t-sub">@kanye on X.</span></a>
-          <a class="tile" href="#spar"><span class="t-glyph" aria-hidden="true">◉</span><span class="t-name">SPAR</span><span class="t-sub">The freestyle clock. Rounds, angles, no hiding.</span></a>
+          <a class="tile" href="#the-music" data-goatcounter-title="RECORD"><span class="t-glyph" aria-hidden="true">●</span><span class="t-name">RECORD</span><span class="t-sub">The records behind the game.</span></a>
+          <a class="tile" href="#release" data-goatcounter-title="RELEASE"><span class="t-glyph" aria-hidden="true">↑</span><span class="t-name">RELEASE</span><span class="t-sub">Every version, as it shipped.</span></a>
+          <a class="tile" href="#battle" data-goatcounter-title="BATTLE"><span class="t-glyph" aria-hidden="true">⚔︎</span><span class="t-name">BATTLE</span><span class="t-sub">Best of Reginald Loud.</span></a>
+          <a class="tile" href="#catalog" data-goatcounter-title="CATALOG"><span class="t-glyph" aria-hidden="true">♪</span><span class="t-name">CATALOG</span><span class="t-sub">DOUCET Forever: all the songs.</span></a>
+          <a class="tile" href="#party" data-goatcounter-title="PARTY"><span class="t-glyph" aria-hidden="true">✦</span><span class="t-name">PARTY</span><span class="t-sub">@kanye on X.</span></a>
+          <a class="tile" href="#spar" data-goatcounter-title="SPAR"><span class="t-glyph" aria-hidden="true">◉</span><span class="t-name">SPAR</span><span class="t-sub">The freestyle clock. Rounds, angles, no hiding.</span></a>
         </div>
         <div class="screen-nav"><a class="on" href="https://rapdream.link/">DASH</a><a href="game.html" data-goatcounter-click="play-free" data-goatcounter-no-session="true">PLAY</a><a href="#the-music">MUSIC</a><a href="#the-builder">BUILDER</a><a href="changelog.html">LOG</a></div>
         </div>
@@ -606,7 +622,7 @@
     </div>
 
     <section id="the-game" class="panel">
-      <div class="panel-bar"><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
       <div class="section-head">
         <span class="section-tag">The Game</span>
         <h2>One tab. Whole career.</h2>
@@ -629,7 +645,7 @@
     </section>
 
     <section id="the-music" class="panel">
-      <div class="panel-bar"><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
       <div class="section-head">
         <span class="section-tag">The Musician</span>
         <h2>The game came from the records</h2>
@@ -654,7 +670,7 @@
     </section>
 
     <section id="the-builder" class="panel">
-      <div class="panel-bar"><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
       <div class="section-head">
         <span class="section-tag">The Builder</span>
         <h2>The portfolio behind the game</h2>
@@ -680,7 +696,7 @@
     </section>
 
     <section id="own-it" class="panel">
-      <div class="panel-bar"><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
       <div class="own">
         <span class="section-tag">Own It</span>
         <div class="price">$3.99</div>
@@ -690,7 +706,7 @@
     </section>
 
     <section id="spar" class="panel">
-      <div class="panel-bar"><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
       <div class="section-head">
         <span class="section-tag">SPAR</span>
         <h2>The Freestyle Clock</h2>
@@ -718,10 +734,72 @@
       </div>
     </section>
 
+
+    <section id="battle" class="panel">
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="section-head">
+        <span class="section-tag">The Battles</span>
+        <h2>Best of Reginald Loud</h2>
+        <p class="section-sub">The battles, playing right here.</p>
+      </div>
+      <div class="win-embed"><iframe data-src="https://www.youtube-nocookie.com/embed/videoseries?list=PLWmOIA9FkXwU2lNv4Tv9SWr3DivPuzwVH" title="Best of Reginald Loud battles playlist" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+      <div class="link-row">
+        <a href="https://youtube.com/playlist?list=PLWmOIA9FkXwU2lNv4Tv9SWr3DivPuzwVH" data-goatcounter-click="best-of-battles">Watch on YouTube</a>
+      </div>
+    </section>
+
+    <section id="catalog" class="panel">
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="section-head">
+        <span class="section-tag">The Catalog</span>
+        <h2>DOUCET Forever</h2>
+        <p class="section-sub">All the songs.</p>
+      </div>
+      <div class="win-embed"><iframe data-src="https://www.youtube-nocookie.com/embed/videoseries?list=PLWmOIA9FkXwXsDyuk60dy7Ulj_Hzw9pah" title="DOUCET Forever playlist" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+      <div class="link-row">
+        <a href="https://youtube.com/playlist?list=PLWmOIA9FkXwXsDyuk60dy7Ulj_Hzw9pah" data-goatcounter-click="doucet-forever">Watch on YouTube</a>
+      </div>
+    </section>
+
+    <section id="release" class="panel">
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="section-head">
+        <span class="section-tag">The Log</span>
+        <h2>Every version, as it shipped</h2>
+        <p class="section-sub">The recent drops. The full log runs back to launch day.</p>
+      </div>
+      <ul class="rel-list">
+        <li><a href="changelog/v22.html"><span class="rel-ver">V22</span>You leave better than you came<span class="rel-date">Nov 7, 2026</span></a></li>
+        <li><a href="changelog/v21.html"><span class="rel-ver">V21</span>You always know where you are<span class="rel-date">Nov 6, 2026</span></a></li>
+        <li><a href="changelog/v20.html"><span class="rel-ver">V20</span>The world holds still<span class="rel-date">Nov 5, 2026</span></a></li>
+        <li><a href="changelog/v19.html"><span class="rel-ver">V19</span>Built for the phone in your hand<span class="rel-date">Nov 5, 2026</span></a></li>
+        <li><a href="changelog/v18.html"><span class="rel-ver">V18</span>A new name in the city<span class="rel-date">Nov 4, 2026</span></a></li>
+        <li><a href="changelog/v16.html"><span class="rel-ver">V16</span>The spine<span class="rel-date">Oct 29, 2026</span></a></li>
+        <li><a href="changelog/v15.html"><span class="rel-ver">V15</span>Under the league lights<span class="rel-date">Oct 28, 2026</span></a></li>
+        <li><a href="changelog/v13.html"><span class="rel-ver">V13</span>The party talks<span class="rel-date">Oct 25, 2026</span></a></li>
+      </ul>
+      <div class="link-row">
+        <a href="changelog.html">Full changelog</a>
+      </div>
+    </section>
+
+    <section id="party" class="panel">
+      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="section-head">
+        <span class="section-tag">The Party</span>
+        <h2>The party is on X</h2>
+        <p class="section-sub">The party lives on X, at @kanye. This window is just the door.</p>
+      </div>
+      <div class="link-row">
+        <a href="https://x.com/kanye" data-goatcounter-click="x-kanye">Pull up</a>
+      </div>
+    </section>
+
   </div>
 </main>
 
 <div class="panel-backdrop" id="panel-backdrop" hidden></div>
+<div id="win-strip" hidden aria-label="Minimized windows"></div>
 
 <footer>
   <div class="wrap foot">
@@ -867,21 +945,24 @@
 </script>
 <script id="panel-script">
 (function(){
-  var ids = ['the-game','the-music','the-builder','own-it','spar'];
-  var panels = {}, openers = {}, i, k;
+  var ids = ['the-game','the-music','the-builder','own-it','spar','battle','catalog','release','party'];
+  var names = {'the-game':'Game','the-music':'Music','the-builder':'Builder','own-it':'Own It','spar':'SPAR','battle':'Battle','catalog':'Catalog','release':'Release','party':'Party'};
+  var panels = {}, openers = {}, state = {}, i;
   for (i = 0; i < ids.length; i++) {
     var p = document.getElementById(ids[i]);
-    if (p) { panels[ids[i]] = p; openers[ids[i]] = []; }
+    if (p) { panels[ids[i]] = p; openers[ids[i]] = []; state[ids[i]] = { open:false, min:false, z:0, opener:null }; }
   }
   var backdrop = document.getElementById('panel-backdrop');
   if (!backdrop) return;
-  /* Portal: move panels to body level, just before the backdrop. Inside main .wrap
-     (a z-index:1 stacking context) the panel's z-index could never beat the backdrop's,
-     so the open panel painted under the backdrop's blur. At body level z-index:60 wins. */
+  var strip = document.getElementById('win-strip');
+  /* Portal: move windows to body level, just before the backdrop element. Inside
+     main .wrap (a z-index:1 stacking context) a window's z-index could never beat
+     page-level layers. The backdrop itself is retired (multi-window has no modal
+     veil); the element stays only as this portal anchor. */
   for (i = 0; i < ids.length; i++) {
     if (panels[ids[i]]) document.body.insertBefore(panels[ids[i]], backdrop);
   }
-  var openId = null, lastOpener = null;
+  var zTop = 60, slotCount = 0;
   var links = document.querySelectorAll('a[href^="#"]');
   for (i = 0; i < links.length; i++) {
     var pid = links[i].getAttribute('href').slice(1);
@@ -890,71 +971,157 @@
       links[i].setAttribute('aria-expanded', 'false');
       links[i].setAttribute('aria-haspopup', 'dialog');
       (function(link, id){
-        link.addEventListener('click', function(e){ e.preventDefault(); openPanel(id, link); });
+        link.addEventListener('click', function(e){ e.preventDefault(); openWindow(id, link); });
       })(links[i], pid);
     }
   }
   for (i = 0; i < ids.length; i++) {
-    var panel = panels[ids[i]];
-    if (!panel) continue;
-    panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-modal', 'true');
-    panel.setAttribute('aria-hidden', 'true');
-    var btn = panel.querySelector('[data-close]');
-    if (btn) btn.addEventListener('click', function(){ closePanel(true); });
+    (function(id){
+      var panel = panels[id];
+      if (!panel) return;
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-modal', 'false');
+      panel.setAttribute('aria-hidden', 'true');
+      var btn = panel.querySelector('[data-close]');
+      if (btn) btn.addEventListener('click', function(){ closeWindow(id, true); });
+      var mb = panel.querySelector('[data-min]');
+      if (mb) mb.addEventListener('click', function(){ minimizeWindow(id); });
+      panel.addEventListener('pointerdown', function(){ if (state[id].open && !state[id].min) bringToFront(id); });
+    })(ids[i]);
   }
   function setExpanded(id, val){
     var list = openers[id] || [];
     for (var j = 0; j < list.length; j++) list[j].setAttribute('aria-expanded', val ? 'true' : 'false');
   }
-  function openPanel(id, opener){
+  function frontmost(){
+    var best = null, bz = -1;
+    for (var k = 0; k < ids.length; k++) {
+      var id = ids[k];
+      if (state[id] && state[id].open && !state[id].min && state[id].z > bz) { bz = state[id].z; best = id; }
+    }
+    return best;
+  }
+  function bringToFront(id){
+    state[id].z = ++zTop;
+    panels[id].style.zIndex = zTop;
+  }
+  function cascade(id){
+    if (window.innerWidth > 820) {
+      var s = slotCount % 5; slotCount++;
+      panels[id].style.setProperty('--wx', (s * 28) + 'px');
+      panels[id].style.setProperty('--wy', (s * 28) + 'px');
+    } else {
+      panels[id].style.setProperty('--wx', '0px');
+      panels[id].style.setProperty('--wy', '0px');
+    }
+  }
+  function bootEmbed(id){
+    var f = panels[id].querySelector('iframe[data-src]');
+    if (f && !f.getAttribute('src')) f.setAttribute('src', f.getAttribute('data-src'));
+  }
+  function updateLock(){
+    var lock = !!frontmost() && window.innerWidth <= 820;
+    document.body.classList.toggle('win-lock', lock);
+  }
+  function renderStrip(){
+    if (!strip) return;
+    strip.innerHTML = '';
+    var any = false;
+    for (var k = 0; k < ids.length; k++) {
+      (function(id){
+        if (state[id] && state[id].open && state[id].min) {
+          any = true;
+          var chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'win-chip';
+          chip.textContent = names[id];
+          chip.setAttribute('aria-label', 'Restore ' + names[id] + ' window');
+          chip.addEventListener('click', function(){ restoreWindow(id); });
+          strip.appendChild(chip);
+        }
+      })(ids[k]);
+    }
+    strip.hidden = !any;
+  }
+  function openWindow(id, opener){
     var panel = panels[id];
     if (!panel) return;
-    if (openId && openId !== id) {
-      panels[openId].classList.remove('open');
-      panels[openId].setAttribute('aria-hidden', 'true');
-      setExpanded(openId, false);
-    }
-    openId = id; lastOpener = opener || null;
+    var st = state[id];
+    if (st.open && !st.min) { bringToFront(id); updateLock(); return; }
+    if (st.open && st.min) { restoreWindow(id); return; }
+    st.open = true; st.min = false; st.opener = opener || null;
+    cascade(id);
+    bringToFront(id);
+    /* SPAR hook fires only on a fresh open: restoring a minimized SPAR must not
+       reset a running round. */
     if (id === 'spar' && typeof window.__sparOpen === 'function') window.__sparOpen();
+    if (id === 'battle' || id === 'catalog') bootEmbed(id);
     panel.classList.add('open');
+    panel.classList.remove('min');
     panel.setAttribute('aria-hidden', 'false');
     panel.scrollTop = 0;
-    backdrop.hidden = false;
-    document.body.classList.add('panel-open');
     setExpanded(id, true);
+    renderStrip();
+    updateLock();
     var btn = panel.querySelector('[data-close]');
     if (btn) btn.focus();
   }
-  function closePanel(refocus){
-    if (!openId) return;
-    var panel = panels[openId];
-    panel.classList.remove('open');
-    panel.setAttribute('aria-hidden', 'true');
-    setExpanded(openId, false);
-    openId = null;
-    backdrop.hidden = true;
-    document.body.classList.remove('panel-open');
-    if (refocus && lastOpener) lastOpener.focus();
-    lastOpener = null;
+  function minimizeWindow(id){
+    var st = state[id];
+    if (!st || !st.open || st.min) return;
+    st.min = true;
+    panels[id].classList.add('min');
+    panels[id].setAttribute('aria-hidden', 'true');
+    renderStrip();
+    updateLock();
   }
-  backdrop.addEventListener('click', function(){ closePanel(true); });
+  function restoreWindow(id){
+    var st = state[id];
+    if (!st || !st.open || !st.min) return;
+    st.min = false;
+    panels[id].classList.remove('min');
+    panels[id].setAttribute('aria-hidden', 'false');
+    bringToFront(id);
+    renderStrip();
+    updateLock();
+    var btn = panels[id].querySelector('[data-close]');
+    if (btn) btn.focus();
+  }
+  function closeWindow(id, refocus){
+    var st = state[id];
+    if (!st || !st.open) return;
+    st.open = false; st.min = false;
+    panels[id].classList.remove('open');
+    panels[id].classList.remove('min');
+    panels[id].setAttribute('aria-hidden', 'true');
+    setExpanded(id, false);
+    renderStrip();
+    updateLock();
+    if (refocus && st.opener) st.opener.focus();
+    st.opener = null;
+  }
   document.addEventListener('keydown', function(e){
-    if (!openId) return;
-    if (e.key === 'Escape' || e.key === 'Esc') { closePanel(true); return; }
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      var f = frontmost();
+      if (f) closeWindow(f, true);
+      return;
+    }
     if (e.key === 'Tab') {
-      var panel = panels[openId];
-      var f = panel.querySelectorAll('a[href], button:not([disabled])');
+      var fid = frontmost();
+      if (!fid) return;
+      var panel = panels[fid];
+      var els = panel.querySelectorAll('a[href], button:not([disabled])');
       var list = [];
-      for (k = 0; k < f.length; k++) { if (f[k].offsetParent !== null) list.push(f[k]); }
+      for (var k = 0; k < els.length; k++) { if (els[k].offsetParent !== null) list.push(els[k]); }
       if (!list.length) return;
       var first = list[0], last = list[list.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
   });
-  var h = (location.hash || '').slice(1);
-  if (h && panels[h]) openPanel(h, null);
+  window.addEventListener('resize', updateLock);
+  var hsh = (location.hash || '').slice(1);
+  if (hsh && panels[hsh]) openWindow(hsh, null);
 })();
 </script>
 <script id="spar-script">
