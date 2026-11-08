@@ -392,10 +392,7 @@
   .js .panel-close:focus-visible,.js .panel-min:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   body.win-lock{overflow:hidden}
   .js section.panel.min{display:none}
-  .win-embed{display:none}
-  .js .win-embed{display:block;position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.08)}
-  .win-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  .win-embed + .link-row,.rel-list + .link-row{margin-top:18px}
+  .rel-list + .link-row{margin-top:18px}
   .rel-list{list-style:none;margin:0;padding:0}
   .rel-list li{border-top:1px solid rgba(255,255,255,.07)}
   .rel-list a{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;padding:13px 4px;color:var(--ink);text-decoration:none}
@@ -591,9 +588,6 @@
           <button type="button" class="tile" id="play-tile"><span class="t-glyph" aria-hidden="true">▶</span><span class="t-name">PLAY</span><span class="t-sub">Run the game. Free, in your browser.</span></button>
           <a class="tile" href="#the-music" data-goatcounter-title="RECORD"><span class="t-glyph" aria-hidden="true">●</span><span class="t-name">RECORD</span><span class="t-sub">The records behind the game.</span></a>
           <a class="tile" href="#release" data-goatcounter-title="RELEASE"><span class="t-glyph" aria-hidden="true">↑</span><span class="t-name">RELEASE</span><span class="t-sub">Every version, as it shipped.</span></a>
-          <a class="tile" href="#battle" data-goatcounter-title="BATTLE"><span class="t-glyph" aria-hidden="true">⚔︎</span><span class="t-name">BATTLE</span><span class="t-sub">Best of Reginald Loud.</span></a>
-          <a class="tile" href="#catalog" data-goatcounter-title="CATALOG"><span class="t-glyph" aria-hidden="true">♪</span><span class="t-name">CATALOG</span><span class="t-sub">DOUCET Forever: all the songs.</span></a>
-          <a class="tile" href="#party" data-goatcounter-title="PARTY"><span class="t-glyph" aria-hidden="true">✦</span><span class="t-name">PARTY</span><span class="t-sub">@kanye on X.</span></a>
           <a class="tile" href="#spar" data-goatcounter-title="SPAR"><span class="t-glyph" aria-hidden="true">◉</span><span class="t-name">SPAR</span><span class="t-sub">The freestyle clock. Rounds, angles, no hiding.</span></a>
         </div>
         <div class="screen-nav"><a class="on" href="https://rapdream.link/">DASH</a><a href="game.html" data-goatcounter-click="play-free" data-goatcounter-no-session="true">PLAY</a><a href="#the-music">MUSIC</a><a href="#the-builder">BUILDER</a><a href="changelog.html">LOG</a></div>
@@ -735,32 +729,6 @@
     </section>
 
 
-    <section id="battle" class="panel">
-      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
-      <div class="section-head">
-        <span class="section-tag">The Battles</span>
-        <h2>Best of Reginald Loud</h2>
-        <p class="section-sub">The battles, playing right here.</p>
-      </div>
-      <div class="win-embed"><iframe data-src="https://www.youtube-nocookie.com/embed/videoseries?list=PLWmOIA9FkXwU2lNv4Tv9SWr3DivPuzwVH" title="Best of Reginald Loud battles playlist" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-      <div class="link-row">
-        <a href="https://youtube.com/playlist?list=PLWmOIA9FkXwU2lNv4Tv9SWr3DivPuzwVH" data-goatcounter-click="best-of-battles">Watch on YouTube</a>
-      </div>
-    </section>
-
-    <section id="catalog" class="panel">
-      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
-      <div class="section-head">
-        <span class="section-tag">The Catalog</span>
-        <h2>DOUCET Forever</h2>
-        <p class="section-sub">All the songs.</p>
-      </div>
-      <div class="win-embed"><iframe data-src="https://www.youtube-nocookie.com/embed/videoseries?list=PLWmOIA9FkXwXsDyuk60dy7Ulj_Hzw9pah" title="DOUCET Forever playlist" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-      <div class="link-row">
-        <a href="https://youtube.com/playlist?list=PLWmOIA9FkXwXsDyuk60dy7Ulj_Hzw9pah" data-goatcounter-click="doucet-forever">Watch on YouTube</a>
-      </div>
-    </section>
-
     <section id="release" class="panel">
       <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
       <div class="section-head">
@@ -780,18 +748,6 @@
       </ul>
       <div class="link-row">
         <a href="changelog.html">Full changelog</a>
-      </div>
-    </section>
-
-    <section id="party" class="panel">
-      <div class="panel-bar"><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
-      <div class="section-head">
-        <span class="section-tag">The Party</span>
-        <h2>The party is on X</h2>
-        <p class="section-sub">The party lives on X, at @kanye. This window is just the door.</p>
-      </div>
-      <div class="link-row">
-        <a href="https://x.com/kanye" data-goatcounter-click="x-kanye">Pull up</a>
       </div>
     </section>
 
@@ -945,8 +901,8 @@
 </script>
 <script id="panel-script">
 (function(){
-  var ids = ['the-game','the-music','the-builder','own-it','spar','battle','catalog','release','party'];
-  var names = {'the-game':'Game','the-music':'Music','the-builder':'Builder','own-it':'Own It','spar':'SPAR','battle':'Battle','catalog':'Catalog','release':'Release','party':'Party'};
+  var ids = ['the-game','the-music','the-builder','own-it','spar','release'];
+  var names = {'the-game':'Game','the-music':'Music','the-builder':'Builder','own-it':'Own It','spar':'SPAR','release':'Release'};
   var panels = {}, openers = {}, state = {}, i;
   for (i = 0; i < ids.length; i++) {
     var p = document.getElementById(ids[i]);
@@ -1015,10 +971,6 @@
       panels[id].style.setProperty('--wy', '0px');
     }
   }
-  function bootEmbed(id){
-    var f = panels[id].querySelector('iframe[data-src]');
-    if (f && !f.getAttribute('src')) f.setAttribute('src', f.getAttribute('data-src'));
-  }
   function updateLock(){
     var lock = !!frontmost() && window.innerWidth <= 820;
     document.body.classList.toggle('win-lock', lock);
@@ -1055,7 +1007,6 @@
     /* SPAR hook fires only on a fresh open: restoring a minimized SPAR must not
        reset a running round. */
     if (id === 'spar' && typeof window.__sparOpen === 'function') window.__sparOpen();
-    if (id === 'battle' || id === 'catalog') bootEmbed(id);
     panel.classList.add('open');
     panel.classList.remove('min');
     panel.setAttribute('aria-hidden', 'false');
