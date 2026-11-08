@@ -329,7 +329,11 @@
     padding:10px 12px;border-radius:var(--radius-pill);min-height:48px;display:inline-flex;align-items:center;
   }
   .foot-links a:hover{color:var(--accent)}
-  .hours-line{color:var(--muted);font-size:12px;text-align:center;padding:0 20px 34px;position:relative;z-index:1}
+  .hours-line{color:var(--muted);font-size:12px;text-align:center;padding:0 20px 10px;position:relative;z-index:1}
+  .site-level{color:var(--muted);font-size:12px;text-align:center;padding:0 20px 34px;position:relative;z-index:1}
+  .site-level .lv-label{color:var(--ink);font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+  .site-level .lv-track{max-width:220px;height:4px;margin:8px auto 6px;background:var(--panel);border-radius:var(--radius-pill);overflow:hidden}
+  .site-level .lv-fill{height:100%;background:var(--accent);border-radius:var(--radius-pill)}
 
   /* ---------- entrance motion ---------- */
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -542,6 +546,11 @@
 </footer>
 
 <div class="hours-line"><span id="hours-count">74</span> hours worked on Rap Dream</div>
+<div class="site-level">
+  <div class="lv-label" id="site-lv">SITE LV 5</div>
+  <div class="lv-track"><div class="lv-fill" id="site-lv-fill" style="width:30%"></div></div>
+  <div id="site-lv-cap">3 of 10 to LV 6</div>
+</div>
 <script>
 (function(){
   fetch('hours.json', {cache:'no-store'})
@@ -552,6 +561,41 @@
       }
     })
     .catch(function(){});
+})();
+</script>
+<script>
+(function(){
+  var lvEl = document.getElementById('site-lv');
+  var fillEl = document.getElementById('site-lv-fill');
+  var capEl = document.getElementById('site-lv-cap');
+  if (!lvEl || !fillEl || !capEl) return;
+  var base = 'https://rapdream.goatcounter.com/counter/';
+  var events = ['play-free','itch-own','spotify-artist','doucet-forever','best-of-battles','x-kanye','hyperfollow-creole','merch-store'];
+  var urls = [base + 'TOTAL.json', base + '%2Fgame.html.json', base + '%2Fchangelog.html.json'];
+  events.forEach(function(e){ urls.push(base + e + '.json'); });
+  for (var n = 1; n <= 25; n++) { urls.push(base + '%2Fchangelog%2Fv' + n + '.html.json'); }
+  function getCount(url){
+    return fetch(url, {cache:'no-store'})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        var c = d ? parseInt(d.count, 10) : NaN;
+        return isNaN(c) ? null : c;
+      })
+      .catch(function(){ return null; });
+  }
+  Promise.all(urls.map(getCount)).then(function(res){
+    if (res[0] === null) return; /* TOTAL failed: keep static fallback */
+    var subs = (res[1] || 0) + (res[2] || 0);
+    var ev = 0, i;
+    for (i = 3; i < 3 + events.length; i++) { ev += (res[i] || 0); }
+    for (i = 3 + events.length; i < res.length; i++) { subs += (res[i] || 0); }
+    var T = (res[0] - subs) + ev;
+    var L = Math.floor(T / 10) + 1;
+    var P = T % 10;
+    lvEl.textContent = 'SITE LV ' + L;
+    fillEl.style.width = (P * 10) + '%';
+    capEl.textContent = P + ' of 10 to LV ' + (L + 1);
+  });
 })();
 </script>
 
