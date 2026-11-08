@@ -381,7 +381,7 @@
   .site-level .lv-fill{height:100%;background:var(--accent);border-radius:var(--radius-pill)}
 
   /* ---------- dashboard panels (JS enhanced) ---------- */
-  .panel-close,.panel-min{display:none}
+  .panel-btn{display:none}
   .panel-bar{display:none}
   .panel-backdrop{display:none}
   .panel-backdrop[hidden]{display:none}
@@ -434,20 +434,42 @@
     overflow:hidden;text-overflow:ellipsis;pointer-events:none;
   }
   .js section.panel .own{margin:0}
-  .js .panel-close,.js .panel-min{
-    display:inline-flex;align-items:center;min-height:44px;padding:9px 18px;cursor:pointer;
+  /* Window buttons are symbols now, not words: shrink, dock, size, close.
+     The word lives in the aria-label (and tooltip) only. */
+  .js .panel-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:40px;height:40px;flex:0 0 auto;padding:0;cursor:pointer;
     border:1px solid rgba(255,255,255,.22);border-radius:var(--radius-pill);
     background:#141D33;color:var(--ink);
-    font:inherit;font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+    font-family:"Segoe UI Symbol","Noto Sans Symbols 2","DejaVu Sans",sans-serif;
+    font-size:17px;line-height:1;
     transition:background .15s ease,border-color .15s ease,transform .1s ease;
   }
-  .js .panel-close:hover,.js .panel-min:hover{background:rgba(55,242,162,.14);border-color:rgba(55,242,162,.5)}
-  .js .panel-close:active,.js .panel-min:active{transform:scale(.95);background:rgba(55,242,162,.22)}
+  .js .panel-min{font-size:22px}
+  .js .panel-btn:hover{background:rgba(55,242,162,.14);border-color:rgba(55,242,162,.5)}
+  .js .panel-btn:active{transform:scale(.92);background:rgba(55,242,162,.22)}
   .js .panel-close:hover{border-color:var(--accent)}
   .js .panel-close:active{background:var(--accent);color:var(--accent-ink)}
-  .js .panel-close:focus-visible,.js .panel-min:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .js .panel-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   body.win-lock{overflow:hidden}
   .js section.panel.min{display:none}
+  /* Mode swaps (chunky/full/shrunk) never play the open pop or a transition. */
+  .js section.panel.noanim{animation:none;transition:none}
+  /* CHUNKY: a real box the user can park and arrange, not a full sheet.
+     Content scrolls inside it. New windows open chunky by default. */
+  .js section.panel.chunky{
+    width:min(560px,82vw);height:min(560px,60dvh);max-height:60dvh;
+  }
+  /* SHRUNK (minimize level 1): the window collapses to its bar and stays on
+     screen at its position, still draggable. FULL is the base rule above:
+     the centered sheet, width min(920px,...), height fit-content. */
+  .js section.panel.shrunk{
+    width:fit-content;max-width:calc(100vw - 16px);
+    height:auto;max-height:none;overflow:visible;padding-bottom:0;
+  }
+  .js section.panel.shrunk > *:not(.panel-bar){display:none}
+  .js section.panel.shrunk .panel-bar{margin-bottom:0;border-radius:var(--radius-lg)}
+  .js section.panel.shrunk .panel-min{display:none}
   .rel-list + .link-row{margin-top:18px}
   .rel-list{list-style:none;margin:0;padding:0}
   .rel-list li{border-top:1px solid rgba(255,255,255,.07)}
@@ -547,6 +569,8 @@
   @media (max-width:820px){
     .js section.panel{width:calc(100vw - 16px);max-height:calc(100dvh - 20px);padding:0 18px 26px}
     .js .panel-bar{margin:0 -18px 18px;padding:8px 10px 8px 14px}
+    .js section.panel.chunky{width:82vw;height:56dvh;max-height:56dvh}
+    .js section.panel.shrunk{width:fit-content;max-width:calc(100vw - 16px);height:auto;max-height:none}
     .js .hero{padding:34px 0 0}
   }
 
@@ -782,7 +806,7 @@
     </div>
 
     <section id="the-game" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">The Game</span>
         <h2>One tab. Whole career.</h2>
@@ -805,7 +829,7 @@
     </section>
 
     <section id="the-music" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">The Musician</span>
         <h2>The game came from the records</h2>
@@ -830,7 +854,7 @@
     </section>
 
     <section id="the-builder" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">The Builder</span>
         <h2>The portfolio behind the game</h2>
@@ -856,7 +880,7 @@
     </section>
 
     <section id="own-it" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="own">
         <span class="section-tag">Own It</span>
         <div class="price">$3.99</div>
@@ -866,7 +890,7 @@
     </section>
 
     <section id="spar" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">SPAR</span>
         <h2>The Freestyle Clock</h2>
@@ -896,7 +920,7 @@
 
 
     <section id="release" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">The Log</span>
         <h2>Every version, as it shipped</h2>
@@ -918,7 +942,7 @@
     </section>
 
     <section id="computer" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-min" data-min>Minimize</button><button type="button" class="panel-close" data-close>Close</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">Computer</span>
         <h2>A quiet terminal</h2>
@@ -1086,7 +1110,7 @@
   var panels = {}, openers = {}, state = {}, i;
   for (i = 0; i < ids.length; i++) {
     var p = document.getElementById(ids[i]);
-    if (p) { panels[ids[i]] = p; openers[ids[i]] = []; state[ids[i]] = { open:false, min:false, z:0, opener:null, x:0, y:0, moved:false }; }
+    if (p) { panels[ids[i]] = p; openers[ids[i]] = []; state[ids[i]] = { open:false, min:false, z:0, opener:null, x:0, y:0, moved:false, mode:'chunky', fromMode:'chunky', dockMode:'chunky' }; }
   }
   var backdrop = document.getElementById('panel-backdrop');
   if (!backdrop) return;
@@ -1123,7 +1147,11 @@
       var btn = panel.querySelector('[data-close]');
       if (btn) btn.addEventListener('click', function(){ closeWindow(id, true); });
       var mb = panel.querySelector('[data-min]');
-      if (mb) mb.addEventListener('click', function(){ minimizeWindow(id); });
+      if (mb) mb.addEventListener('click', function(){ shrinkWindow(id); });
+      var db = panel.querySelector('[data-dock]');
+      if (db) db.addEventListener('click', function(){ dockWindow(id); });
+      var sb = panel.querySelector('[data-size]');
+      if (sb) sb.addEventListener('click', function(){ toggleSize(id); });
       var bar = panel.querySelector('.panel-bar');
       if (bar) bar.addEventListener('pointerdown', function(e){ startDrag(id, e); });
       panel.addEventListener('pointerdown', function(){ if (state[id].open && !state[id].min) bringToFront(id); });
@@ -1164,14 +1192,13 @@
     if (ox || oy) { st.x += ox; st.y += oy; setPos(id); }
   }
   function cascade(id){
+    /* Fresh opens are offset per window index (same step at every width) so
+       multiple chunky windows never land exactly on top of each other. Once
+       the user drags a window, its dropped position wins forever. */
     var st = state[id];
     if (st.moved) { setPos(id); clampPos(id); return; }
-    if (window.innerWidth > 820) {
-      var s = slotCount % 5; slotCount++;
-      st.x = s * 28; st.y = s * 28;
-    } else {
-      st.x = 0; st.y = 0;
-    }
+    var idx = ids.indexOf(id);
+    st.x = idx * 14 - 42; st.y = idx * 16 - 30;
     setPos(id);
   }
   var drag = null;
@@ -1216,12 +1243,88 @@
     if (drag.active) {
       panel.classList.remove('dragging');
       panel.classList.add('open');
+    } else if (e && state[drag.id] && state[drag.id].mode === 'shrunk') {
+      /* A bar press that never became a drag is a click: on a shrunk window
+         it expands the window back to its remembered mode. */
+      var sid = drag.id;
+      drag = null;
+      expandWindow(sid);
+      return;
     }
     drag = null;
   }
   function updateLock(){
-    var lock = !!frontmost() && window.innerWidth <= 820;
+    /* The page locks only behind a FULL frontmost window (phone widths).
+       Chunky and shrunk windows float over a live desktop: no lock. */
+    var f = frontmost();
+    var lock = !!f && state[f].mode === 'full' && window.innerWidth <= 820;
     document.body.classList.toggle('win-lock', lock);
+  }
+  /* Mode machine per window: mode is 'chunky', 'full' or 'shrunk'; docked is
+     the separate st.min flag (level 2, the strip). fromMode remembers what a
+     shrunk window expands back to; dockMode remembers what a chip restore
+     lands on (always a real window, never a bar). */
+  function applyMode(id){
+    var st = state[id], p = panels[id];
+    p.classList.toggle('chunky', st.mode === 'chunky');
+    p.classList.toggle('shrunk', st.mode === 'shrunk');
+    updateBar(id);
+  }
+  function updateBar(id){
+    var st = state[id], p = panels[id];
+    var sb = p.querySelector('[data-size]');
+    if (sb) {
+      var lbl = st.mode === 'shrunk' ? 'Expand window' : (st.mode === 'chunky' ? 'Full size' : 'Chunky size');
+      sb.setAttribute('aria-label', lbl); sb.setAttribute('title', lbl);
+    }
+    var mb = p.querySelector('[data-min]');
+    if (mb) { mb.setAttribute('title', 'Shrink to bar'); }
+    var db = p.querySelector('[data-dock]');
+    if (db) { db.setAttribute('title', 'Dock to strip'); }
+    var cb = p.querySelector('[data-close]');
+    if (cb) { cb.setAttribute('title', 'Close'); }
+  }
+  function swapMode(id, fn){
+    /* Mode changes never replay the open pop and never transition. */
+    var p = panels[id];
+    p.classList.add('noanim');
+    fn();
+    void p.offsetWidth;
+    p.classList.remove('noanim');
+  }
+  function shrinkWindow(id){
+    var st = state[id];
+    if (!st || !st.open || st.min || st.mode === 'shrunk') return;
+    st.fromMode = st.mode;
+    swapMode(id, function(){ st.mode = 'shrunk'; applyMode(id); });
+    clampPos(id);
+    updateLock();
+  }
+  function expandWindow(id){
+    var st = state[id];
+    if (!st || !st.open || st.min || st.mode !== 'shrunk') return;
+    swapMode(id, function(){ st.mode = st.fromMode || 'chunky'; applyMode(id); });
+    bringToFront(id);
+    clampPos(id);
+    updateLock();
+  }
+  function toggleSize(id){
+    var st = state[id];
+    if (!st || !st.open || st.min) return;
+    if (st.mode === 'shrunk') { expandWindow(id); return; }
+    swapMode(id, function(){ st.mode = (st.mode === 'chunky') ? 'full' : 'chunky'; applyMode(id); });
+    clampPos(id);
+    updateLock();
+  }
+  function dockWindow(id){
+    var st = state[id];
+    if (!st || !st.open || st.min) return;
+    st.dockMode = (st.mode === 'shrunk') ? (st.fromMode || 'chunky') : st.mode;
+    st.min = true;
+    panels[id].classList.add('min');
+    panels[id].setAttribute('aria-hidden', 'true');
+    renderStrip();
+    updateLock();
   }
   function renderStrip(){
     if (!strip) return;
@@ -1266,9 +1369,15 @@
     var panel = panels[id];
     if (!panel) return;
     var st = state[id];
-    if (st.open && !st.min) { bringToFront(id); updateLock(); return; }
+    if (st.open && !st.min) {
+      if (st.mode === 'shrunk') expandWindow(id);
+      bringToFront(id); updateLock(); return;
+    }
     if (st.open && st.min) { restoreWindow(id); return; }
     st.open = true; st.min = false; st.opener = opener || null;
+    /* New windows open CHUNKY by default at every width. */
+    st.mode = 'chunky'; st.fromMode = 'chunky'; st.dockMode = 'chunky';
+    applyMode(id);
     panel.classList.add('open');
     cascade(id);
     clampPos(id);
@@ -1288,22 +1397,16 @@
     var btn = panel.querySelector('[data-close]');
     if (btn) btn.focus();
   }
-  function minimizeWindow(id){
-    var st = state[id];
-    if (!st || !st.open || st.min) return;
-    st.min = true;
-    panels[id].classList.add('min');
-    panels[id].setAttribute('aria-hidden', 'true');
-    renderStrip();
-    updateLock();
-  }
   function restoreWindow(id){
     var st = state[id];
     if (!st || !st.open || !st.min) return;
     st.min = false;
+    /* A chip restore lands on the remembered window mode, never on a bar. */
+    swapMode(id, function(){ st.mode = st.dockMode || 'chunky'; applyMode(id); });
     panels[id].classList.remove('min');
     panels[id].setAttribute('aria-hidden', 'false');
     bringToFront(id);
+    clampPos(id);
     renderStrip();
     updateLock();
     var btn = panels[id].querySelector('[data-close]');
@@ -1314,8 +1417,11 @@
     if (!st || !st.open) return;
     if (drag && drag.id === id) onDragEnd(null);
     st.open = false; st.min = false;
+    st.mode = 'chunky'; st.fromMode = 'chunky'; st.dockMode = 'chunky';
     panels[id].classList.remove('open');
     panels[id].classList.remove('min');
+    panels[id].classList.remove('chunky');
+    panels[id].classList.remove('shrunk');
     panels[id].setAttribute('aria-hidden', 'true');
     setExpanded(id, false);
     renderStrip();
