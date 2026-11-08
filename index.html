@@ -1194,7 +1194,6 @@
       if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
       drag.active = true;
       panels[drag.id].classList.add('dragging');
-      panels[drag.id].classList.remove('open');
       bringToFront(drag.id);
       var bar0 = panels[drag.id].querySelector('.panel-bar');
       if (bar0 && bar0.setPointerCapture) { try { bar0.setPointerCapture(drag.pid); } catch (err) {} }
