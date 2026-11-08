@@ -732,6 +732,12 @@
   }
   var backdrop = document.getElementById('panel-backdrop');
   if (!backdrop) return;
+  /* Portal: move panels to body level, just before the backdrop. Inside main .wrap
+     (a z-index:1 stacking context) the panel's z-index could never beat the backdrop's,
+     so the open panel painted under the backdrop's blur. At body level z-index:60 wins. */
+  for (i = 0; i < ids.length; i++) {
+    if (panels[ids[i]]) document.body.insertBefore(panels[ids[i]], backdrop);
+  }
   var openId = null, lastOpener = null;
   var links = document.querySelectorAll('a[href^="#"]');
   for (i = 0; i < links.length; i++) {
