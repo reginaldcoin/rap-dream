@@ -489,7 +489,10 @@
     font-size:17px;line-height:1;
     transition:background .15s ease,border-color .15s ease,transform .1s ease;
   }
-  .js .panel-min{font-size:22px}
+  /* Shrink and dock marks are CSS-drawn, never font glyphs: an en-dash or a
+     block-shade can tofu in a symbol font; a bar in currentColor cannot. */
+  .js .btn-dash{display:block;width:12px;height:2px;background:currentColor;border-radius:1px}
+  .js .btn-dock{display:block;width:12px;height:9px;border-bottom:3px solid currentColor;border-radius:1px}
   .js .panel-btn:hover{background:rgba(var(--glow-rgb),.14);border-color:rgba(var(--glow-rgb),.5)}
   .js .panel-btn:active{transform:scale(.92);background:rgba(var(--glow-rgb),.22)}
   .js .panel-close:hover{border-color:var(--accent)}
@@ -682,7 +685,7 @@
   .js section.panel.small .rel-list a{flex-direction:column;gap:2px;align-items:flex-start;padding:10px 2px;font-size:14.5px}
   .js section.panel.small .rel-date{margin-left:0;font-size:12.5px}
   /* COMPUTER: the terminal fits, choices stack full width */
-  .js section.panel.small .comp-screen{padding:12px 10px 10px}
+  .js section.panel.small .comp-screen{padding:12px 10px 10px;min-height:180px}
   .js section.panel.small .comp-log{min-height:130px;font-size:13.5px}
   .js section.panel.small .comp-foot{font-size:12px;flex-wrap:wrap}
   .js section.panel.small .comp-choice{font-size:14px;padding:10px 11px;width:100%}
@@ -927,7 +930,7 @@
     </div>
 
     <section id="the-game" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">The Game</span>
         <h2>One tab. Whole career.</h2>
@@ -950,7 +953,7 @@
     </section>
 
     <section id="the-music" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">The Musician</span>
         <h2>The game came from the records</h2>
@@ -975,7 +978,7 @@
     </section>
 
     <section id="the-builder" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">The Builder</span>
         <h2>The portfolio behind the game</h2>
@@ -1001,7 +1004,7 @@
     </section>
 
     <section id="own-it" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="own">
         <span class="section-tag">Own It</span>
         <div class="price">$3.99</div>
@@ -1011,7 +1014,7 @@
     </section>
 
     <section id="spar" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">SPAR</span>
         <h2>The Freestyle Clock</h2>
@@ -1041,7 +1044,7 @@
 
 
     <section id="release" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">The Log</span>
         <h2>Every version, as it shipped</h2>
@@ -1063,7 +1066,7 @@
     </section>
 
     <section id="computer" class="panel">
-      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar">&#8211;</button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip">&#9617;</button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
       <div class="section-head">
         <span class="section-tag">Computer</span>
         <h2>A quiet terminal</h2>
@@ -1577,6 +1580,9 @@
     var st = state[id];
     if (st.open && !st.min) {
       if (st.mode === 'shrunk') expandWindow(id);
+      /* The Computer hook is idempotent: firing it here covers any open that
+         happened before its script defined it. */
+      if (id === 'computer' && typeof window.__computerOpen === 'function') window.__computerOpen();
       bringToFront(id); updateLock(); return;
     }
     if (st.open && st.min) { restoreWindow(id); return; }
@@ -2831,6 +2837,11 @@
     logEl.innerHTML = '';
     choicesEl.innerHTML = '';
   };
+  /* If the window manager already opened this panel before this script
+     loaded (the #computer hash path runs inside panel-script, earlier in
+     the file, when __computerOpen did not exist yet), start now: a fresh
+     open must never leave a blank terminal, whatever path opened it. */
+  if (panel.classList.contains('open')) window.__computerOpen();
 })();
 </script>
 
