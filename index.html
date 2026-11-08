@@ -293,7 +293,6 @@
   #play-tile .t-sub b{color:var(--accent-ink)}
   #play-tile:hover{transform:translateY(-3px);border-color:rgba(var(--glow-rgb),.85);box-shadow:0 16px 38px rgba(0,0,0,.4), 0 0 34px rgba(var(--glow-rgb),.35), inset 0 1px 0 rgba(255,255,255,.45)}
   #play-tile:active{transform:translateY(-1px) scale(.99)}
-  #game-view[hidden]{display:none}
   .embed-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
   .embed-btn{
     display:inline-flex;align-items:center;min-height:44px;padding:9px 20px;
@@ -305,6 +304,13 @@
   .embed-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   .game-frame{display:block;width:100%;min-height:560px;border:none;border-radius:18px;background:var(--bg)}
   @media (max-width:820px){ .game-frame{min-height:520px} }
+  /* PLAY window: the frame fills the window body below the bar, so the game
+     takes the window's size at every stage (open, quarter, snapped, custom,
+     full) instead of scrolling a fixed-height embed inside it. */
+  .js section.panel#play{overflow:hidden}
+  .js section.panel#play .play-body{display:flex;flex-direction:column;height:calc(100% - 62px)}
+  .js section.panel#play .play-slot{flex:1 1 auto;min-height:0;display:flex}
+  .js section.panel#play .game-frame{flex:1 1 auto;width:100%;height:100%;min-height:0;border-radius:14px}
 
   /* ---------- marquee ---------- */
   .marquee{
@@ -525,7 +531,11 @@
     background:repeating-linear-gradient(135deg,transparent 0 5px,rgba(var(--ink-rgb),.45) 5px 7px,transparent 7px 12px);
   }
   @media (pointer:fine){ .js .win-grip{cursor:nwse-resize} }
-  .js section.panel:not(.small):not(.openwin) .win-grip{display:none}
+  /* The grip rides every floating mode (open, quarter/small, snapped,
+     custom, full): resize stays reachable whenever the window can be
+     resized. Only the docked (.min) and shrunk states hide it, because a
+     hidden panel or a bare bar has no box to resize. */
+  .js section.panel.min .win-grip,.js section.panel.shrunk .win-grip{display:none}
   /* SHRUNK (minimize level 1): the window collapses to its bar and stays on
      screen at its position, still draggable. FULL is the base rule above:
      the centered sheet, width min(920px,...), height fit-content. */
@@ -540,6 +550,36 @@
   .js section.panel.shrunk > *:not(.panel-bar){display:none}
   .js section.panel.shrunk .panel-bar{margin-bottom:0;border-radius:var(--radius-lg)}
   .js section.panel.shrunk .panel-min{display:none}
+  /* Bottom edge grab: the window's bottom edge is a second drag handle, the
+     same drag as the bar, so a window can be pulled by its underside when
+     the bar is out of reach or covered at the top. It sits below the corner
+     grip (z 4) so the grip keeps its resize corner. */
+  .js .win-edge{
+    position:sticky;bottom:0;left:0;right:0;height:14px;margin:-14px 0 0;z-index:3;
+    touch-action:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);
+  }
+  @media (pointer:fine){ .js .win-edge{cursor:grab} .js section.panel.dragging .win-edge{cursor:grabbing} }
+  .js section.panel.min .win-edge,.js section.panel.shrunk .win-edge{display:none}
+  /* Rescue list: a popover over the util bar (z 600, above the strip and
+     every window) naming each open window; picking one raises it. */
+  #win-menu{
+    position:fixed;top:52px;right:12px;z-index:600;min-width:190px;max-width:calc(100vw - 24px);
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--panel-edge);
+    border-radius:var(--radius-lg);box-shadow:0 24px 60px rgba(0,0,0,.55);padding:8px;
+    display:flex;flex-direction:column;gap:4px;
+  }
+  #win-menu[hidden]{display:none}
+  .win-menu-item{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:44px;
+    padding:8px 12px;cursor:pointer;color:var(--ink);font:inherit;font-weight:700;font-size:13px;
+    letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid transparent;
+    border-radius:var(--radius-pill);transition:background .15s ease,border-color .15s ease;
+  }
+  .win-menu-item:hover{background:rgba(var(--glow-rgb),.14);border-color:rgba(var(--glow-rgb),.5)}
+  .win-menu-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .win-menu-item .wm-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+  .win-menu-item.front .wm-dot{background:var(--accent)}
+  .win-menu-empty{padding:10px 12px;color:var(--muted);font-size:13px}
   .rel-list + .link-row{margin-top:18px}
   .rel-list{list-style:none;margin:0;padding:0}
   .rel-list li{border-top:1px solid rgba(255,255,255,.07)}
@@ -571,7 +611,7 @@
      exception: the Computer's lines stay copyable, her screen never drags.
      During any drag or resize, a body class glosses EVERYTHING, so a fast
      drag that leaves the panel cannot select the page behind it either. */
-  .js section.panel,.js .tiles,.js .tile,.js .win-chip,.js .screen-nav,.js header,.js #win-strip,.js .panel-bar,.js .marquee,.js #os-clock,.js #snap-ghost{
+  .js section.panel,.js .tiles,.js .tile,.js .win-chip,.js .win-menu-item,.js .screen-nav,.js header,.js #win-strip,.js .panel-bar,.js .marquee,.js #os-clock,.js #snap-ghost{
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
   }
   .js .comp-line{-webkit-user-select:text;user-select:text}
@@ -793,7 +833,6 @@
     .screen{padding:0;background:none;border:none;box-shadow:none;border-radius:0}
     .screen-inner{padding:0;background:none;border:none;border-radius:0}
     .screen-top{display:none}
-    #game-view{padding-top:6px}
     .tiles{grid-template-columns:repeat(4,1fr);gap:16px 10px}
     .tile{
       background:none;border:none;border-radius:0;box-shadow:none;
@@ -886,6 +925,7 @@
         <a href="https://rapdream.itch.io/rap-dream" data-goatcounter-click="itch-own">itch.io</a>
       </span>
       <button type="button" class="snap-btn" id="snap-btn" aria-label="Snap open windows into quarters">Snap</button>
+      <button type="button" class="snap-btn" id="win-btn" aria-label="List open windows" aria-haspopup="true" aria-expanded="false">&#9638; Windows</button>
       <div class="theme-switch" role="group" aria-label="Color theme">
         <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
         <button type="button" data-theme-btn="rapdream" aria-pressed="false">Rap Dream</button>
@@ -948,13 +988,6 @@
         </div>
         <div class="screen-nav"><a class="on" href="https://rapdream.link/">DASH</a><a href="game.html" data-goatcounter-click="play-free" data-goatcounter-no-session="true">PLAY</a><a href="#the-music">MUSIC</a><a href="#the-builder">BUILDER</a><a href="changelog.html">LOG</a></div>
         </div>
-        <div id="game-view" hidden>
-          <div class="embed-bar">
-            <a class="embed-btn" href="game.html" target="_blank" rel="noopener">Full screen</a>
-            <button type="button" class="embed-btn" id="deck-back">Back to the deck</button>
-          </div>
-          <div id="game-slot"></div>
-        </div>
       </div>
     </div>
 
@@ -970,6 +1003,16 @@
       <div class="chip"><b>25+</b> versions shipped</div>
       <div class="chip"><b>$3.99</b> to own, free to play</div>
     </div>
+
+    <section id="play" class="panel">
+      <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
+      <div class="play-body">
+        <div class="embed-bar">
+          <a class="embed-btn" href="game.html" target="_blank" rel="noopener">Full screen</a>
+        </div>
+        <div class="play-slot" id="play-slot"></div>
+      </div>
+    </section>
 
     <section id="the-game" class="panel">
       <div class="panel-bar"><span class="panel-title" data-win-title></span><button type="button" class="panel-btn panel-min" data-min aria-label="Shrink to bar"><span class="btn-dash" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-dock" data-dock aria-label="Dock to strip"><span class="btn-dock" aria-hidden="true"></span></button><button type="button" class="panel-btn panel-size" data-size aria-label="Full size">&#9633;</button><button type="button" class="panel-btn panel-close" data-close aria-label="Close">&#10005;</button></div>
@@ -1093,7 +1136,8 @@
         <p class="section-sub">The recent drops. The full log runs back to launch day.</p>
       </div>
       <ul class="rel-list">
-        <li><a href="changelog.html"><span class="rel-ver">SITE</span>The site becomes an OS<span class="rel-date">Nov 8, 2026</span></a></li>
+        <li><a href="changelog/v23.html"><span class="rel-ver">V23</span>Ownership pays while you sleep<span class="rel-date">Nov 8, 2026</span></a></li>
+        <li><a href="changelog.html"><span class="rel-ver">SITE</span>The site becomes an OS. Play opens as a window too, windows can be grabbed from the bottom edge, and a buried window can always be raised from the Windows list.<span class="rel-date">Nov 8, 2026</span></a></li>
         <li><a href="changelog/v22.html"><span class="rel-ver">V22</span>You leave better than you came<span class="rel-date">Nov 7, 2026</span></a></li>
         <li><a href="changelog.html"><span class="rel-ver">SITE</span>rapdream.link opens its doors<span class="rel-date">Nov 7, 2026</span></a></li>
         <li><a href="changelog/v21.html"><span class="rel-ver">V21</span>You always know where you are<span class="rel-date">Nov 6, 2026</span></a></li>
@@ -1130,6 +1174,7 @@
 <div id="os-clock" aria-hidden="true"></div>
 <div id="snap-ghost" aria-hidden="true"></div>
 <div id="win-strip" hidden aria-label="Minimized windows"></div>
+<div id="win-menu" hidden role="menu" aria-label="Open windows"></div>
 
 <footer>
   <div class="wrap foot">
@@ -1197,57 +1242,26 @@
 })();
 </script>
 
-<script id="hero-embed-script">
+<script id="play-open-hook">
 (function(){
+  /* PLAY open hook, pre-registered BEFORE the panel script in the pattern
+     __sparOpen and the Computer stub set. PLAY is a window now: the hero
+     embed's deck swap retired, and the deck's PLAY tile and the hero
+     PLAY FREE button both call window.__playOpen, which the panel script
+     points at its own openWindow('play') plus the one-per-session
+     play-free count. A tap that lands before the panel script runs is
+     queued here, never lost, and a #play hash arrival is the panel
+     script's own hash-open plus this queue. */
+  window.__playQueued = false;
+  if (typeof window.__playOpen !== 'function') {
+    window.__playOpen = function(){ window.__playQueued = true; };
+  }
   var playBtn = document.getElementById('play-tile');
   var heroBtn = document.getElementById('play-free-btn');
-  var deckView = document.getElementById('deck-view');
-  var gameView = document.getElementById('game-view');
-  var gameSlot = document.getElementById('game-slot');
-  var backBtn = document.getElementById('deck-back');
-  if (!playBtn || !deckView || !gameView || !gameSlot || !backBtn) return;
-  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  function firePlayFree(tries){
-    if (window.goatcounter && typeof window.goatcounter.count === 'function') {
-      window.goatcounter.count({ path: 'play-free', title: 'Play Free', event: true, no_session: true });
-    } else if (tries < 10) {
-      setTimeout(function(){ firePlayFree(tries + 1); }, 200);
-    }
-  }
-  function startEmbed(scroll){
-    var frame = gameSlot.querySelector('iframe');
-    if (!frame) {
-      firePlayFree(0);
-      var minH = window.innerWidth <= 820 ? 520 : 560;
-      frame = document.createElement('iframe');
-      frame.src = 'game.html';
-      frame.title = 'Rap Dream: play the game';
-      frame.className = 'game-frame';
-      frame.setAttribute('allow', 'autoplay; fullscreen');
-      frame.style.height = Math.max(deckView.offsetHeight, minH) + 'px';
-      gameSlot.appendChild(frame);
-    }
-    deckView.hidden = true;
-    gameView.hidden = false;
-    if (scroll) {
-      gameView.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    }
-    frame.focus();
-  }
-  playBtn.addEventListener('click', function(){
-    startEmbed(false);
-  });
-  if (heroBtn) {
-    heroBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      startEmbed(true);
-    });
-  }
-  backBtn.addEventListener('click', function(){
-    gameSlot.innerHTML = '';
-    gameView.hidden = true;
-    deckView.hidden = false;
-    playBtn.focus();
+  if (playBtn) playBtn.addEventListener('click', function(){ window.__playOpen(); });
+  if (heroBtn) heroBtn.addEventListener('click', function(e){
+    if (e.preventDefault) e.preventDefault();
+    window.__playOpen();
   });
 })();
 </script>
@@ -1289,8 +1303,8 @@
 </script>
 <script id="panel-script">
 (function(){
-  var ids = ['the-game','the-music','the-builder','own-it','spar','release','computer'];
-  var names = {'the-game':'Game','the-music':'Music','the-builder':'Builder','own-it':'Own It','spar':'SPAR','release':'Release','computer':'Computer'};
+  var ids = ['play','the-game','the-music','the-builder','own-it','spar','release','computer'];
+  var names = {'play':'Play','the-game':'Game','the-music':'Music','the-builder':'Builder','own-it':'Own It','spar':'SPAR','release':'Release','computer':'Computer'};
   var panels = {}, openers = {}, state = {}, i;
   for (i = 0; i < ids.length; i++) {
     var p = document.getElementById(ids[i]);
@@ -1307,7 +1321,7 @@
     if (panels[ids[i]]) document.body.insertBefore(panels[ids[i]], backdrop);
   }
   var zTop = 60, slotCount = 0;
-  var links = document.querySelectorAll('a[href^="#"]');
+  var links = document.querySelectorAll('a[href^="#"]:not(#play-free-btn)');
   for (i = 0; i < links.length; i++) {
     var pid = links[i].getAttribute('href').slice(1);
     if (panels[pid]) {
@@ -1344,6 +1358,12 @@
       grip.setAttribute('aria-hidden', 'true');
       panel.appendChild(grip);
       grip.addEventListener('pointerdown', function(e){ startResize(id, e); });
+      var edge = document.createElement('div');
+      edge.className = 'win-edge';
+      edge.setAttribute('data-edge', '');
+      edge.setAttribute('aria-hidden', 'true');
+      panel.appendChild(edge);
+      edge.addEventListener('pointerdown', function(e){ startDrag(id, e); });
       panel.addEventListener('pointerdown', function(){ if (state[id].open && !state[id].min) bringToFront(id); });
     })(ids[i]);
   }
@@ -1495,12 +1515,14 @@
     if (e.button !== undefined && e.button !== 0) return;
     var st = state[id];
     if (!st || !st.open || st.min) return;
-    drag = { id:id, pid:e.pointerId, sx:e.clientX, sy:e.clientY, ox:st.x, oy:st.y, active:false };
-    var bar = panels[id].querySelector('.panel-bar');
-    if (bar) {
-      bar.addEventListener('pointermove', onDragMove);
-      bar.addEventListener('pointerup', onDragEnd);
-      bar.addEventListener('pointercancel', onDragEnd);
+    /* The drag handle is whichever element the press started on: the bar,
+       or the bottom edge strip. Both feed this one drag machine. */
+    var handle = (e.currentTarget && e.currentTarget.classList && (e.currentTarget.classList.contains('panel-bar') || e.currentTarget.classList.contains('win-edge'))) ? e.currentTarget : panels[id].querySelector('.panel-bar');
+    drag = { id:id, pid:e.pointerId, sx:e.clientX, sy:e.clientY, ox:st.x, oy:st.y, active:false, handle:handle };
+    if (handle) {
+      handle.addEventListener('pointermove', onDragMove);
+      handle.addEventListener('pointerup', onDragEnd);
+      handle.addEventListener('pointercancel', onDragEnd);
     }
   }
   function onDragMove(e){
@@ -1512,7 +1534,7 @@
       document.body.classList.add('os-dragging');
       panels[drag.id].classList.add('dragging');
       bringToFront(drag.id);
-      var bar0 = panels[drag.id].querySelector('.panel-bar');
+      var bar0 = drag.handle || panels[drag.id].querySelector('.panel-bar');
       if (bar0 && bar0.setPointerCapture) { try { bar0.setPointerCapture(drag.pid); } catch (err) {} }
     }
     var st = state[drag.id];
@@ -1529,7 +1551,7 @@
   function onDragEnd(e){
     if (!drag || (e && e.pointerId !== undefined && e.pointerId !== drag.pid)) return;
     var panel = panels[drag.id];
-    var bar = panel.querySelector('.panel-bar');
+    var bar = drag.handle || panel.querySelector('.panel-bar');
     if (bar) {
       bar.removeEventListener('pointermove', onDragMove);
       bar.removeEventListener('pointerup', onDragEnd);
@@ -1542,9 +1564,11 @@
     if (wasActive) {
       panel.classList.remove('dragging');
       panel.classList.add('open');
-    } else if (e && state[dragId] && state[dragId].mode === 'shrunk') {
+    } else if (e && e.target && e.target.closest && e.target.closest('.panel-bar') && state[dragId] && state[dragId].mode === 'shrunk') {
       /* A bar press that never became a drag is a click: on a shrunk window
-         it expands the window back to its remembered mode. */
+         it expands the window back to its remembered mode. (Target-checked
+         so a press on the bottom edge, which is display:none while shrunk
+         and so cannot fire, never expands by accident.) */
       drag = null;
       expandWindow(dragId);
       return;
@@ -1697,6 +1721,50 @@
     }
     strip.hidden = !any;
   }
+  /* PLAY: the game loads lazily, on the window's first open only, and the
+     play-free count fires exactly once per page session no matter how
+     often the window opens (the old hero embed's one-count law). Closing
+     unloads the game, the old deck-back semantics, so the next open starts
+     a fresh run. The countable event is unchanged: path 'play-free'. */
+  var playFired = false;
+  function firePlayFree(tries){
+    if (window.goatcounter && typeof window.goatcounter.count === 'function') {
+      window.goatcounter.count({ path: 'play-free', title: 'Play Free', event: true, no_session: true });
+    } else if (tries < 10) {
+      setTimeout(function(){ firePlayFree(tries + 1); }, 200);
+    }
+  }
+  function playStart(){
+    if (!playFired) { playFired = true; firePlayFree(0); }
+    var slot = document.getElementById('play-slot');
+    if (!slot) return;
+    if (!slot.querySelector('iframe')) {
+      var frame = document.createElement('iframe');
+      frame.src = 'game.html';
+      frame.title = 'Rap Dream: play the game';
+      frame.className = 'game-frame';
+      frame.setAttribute('allow', 'autoplay; fullscreen');
+      slot.appendChild(frame);
+      frame.focus();
+    }
+  }
+  function playUnload(){
+    var slot = document.getElementById('play-slot');
+    if (slot) slot.innerHTML = '';
+  }
+  /* The play-open hook stub registered window.__playOpen before this
+     script; point it at the real open and honor any queued tap. Hero
+     opens also scroll the window into view, like the old embed did. */
+  window.__playOpen = function(){
+    var tile = document.getElementById('play-tile');
+    openWindow('play', tile || null);
+    var p = panels['play'];
+    if (p && p.scrollIntoView) {
+      var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      p.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+  };
+  if (window.__playQueued) { window.__playQueued = false; window.__playOpen(); }
   function openWindow(id, opener){
     var panel = panels[id];
     if (!panel) return;
@@ -1726,6 +1794,9 @@
     /* COMPUTER hook fires only on a fresh open: the terminal starts its session
        here; restoring or bringing it to front must not restart the conversation. */
     if (id === 'computer' && typeof window.__computerOpen === 'function') window.__computerOpen();
+    /* PLAY loads its game on a fresh open only; restoring a docked game
+       window resumes the run in progress, it does not reload it. */
+    if (id === 'play') playStart();
     panel.classList.remove('min');
     panel.setAttribute('aria-hidden', 'false');
     panel.scrollTop = 0;
@@ -1755,6 +1826,9 @@
     if (!st || !st.open) return;
     if (drag && drag.id === id) onDragEnd(null);
     if (resize && resize.id === id) onResizeEnd(null);
+    /* Closing PLAY unloads the game (the deck-back semantics): the run
+       ends and the next open boots a fresh one. */
+    if (id === 'play') playUnload();
     st.open = false; st.min = false;
     st.mode = 'open'; st.fromMode = 'open'; st.dockMode = 'open'; st.custom = null; st.snapped = null;
     panels[id].style.removeProperty('--cw');
@@ -1798,6 +1872,69 @@
       if (state[ids[k]] && state[ids[k]].open && !state[ids[k]].min) clampPos(ids[k]);
     }
   });
+  /* Rescue list: the util bar rides above every window (header chrome,
+     z-index over the strip's 500), so its Windows button is the one
+     control a buried window can never cover. The menu names every open
+     window; picking one raises it. A docked window restores per the
+     chip semantics; a shrunk bar expands; a floating window just comes
+     to front. renderWinMenu rebuilds the list on open and on change. */
+  var winBtn = document.getElementById('win-btn');
+  var winMenu = document.getElementById('win-menu');
+  function closeWinMenu(){
+    if (!winMenu) return;
+    winMenu.hidden = true;
+    if (winBtn) winBtn.setAttribute('aria-expanded', 'false');
+  }
+  function raiseWindow(id){
+    var st = state[id];
+    if (!st || !st.open) return;
+    if (st.min) { restoreWindow(id); return; }
+    if (st.mode === 'shrunk') { expandWindow(id); return; }
+    bringToFront(id);
+    updateLock();
+  }
+  function renderWinMenu(){
+    if (!winMenu) return;
+    winMenu.innerHTML = '';
+    var f = frontmost(), any = false;
+    for (var k = 0; k < ids.length; k++) {
+      (function(id){
+        if (state[id] && state[id].open) {
+          any = true;
+          var item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'win-menu-item' + (id === f ? ' front' : '');
+          item.setAttribute('role', 'menuitem');
+          item.setAttribute('aria-label', 'Bring the ' + names[id] + ' window to the front');
+          var dot = document.createElement('span');
+          dot.className = 'wm-dot';
+          dot.setAttribute('aria-hidden', 'true');
+          item.appendChild(dot);
+          item.appendChild(document.createTextNode(names[id] + (state[id].min ? ' (docked)' : '')));
+          item.addEventListener('click', function(){ closeWinMenu(); raiseWindow(id); });
+          winMenu.appendChild(item);
+        }
+      })(ids[k]);
+    }
+    if (!any) {
+      var empty = document.createElement('div');
+      empty.className = 'win-menu-empty';
+      empty.textContent = 'No windows open';
+      winMenu.appendChild(empty);
+    }
+  }
+  if (winBtn && winMenu) {
+    winBtn.addEventListener('click', function(){
+      if (winMenu.hidden) { renderWinMenu(); winMenu.hidden = false; winBtn.setAttribute('aria-expanded', 'true'); }
+      else closeWinMenu();
+    });
+    document.addEventListener('pointerdown', function(e){
+      if (!winMenu.hidden && e.target !== winBtn && !winBtn.contains(e.target) && !winMenu.contains(e.target)) closeWinMenu();
+    });
+    document.addEventListener('keydown', function(e){
+      if ((e.key === 'Escape' || e.key === 'Esc') && !winMenu.hidden) closeWinMenu();
+    });
+  }
   var snapBtn = document.getElementById('snap-btn');
   if (snapBtn) snapBtn.addEventListener('click', function(){
     /* Snap: the frontmost floating windows take the quarters in z-order,
