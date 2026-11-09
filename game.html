@@ -17668,6 +17668,30 @@ render();
     card.appendChild(b);
     return card;
   }
+  /* V24: the chart card goes public with its proof attached. The
+     card claims replayability only when the fight's stored record
+     replays exactly, checked at paint time through the V20 replay
+     path: claim nothing you cannot replay. No record, no claim. */
+  function verifyBattleCard() {
+    try {
+      var lc2 = window.RapDreamV14 && window.RapDreamV14.lastChart;
+      if (!lc2 || !lc2.chart || !lc2.chart.length) { return { ok: false, why: "no chart" }; }
+      if (!window.RapDreamV20 || typeof RapDreamV20.replay !== "function" || typeof RapDreamV20.battles !== "function") { return { ok: false, why: "no replay path" }; }
+      var recs = RapDreamV20.battles();
+      var rec = null;
+      for (var i = recs.length - 1; i >= 0; i--) {
+        if (recs[i].name === lc2.name && recs[i].result === lc2.result && recs[i].chart && recs[i].chart.length === lc2.chart.length) { rec = recs[i]; break; }
+      }
+      if (!rec && typeof lc2.seed === "number") {
+        for (var j = recs.length - 1; j >= 0; j--) { if (recs[j].seed === lc2.seed) { rec = recs[j]; break; } }
+      }
+      if (!rec) { return { ok: false, why: "no stored record for this chart" }; }
+      var rep = RapDreamV20.replay(rec);
+      var ok = !!rep && rep.ok && rep.result === rec.result && JSON.stringify(rep.chart) === JSON.stringify(rec.chart);
+      return { ok: ok, seed: rec.seed, result: rec.result, bars: rec.bars };
+    } catch (e) { return { ok: false, why: String((e && e.message) || e) }; }
+  }
+  window.RapDreamV24 = { version: "V24", verifyLastCard: verifyBattleCard };
   function paintShareCards() {
     shareBody.innerHTML = "";
     var ss = songs();
@@ -17695,11 +17719,15 @@ render();
     try { lc = window.RapDreamV14 && window.RapDreamV14.lastChart; } catch (e) {}
     if (lc && lc.chart && lc.chart.length && typeof window.RapDreamV14ChartNode === "function") {
       var resLine = lc.result === "win" ? "you took the room" : lc.result === "loss" ? "they took the room" : "you walked off";
+      var blines = ["you vs " + lc.name + ", day " + (lc.day || 1) + ": " + resLine + " in " + (lc.bars || lc.chart.length) + " bars.",
+         "every bubble is a bar. size is weight, color is nature, the gold ring is you."];
+      var proof = null;
+      try { proof = verifyBattleCard(); } catch (e) {}
+      if (proof && proof.ok) { blines.push("seed " + proof.seed + ". this fight replays exactly in the game, bar for bar, from its seed and its moves."); }
       var bcard = shareCardEl("battle",
         "the chart · vs " + lc.name,
         "",
-        ["you vs " + lc.name + ", day " + (lc.day || 1) + ": " + resLine + " in " + (lc.bars || lc.chart.length) + " bars.",
-         "every bubble is a bar. size is weight, color is nature, the gold ring is you."]);
+        blines);
       var cnode = null;
       try { cnode = window.RapDreamV14ChartNode(); } catch (e) {}
       if (cnode) {
@@ -18738,7 +18766,7 @@ render();
     v14.fights += 1;
     v14.hist[f.name] = (v14.hist[f.name] || 0) + 1;
     if (f.chart && f.chart.length) {
-      v14.lastChart = { name: f.name, result: result, bars: f.bar, day: (S && S.day) || 1, chart: f.chart.map(function (e) { return { n: e.n, side: e.side, nature: e.nature, w: e.w }; }) };
+      v14.lastChart = { name: f.name, result: result, bars: f.bar, day: (S && S.day) || 1, seed: (typeof f.seed === "number" ? f.seed : null), chart: f.chart.map(function (e) { return { n: e.n, side: e.side, nature: e.nature, w: e.w }; }) };
     }
     /* V20 (T1): every finished battle leaves a replayable record:
        its seed and its move list, kept with the result and the chart
