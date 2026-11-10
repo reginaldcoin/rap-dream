@@ -17343,7 +17343,21 @@ render();
     + ".rd-share-card h4{margin:0 0 4px;font:800 15px 'Space Grotesk',sans-serif;color:#ffcf3f;letter-spacing:.04em}"
     + ".rd-share-card .rd-share-hook{font:700 16px/1.45 'Space Grotesk',sans-serif;color:#eefbff;margin:4px 0}"
     + ".rd-share-card p{font:500 12.5px/1.55 'Space Grotesk',sans-serif;color:#9fc6de;margin:3px 0}"
-    + ".rd-share-post{margin-top:9px;padding:10px 14px;background:#ffcf3f;color:#12202c;border:none;border-radius:11px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.09em;text-transform:uppercase;cursor:pointer}";
+    + ".rd-share-post{margin-top:9px;padding:10px 14px;background:#ffcf3f;color:#12202c;border:none;border-radius:11px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.09em;text-transform:uppercase;cursor:pointer}"
+    /* V25: the battle card is a real postcard. Paper-white ground
+       against the game's dark theme, softly rounded corners; the
+       chart is the picture, the legend its silent key, the verdict
+       the greeting, the seed the stamp, RAP DREAM the postmark. */
+    + ".rd-postcard{position:relative;border:2px solid #d8cfb8;border-radius:18px;background:#f8f3e6;color:#1c2430;padding:16px 16px 14px;margin:0 0 12px;box-shadow:0 6px 18px rgba(0,0,0,.35)}"
+    + ".rd-postcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:0 0 6px}"
+    + ".rd-postmark{flex:none;width:66px;height:66px;border:2px solid #c9b98f;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font:800 10px/1.25 'Space Grotesk',sans-serif;letter-spacing:.14em;color:#8a7a52;transform:rotate(-8deg)}"
+    + ".rd-stamp{border:2px dashed #b3a67f;border-radius:8px;background:#fffdf4;color:#5c5340;padding:6px 9px;text-align:center;font:800 10px/1.35 'Space Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase}"
+    + ".rd-stamp b{display:block;font-size:12.5px;color:#1c2430;letter-spacing:.04em}"
+    + ".rd-postcard-greet{margin:2px 0 8px;font:800 21px/1.2 'Space Grotesk',sans-serif;color:#1c2430}"
+    + ".rd-postcard-pic .rd-v14-strip{margin-top:0}"
+    + ".rd-postcard .rd-v14-legend span{color:#5c5340}"
+    + ".rd-postcard-cap{margin:8px 0 2px;font:600 12.5px/1.5 'Space Grotesk',sans-serif;color:#4a4436}"
+    + ".rd-postcard .rd-share-post{background:#1c2430;color:#f8f3e6}";
   document.head.appendChild(v13Css);
   try { RD_EXEMPT_OPENERS.push("rd-rate"); } catch (e) {}
 
@@ -17692,6 +17706,43 @@ render();
     } catch (e) { return { ok: false, why: String((e && e.message) || e) }; }
   }
   window.RapDreamV24 = { version: "V24", verifyLastCard: verifyBattleCard };
+  /* V25: the battle share card is a real postcard (spec locked
+     2026-11-09g, Doucet's go 2026-11-10). The chart is the full
+     picture, the game's own visual. The nature legend stays as a
+     silent swatch key: it names the bar types and explains nothing.
+     The explainer paragraph and the seed lecture are gone. The
+     verdict is the greeting headline, vs + day the caption under
+     the picture, the seed a small printed stamp in the corner,
+     RAP DREAM the postmark. The share action mails the postcard.
+     Battle card only: the song, moment and peak cards above keep
+     their shipped shape. */
+  function battlePostcardEl(lc, proof) {
+    var card = mkEl("div", "rd-postcard", null);
+    card.setAttribute("data-card", "battle-postcard");
+    var top = mkEl("div", "rd-postcard-top", null);
+    top.appendChild(mkEl("div", "rd-postmark", "RAP DREAM"));
+    var stamp = mkEl("div", "rd-stamp", null);
+    stamp.appendChild(document.createTextNode("seed"));
+    stamp.appendChild(mkEl("b", null, (proof && proof.ok) ? String(proof.seed) : "first class"));
+    top.appendChild(stamp);
+    card.appendChild(top);
+    var verdict = lc.result === "win" ? "you took the room" : lc.result === "loss" ? "they took the room" : "you walked off";
+    card.appendChild(mkEl("h4", "rd-postcard-greet", verdict));
+    var pic = mkEl("div", "rd-postcard-pic", null);
+    var cnode = null;
+    try { cnode = window.RapDreamV14ChartNode(); } catch (e) {}
+    if (cnode) { pic.appendChild(cnode); }
+    card.appendChild(pic);
+    card.appendChild(mkEl("p", "rd-postcard-cap", "you vs " + lc.name + " \u00B7 day " + (lc.day || 1) + " \u00B7 " + (lc.bars || lc.chart.length) + " bars"));
+    var b = mkEl("button", "rd-share-post", "mail this postcard");
+    b.type = "button";
+    var text = verdict + "\nyou vs " + lc.name + ", day " + (lc.day || 1) + ", " + (lc.bars || lc.chart.length) + " bars."
+      + ((proof && proof.ok) ? "\nseed " + proof.seed + ". this fight replays exactly in the game, bar for bar, from its seed and its moves." : "")
+      + "\n: RAP DREAM, a rap career in your browser";
+    b.addEventListener("click", function () { sharePost(text); });
+    card.appendChild(b);
+    return card;
+  }
   function paintShareCards() {
     shareBody.innerHTML = "";
     var ss = songs();
@@ -17718,23 +17769,9 @@ render();
     var lc = null;
     try { lc = window.RapDreamV14 && window.RapDreamV14.lastChart; } catch (e) {}
     if (lc && lc.chart && lc.chart.length && typeof window.RapDreamV14ChartNode === "function") {
-      var resLine = lc.result === "win" ? "you took the room" : lc.result === "loss" ? "they took the room" : "you walked off";
-      var blines = ["you vs " + lc.name + ", day " + (lc.day || 1) + ": " + resLine + " in " + (lc.bars || lc.chart.length) + " bars.",
-         "every bubble is a bar. size is weight, color is nature, the gold ring is you."];
       var proof = null;
       try { proof = verifyBattleCard(); } catch (e) {}
-      if (proof && proof.ok) { blines.push("seed " + proof.seed + ". this fight replays exactly in the game, bar for bar, from its seed and its moves."); }
-      var bcard = shareCardEl("battle",
-        "the chart · vs " + lc.name,
-        "",
-        blines);
-      var cnode = null;
-      try { cnode = window.RapDreamV14ChartNode(); } catch (e) {}
-      if (cnode) {
-        var postBtn = bcard.querySelector(".rd-share-post");
-        if (postBtn) { bcard.insertBefore(cnode, postBtn); } else { bcard.appendChild(cnode); }
-      }
-      shareBody.appendChild(bcard);
+      shareBody.appendChild(battlePostcardEl(lc, proof));
     }
   }
   function openShare() {
@@ -21541,6 +21578,109 @@ render();
     sets: function () { var s = curS(); return s ? setsOf(s) : null; },
     setBonus: function () { var s = curS(); return s ? setBonusFor(s) : null; },
     state: v23
+  };
+})();
+</script>
+<script>
+"use strict";
+/* ==================================================================
+   V25: Housekeeping.
+   The tail of the heroic stack, two hygiene items and nothing else.
+   T4: truncate inactive ephemera. The timeline posts are generated
+   ephemera whose narrative job is recent; the core already caps
+   cashHistory at 240, and the timeline now caps the same way at the
+   one place posts enter the save (the Persist collect), so a long
+   run stops paying growing autosave costs for old posts. The live
+   timeline in session is untouched; a resumed long-run save comes
+   back trimmed to the same cap, and the liked/seen marks for posts
+   that fell off are pruned with them. Songs are never capped: their
+   stored text is the product, not ephemera.
+   T5: one flag address space, as discipline only. New one-off story
+   flags are declared in the single RapDreamFlags registry below
+   instead of as fresh fields scattered on the state per layer. No
+   byte-packing, no migration, no behavior change: flags that
+   already live somewhere keep living there, and nothing in the
+   shipped game reads the registry yet. It is an address space, not
+   a mechanism. The registry rides the same Persist chain as every
+   module since V11, under v25.
+   ================================================================== */
+(function () {
+  var POSTS_CAP = 240; /* the cashHistory number, on purpose */
+
+  function capPosts(posts) {
+    return (Array.isArray(posts) && posts.length > POSTS_CAP) ? posts.slice(-POSTS_CAP) : posts;
+  }
+  function pruneMap(map, droppedIds) {
+    if (!map || typeof map !== "object" || !droppedIds.length) { return; }
+    droppedIds.forEach(function (id) {
+      try { delete map[id]; } catch (e) {}
+      try { delete map[String(id)]; } catch (e) {}
+    });
+  }
+
+  /* ---------------- T5: the one flag address space ---------------- */
+  var flags = {};
+  var RapDreamFlags = {
+    define: function (name, initial) {
+      if (typeof name !== "string" || !name) { return undefined; }
+      if (!(name in flags)) { flags[name] = initial; }
+      return flags[name];
+    },
+    get: function (name) { return flags[name]; },
+    set: function (name, value) {
+      if (typeof name !== "string" || !name) { return undefined; }
+      flags[name] = value;
+      return flags[name];
+    },
+    has: function (name) { return name in flags; },
+    names: function () { return Object.keys(flags).sort(); },
+    all: function () { var out = {}; for (var k in flags) { out[k] = flags[k]; } return out; }
+  };
+  window.RapDreamFlags = RapDreamFlags;
+
+  /* ---------------- persistence: the Persist chain grows a v25 ---------------- */
+  (function v25Persist() {
+    var P = window.RapDreamPersist;
+    if (!P || typeof P.collect !== "function" || typeof P.restore !== "function") { return; }
+    var collect0 = P.collect, restore0 = P.restore;
+    P.collect = function () {
+      var base = null;
+      try { base = collect0(); } catch (e) {}
+      if (!base || typeof base !== "object") { base = {}; }
+      /* T4 lands here: the payload keeps the recent POSTS_CAP posts,
+         exactly the way the core keeps the recent 240 cash points. */
+      if (Array.isArray(base.posts) && base.posts.length > POSTS_CAP) {
+        var dropped = base.posts.slice(0, base.posts.length - POSTS_CAP);
+        base.posts = base.posts.slice(-POSTS_CAP);
+        pruneMap(base.liked, dropped.map(function (pt) { return pt && pt.id; }).filter(function (x) { return x != null; }));
+        pruneMap(base.seen, dropped.map(function (pt) { return pt && pt.id; }).filter(function (x) { return x != null; }));
+      }
+      base.v25 = { flags: RapDreamFlags.all() };
+      return base;
+    };
+    P.restore = function (x) {
+      try { restore0(x); } catch (e) {}
+      /* A long-run save resumes trimmed to the same cap. */
+      try {
+        var live = (window.RapDreamTl && typeof window.RapDreamTl.posts === "function") ? window.RapDreamTl.posts() : null;
+        if (Array.isArray(live) && live.length > POSTS_CAP) { live.splice(0, live.length - POSTS_CAP); }
+      } catch (e) {}
+      try {
+        if (x && x.v25 && x.v25.flags && typeof x.v25.flags === "object") {
+          var next = {};
+          for (var k in x.v25.flags) { next[k] = x.v25.flags[k]; }
+          for (var old in flags) { delete flags[old]; }
+          for (var nk in next) { flags[nk] = next[nk]; }
+        }
+      } catch (e) {}
+    };
+  })();
+
+  window.RapDreamV25 = {
+    version: "V25",
+    postsCap: POSTS_CAP,
+    capPosts: capPosts,
+    flags: RapDreamFlags
   };
 })();
 </script>
