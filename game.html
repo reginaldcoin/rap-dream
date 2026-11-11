@@ -18106,7 +18106,8 @@ render();
     + ".rd-v14-close{display:block;margin:12px auto 2px;padding:10px 22px;background:#12202c;color:#ffcf3f;border:2px solid #3d6076;border-radius:11px;font:800 12px 'Space Grotesk',sans-serif;letter-spacing:.07em;text-transform:uppercase;cursor:pointer}"
     + ".rd-v14-log{max-height:96px}"
     + ".rd-v14-loghead{display:block;margin-bottom:4px;color:#9fc6de;font-size:11px;letter-spacing:.08em;text-transform:uppercase}"
-    + "@media (prefers-reduced-motion:reduce){.rd-v14-fig{animation:none}.rd-v14-fighter.lunge .rd-v14-fig{animation:none}}";
+    + "@media (prefers-reduced-motion:reduce){.rd-v14-fig{animation:none}.rd-v14-fighter.lunge .rd-v14-fig{animation:none}}"
+    + ".rd-v26-stage{width:92px;height:92px;margin:0 auto;display:grid;place-items:center}" + ".rd-v26-doll{width:88px;height:88px;overflow:visible;filter:drop-shadow(3px 4px 0 rgba(0,0,0,.22))}" + ".rd-v26-fig{width:88px;height:88px;display:block}" + ".rd-v26-stage{animation:rd14idle 1.4s ease-in-out infinite alternate}" + ".rd-v14-fighter.lunge.you .rd-v26-stage{animation:rd14lungeYou .45s ease}" + ".rd-v14-fighter.lunge.them .rd-v26-stage{animation:rd14lungeThem .45s ease}" + ".rd-v14-fighter.break .rd-v26-stage{animation:rd14break .5s ease forwards;filter:grayscale(.55) brightness(.75)}" + ".rd-v14-fighter.glow .rd-v26-stage{filter:drop-shadow(0 0 9px rgba(76,201,240,.85))}" + ".rd-v14-fighter span{margin-top:8px}" + ".rd-v26-chip{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:7px;vertical-align:-2px;border:1px solid rgba(255,255,255,.35)}" + "@media (prefers-reduced-motion:reduce){.rd-v26-stage{animation:none}.rd-v14-fighter.lunge .rd-v26-stage{animation:none}}" + ".rd-v26-doll .doll-body { fill: #020304; stroke: #020304; stroke-linecap: round; stroke-linejoin: round; } .rd-v26-doll .stitch { fill: none; stroke: var(--doll-thread, #b5ff20); stroke-width: 3.2; stroke-linecap: square; } .rd-v26-doll .aura { fill: none; stroke: var(--doll-aura, #0077ff); stroke-width: 4; stroke-dasharray: 4 5; } .rd-v26-doll .pixel-orbit { fill: var(--doll-aura, #0077ff); } .rd-v26-doll .style-accessory { display: none; } body[data-build-style=\"performer\"] .rd-v26-doll .performer, body[data-build-style=\"catalog\"] .rd-v26-doll .catalog, body[data-build-style=\"signal\"] .rd-v26-doll .signal, body[data-build-style=\"scholar\"] .rd-v26-doll .scholar, body[data-build-style=\"empire\"] .rd-v26-doll .empire, body[data-build-style=\"trader\"] .rd-v26-doll .trader { display: block; } body[data-build-style=\"archive\"] .rd-v26-doll .performer, body[data-build-style=\"archive\"] .rd-v26-doll .catalog, body[data-build-style=\"warfare\"] .rd-v26-doll .performer, body[data-build-style=\"warfare\"] .rd-v26-doll .signal { display: block; } /* Adaptive doll wardrobe: layered slots driven by the live build name. */ .rd-v26-doll .acc { display: none; } .rd-v26-doll .f-gold { fill: #ffcf3f; } .rd-v26-doll .f-red { fill: var(--danger); } .rd-v26-doll .f-wht { fill: #eefbff; } .rd-v26-doll .f-blu { fill: var(--electric); } .rd-v26-doll .f-cyn { fill: var(--cyan); } .rd-v26-doll .f-lim { fill: var(--signal); } .rd-v26-doll .f-drk { fill: #020304; } .rd-v26-doll .f-nav { fill: #26324a; } .rd-v26-doll .f-grn { fill: #2ee66b; } /* Lane = base outfit */ body[data-doll-lane=\"catalog\"] .rd-v26-doll .acc-homefit, body[data-doll-lane=\"catalog\"] .rd-v26-doll .acc-headphones, body[data-doll-lane=\"signal\"] .rd-v26-doll .acc-hoodie, body[data-doll-lane=\"signal\"] .rd-v26-doll .acc-cap, body[data-doll-lane=\"scholar\"] .rd-v26-doll .acc-vest, body[data-doll-lane=\"scholar\"] .rd-v26-doll .acc-glasses, body[data-doll-lane=\"empire\"] .rd-v26-doll .acc-suit, body[data-doll-lane=\"empire\"] .rd-v26-doll .acc-shades, body[data-doll-lane=\"performer\"] .rd-v26-doll .acc-jacket, body[data-doll-lane=\"performer\"] .rd-v26-doll .acc-headband, body[data-doll-lane=\"trader\"] .rd-v26-doll .acc-visor, body[data-doll-lane=\"trader\"] .rd-v26-doll .acc-tie, body[data-doll-lane=\"warfare\"] .rd-v26-doll .acc-bandana, body[data-doll-lane=\"warfare\"] .rd-v26-doll .acc-facepaint { display: block; } /* Wealth = visible drip */ body[data-doll-wealth=\"hungry\"] .rd-v26-doll .acc-patches, body[data-doll-wealth=\"working\"] .rd-v26-doll .acc-chain, body[data-doll-wealth=\"paid\"] .rd-v26-doll .acc-chain-big, body[data-doll-wealth=\"paid\"] .rd-v26-doll .acc-watch, body[data-doll-wealth=\"mogul\"] .rd-v26-doll .acc-chain-big, body[data-doll-wealth=\"mogul\"] .rd-v26-doll .acc-watch, body[data-doll-wealth=\"mogul\"] .rd-v26-doll .acc-suit, body[data-doll-wealth=\"dynasty\"] .rd-v26-doll .acc-chain-big, body[data-doll-wealth=\"dynasty\"] .rd-v26-doll .acc-watch, body[data-doll-wealth=\"dynasty\"] .rd-v26-doll .acc-suit, body[data-doll-wealth=\"dynasty\"] .rd-v26-doll .acc-crown, body[data-doll-suit=\"true\"] .rd-v26-doll .acc-suit { display: block; } /* Qualifier = the mark */ body[data-doll-qual=\"certified\"] .rd-v26-doll .acc-pin, body[data-doll-qual=\"prime\"] .rd-v26-doll .acc-trim, body[data-doll-qual=\"elite\"] .rd-v26-doll .acc-elite-aura { display: block; } /* Stat balance tells + live state */ body[data-doll-shades=\"true\"] .rd-v26-doll .acc-shades, body[data-doll-shades=\"true\"] .rd-v26-doll .acc-flashes, body[data-doll-mic=\"true\"] .rd-v26-doll .acc-mic, body[data-doll-crew=\"true\"] .rd-v26-doll .acc-crew, body[data-doll-records=\"true\"] .rd-v26-doll .acc-records, body[data-doll-beef=\"true\"] .rd-v26-doll .acc-beef, body[data-doll-belt=\"true\"] .rd-v26-doll .acc-belt { display: block; } /* Doll wears the merch line: the active / most recent drop dresses him too. */ body[data-doll-merch=\"1\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"2\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"2\"] .rd-v26-doll .acc-merch-cap, body[data-doll-merch=\"3\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"3\"] .rd-v26-doll .acc-merch-cap, body[data-doll-merch=\"3\"] .rd-v26-doll .acc-merch-stripe, body[data-doll-merch=\"4\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"4\"] .rd-v26-doll .acc-merch-cap, body[data-doll-merch=\"4\"] .rd-v26-doll .acc-merch-stripe, body[data-doll-merch=\"4\"] .rd-v26-doll .acc-merch-glow, body[data-doll-merch=\"5\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"5\"] .rd-v26-doll .acc-merch-cap, body[data-doll-merch=\"5\"] .rd-v26-doll .acc-merch-stripe, body[data-doll-merch=\"5\"] .rd-v26-doll .acc-merch-glow { display: block; }";
   document.head.appendChild(css);
 
   /* ---------------- the spawn: names up the stairs ---------------- */
@@ -18266,6 +18267,7 @@ render();
     shownNames.forEach(function (n) {
       var drow = mkEl("div", "rd-v14-row", null);
       var dwho = mkEl("div", "rd-v14-who", null);
+      dwho.appendChild(sigChip(n, styleForName(n), shapeFor(3, n, false), true));
       dwho.appendChild(mkEl("strong", null, n));
       dwho.appendChild(mkEl("small", null, styleForName(n) + " style · " + STAGE_NAMES[v14.dex[n].stage || 1] + " · kit: " + kitNames(n, v14.dex[n].stage || 1).join(", ") + (v14.dex[n].beaten ? " · beaten" : " · still standing")));
       drow.appendChild(dwho);
@@ -18282,6 +18284,7 @@ render();
       leagueCard.appendChild(mkEl("p", null, "five rungs up the league's own card, one credential at the top. league matches take no walk-offs: leaving one goes down as a loss. rung " + (v14.leagueStep + 1) + " of " + LEAGUE_CARD.length + (v14.leagueStep === LEAGUE_CARD.length - 1 ? " · the ace" : "") + ":"));
       var lrow = mkEl("div", "rd-v14-row", null);
       var lwho = mkEl("div", "rd-v14-who", null);
+      lwho.appendChild(sigChip(rung.name, styleForName(rung.name), shapeFor(rung.power, rung.name, false), (typeof RD_FEATURED_NAMES !== "undefined" && RD_FEATURED_NAMES.indexOf(rung.name) >= 0)));
       lwho.appendChild(mkEl("strong", null, rung.name));
       lwho.appendChild(mkEl("small", null, "power " + rung.power + " · " + styleForName(rung.name) + " style · " + STAGE_NAMES[stageOfPower(rung.power)] + " · fights like " + shapeFor(rung.power, rung.name, false)));
       lrow.appendChild(lwho);
@@ -18296,6 +18299,7 @@ render();
       v14.roster.forEach(function (m) {
         var rrow = mkEl("div", "rd-v14-row", null);
         var rwho = mkEl("div", "rd-v14-who", null);
+        rwho.appendChild(sigChip(m.name, m.style || styleForName(m.name), m.shape || shapeFor(m.power, m.name, false), (typeof RD_FEATURED_NAMES !== "undefined" && RD_FEATURED_NAMES.indexOf(m.name) >= 0)));
         rwho.appendChild(mkEl("strong", null, m.name));
         rwho.appendChild(mkEl("small", null, "power " + m.power + " · " + m.style + " style · " + STAGE_NAMES[m.stage || stageOfPower(m.power)] + " · kit: " + kitNames(m.name, m.stage || stageOfPower(m.power)).join(", ") + " · composure " + Math.round(m.comp) + " of " + m.compMax + (m.comp < 15 ? " · resting: a day brings them back" : "")));
         rrow.appendChild(rwho);
@@ -18313,6 +18317,7 @@ render();
     v14.pool.forEach(function (r) {
       var row = mkEl("div", "rd-v14-row", null);
       var who = mkEl("div", "rd-v14-who", null);
+      who.appendChild(sigChip(r.name, styleForName(r.name), r.shape || shapeFor(r.power, r.name, false), false));
       who.appendChild(mkEl("strong", null, r.name));
       who.appendChild(mkEl("small", null, "power " + r.power + " · " + styleForName(r.name) + " style · " + STAGE_NAMES[stageOfPower(r.power)] + " · fights like " + (r.shape || shapeFor(r.power, r.name, false)) + " · surfaced day " + r.day));
       row.appendChild(who);
@@ -18327,6 +18332,7 @@ render();
       rv.appendChild(mkEl("h4", null, "in the building tonight"));
       var row2 = mkEl("div", "rd-v14-row", null);
       var who2 = mkEl("div", "rd-v14-who", null);
+      who2.appendChild(sigChip(rival.name, styleForName(rival.name), "the ramp", (typeof RD_FEATURED_NAMES !== "undefined" && RD_FEATURED_NAMES.indexOf(rival.name) >= 0)));
       who2.appendChild(mkEl("strong", null, rival.name));
       who2.appendChild(mkEl("small", null, "your beef, settled live down here. the ladder upstairs does not move: this one pays XP and pride only."));
       row2.appendChild(who2);
@@ -18466,6 +18472,223 @@ render();
     } catch (e) {}
   }
 
+  /* ==================================================================
+     V26: Battlers you recognize.
+     The identity pass: the player's battle figure IS their dashboard
+     doll, cloned live from #build-doll at paint time, so the fighter
+     in the circle wears exactly what the dash wears (same build, same
+     lane, same wardrobe, driven by the same body data the dash uses).
+     Every opponent carries a signature derived from the data the game
+     already keeps on them: their battle style sets the palette and
+     the motif, their chart shape sets the silhouette, and a name hash
+     fixes the variant, so the same name walks in wearing the same
+     look every time and a rematch reads as a rematch. Registry names
+     get the fixed treatment: a sigil ring and their initials stamped
+     on the figure. The V20 motion states (idle, lunge, hit, break)
+     land on the new figures through the same classes as before.
+     The crowd layer: bar scores land with a room attached. A 3
+     erupts, a 2 pops, a 1 murmurs, a 0 groans, and the end of the
+     fight gets its own crowd (a win is a big cheer, a loss is
+     deflated). All of it is synthesized noise and air in WebAudio on
+     this module's own context, so no files and no weight are added,
+     and it routes through the game's one sound switch like every
+     other voice: muted means silent, counters included.
+     Nothing here rolls the fight's seeded stream: the crowd and the
+     figures read the fight, they never deal it, so a stored battle
+     replays exactly as it did before the swap.
+     ================================================================== */
+  var STYLE_LOOK = {
+    trap: { c1: "#ffcf3f", c2: "#ff9f1c", motif: "crown" },
+    drill: { c1: "#ef476f", c2: "#ff5d5d", motif: "slashes" },
+    rnb: { c1: "#c77dff", c2: "#ff5d8f", motif: "wave" },
+    experimental: { c1: "#4cc9f0", c2: "#b5ff20", motif: "orbit" }
+  };
+  var SIG_ACCENTS = ["#ffffff", "#ffd23f", "#7ee0ff"];
+  function sigFor(name, style, shape, featured) {
+    var look = STYLE_LOOK[style] || STYLE_LOOK.trap;
+    var h = hashName("sig|" + String(name || ""));
+    return {
+      name: String(name || ""), style: style || "trap", shape: shape || "the staircase",
+      c1: look.c1, c2: look.c2, motif: look.motif,
+      variant: featured ? (h % 3) : (h % 2),
+      accent: SIG_ACCENTS[h % 3], featured: !!featured
+    };
+  }
+  function sigChip(name, style, shape, featured) {
+    var s = sigFor(name, style, shape, featured);
+    var chip = mkEl("span", "rd-v26-chip", null);
+    chip.style.background = "linear-gradient(135deg," + s.c1 + " 0 50%," + s.c2 + " 50% 100%)";
+    chip.title = s.style + " · " + s.motif + " · " + s.shape;
+    chip.setAttribute("data-sig-style", s.style);
+    chip.setAttribute("data-sig-motif", s.motif);
+    return chip;
+  }
+  function svgEl(tag, attrs) {
+    var n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) { n.setAttribute(k, attrs[k]); }
+    return n;
+  }
+  function oppFigure(sig) {
+    var svg = svgEl("svg", { viewBox: "0 0 120 128", "class": "rd-v26-fig", role: "img", "aria-label": sig.name + " battle figure" });
+    var bodyFill = "#12202c";
+    var body = null;
+    if (sig.shape === "the ramp") {
+      body = svgEl("polygon", { points: "32,108 32,54 88,74 88,108", fill: bodyFill, stroke: sig.c1, "stroke-width": 3, "stroke-linejoin": "round" });
+    } else if (sig.shape === "the front-loader") {
+      body = svgEl("polygon", { points: "24,108 24,58 96,58 96,108", fill: bodyFill, stroke: sig.c1, "stroke-width": 3, "stroke-linejoin": "round" });
+    } else if (sig.shape === "the technician") {
+      body = svgEl("polygon", { points: "44,108 48,52 72,52 76,108", fill: bodyFill, stroke: sig.c1, "stroke-width": 3, "stroke-linejoin": "round" });
+    } else {
+      body = svgEl("polygon", { points: "34,108 34,66 44,66 44,58 52,58 52,52 68,52 68,58 76,58 76,66 86,66 86,108", fill: bodyFill, stroke: sig.c1, "stroke-width": 3, "stroke-linejoin": "round" });
+    }
+    svg.appendChild(body);
+    if (sig.shape === "the front-loader") {
+      svg.appendChild(svgEl("rect", { x: 44, y: 70, width: 32, height: 24, fill: sig.c2, opacity: 0.85 }));
+    }
+    svg.appendChild(svgEl("circle", { cx: 60, cy: 31, r: 20, fill: "#0d1620", stroke: sig.c1, "stroke-width": 3 }));
+    if (sig.featured) {
+      svg.appendChild(svgEl("circle", { cx: 60, cy: 31, r: 25.5, fill: "none", stroke: sig.accent, "stroke-width": 2, "stroke-dasharray": "4 4" }));
+    }
+    svg.appendChild(svgEl("circle", { cx: 53, cy: 29, r: 2.6, fill: sig.c2 }));
+    svg.appendChild(svgEl("circle", { cx: 67, cy: 29, r: 2.6, fill: sig.c2 }));
+    svg.appendChild(svgEl("path", { d: "M52 40 h16", stroke: sig.c2, "stroke-width": 2.6, "stroke-linecap": "round" }));
+    var motif = svgEl("g", { "class": "rd-v26-motif motif-" + sig.motif });
+    if (sig.motif === "crown") {
+      motif.appendChild(svgEl("path", { d: "M42 13 l6-8 6 8 6-9 6 9 6-8 6 8", fill: "none", stroke: sig.c2, "stroke-width": 3, "stroke-linejoin": "round" }));
+    } else if (sig.motif === "slashes") {
+      motif.appendChild(svgEl("path", { d: "M40 74 l18-14 M44 92 l18-14 M64 70 l16-12", fill: "none", stroke: sig.c2, "stroke-width": 4, "stroke-linecap": "round", opacity: 0.9 }));
+    } else if (sig.motif === "wave") {
+      motif.appendChild(svgEl("path", { d: "M34 82 q8-10 16 0 t16 0 t16 0 M34 96 q8-10 16 0 t16 0 t16 0", fill: "none", stroke: sig.c2, "stroke-width": 3.2, "stroke-linecap": "round" }));
+    } else {
+      motif.appendChild(svgEl("circle", { cx: 60, cy: 66, r: 30, fill: "none", stroke: sig.c2, "stroke-width": 2, "stroke-dasharray": "3 5", opacity: 0.9 }));
+      motif.appendChild(svgEl("rect", { x: 86, y: 50, width: 6, height: 6, fill: sig.c2 }));
+      motif.appendChild(svgEl("rect", { x: 28, y: 76, width: 6, height: 6, fill: sig.c2 }));
+    }
+    svg.appendChild(motif);
+    if (sig.variant === 1) {
+      svg.appendChild(svgEl("circle", { cx: 60, cy: 66, r: 3.2, fill: sig.accent }));
+    } else if (sig.variant === 2) {
+      svg.appendChild(svgEl("rect", { x: 54, y: 100, width: 12, height: 4, fill: sig.accent }));
+    }
+    if (sig.featured) {
+      var words = sig.name.split(" ");
+      var ini = "";
+      for (var wi = 0; wi < words.length && ini.length < 3; wi += 1) { if (words[wi]) { ini += words[wi].charAt(0).toUpperCase(); } }
+      var tx = svgEl("text", { x: 60, y: 124, "text-anchor": "middle", "font-size": 10, "font-weight": 800, fill: sig.accent, "font-family": "'Space Grotesk',sans-serif", "letter-spacing": ".12em" });
+      tx.textContent = ini;
+      svg.appendChild(tx);
+    }
+    return svg;
+  }
+  function playerFigure() {
+    var stage = mkEl("div", "rd-v26-stage you", null);
+    var b = document.body;
+    stage.setAttribute("data-sig", "you");
+    if (b) {
+      stage.setAttribute("data-build-style", b.getAttribute("data-build-style") || "");
+      stage.setAttribute("data-doll-lane", b.getAttribute("data-doll-lane") || "");
+      stage.setAttribute("data-doll-wealth", b.getAttribute("data-doll-wealth") || "");
+    }
+    var doll = gel("build-doll");
+    if (doll) {
+      var clone = doll.cloneNode(true);
+      clone.removeAttribute("id");
+      clone.setAttribute("class", "rd-v26-doll");
+      clone.setAttribute("aria-label", "your dashboard doll, in the circle");
+      stage.appendChild(clone);
+    } else {
+      stage.appendChild(oppFigure(sigFor("you", playerStyle(), "the staircase", false)));
+    }
+    return stage;
+  }
+  function oppStage(name, style, shape, featured) {
+    var sig = sigFor(name, style, shape, featured);
+    var stage = mkEl("div", "rd-v26-stage them", null);
+    stage.setAttribute("data-sig", "opp");
+    stage.setAttribute("data-sig-name", sig.name);
+    stage.setAttribute("data-sig-style", sig.style);
+    stage.setAttribute("data-sig-shape", sig.shape);
+    stage.setAttribute("data-sig-motif", sig.motif);
+    stage.setAttribute("data-sig-c1", sig.c1);
+    stage.setAttribute("data-sig-c2", sig.c2);
+    stage.setAttribute("data-sig-variant", String(sig.variant));
+    stage.setAttribute("data-sig-featured", sig.featured ? "1" : "0");
+    stage.appendChild(oppFigure(sig));
+    return stage;
+  }
+
+  /* ---------- V26 crowd audio: the room, synthesized ---------- */
+  var crowdCounts = { "0": 0, "1": 0, "2": 0, "3": 0, cheer: 0, deflated: 0 };
+  function crowdMuted() {
+    try { return window.localStorage && window.localStorage.getItem("rapdream.muted.v1") === "1"; } catch (e) { return false; }
+  }
+  function crowdSwell(dur, fType, f0, f1, vol, delay, attack) {
+    var ctx = bAudio(); if (!ctx) { return; }
+    try {
+      var t = ctx.currentTime + (delay || 0);
+      var src = ctx.createBufferSource(); src.buffer = bNoiseBuf; src.loop = true;
+      var fl = ctx.createBiquadFilter(); fl.type = fType; fl.frequency.setValueAtTime(f0, t);
+      if (f1) { fl.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t + dur); }
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + (attack || 0.09));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(fl); fl.connect(g); g.connect(ctx.destination);
+      src.start(t); src.stop(t + dur + 0.03);
+    } catch (e) {}
+  }
+  function crowdHands(n, vol, delay, spread) {
+    for (var i = 0; i < n; i += 1) {
+      crowdSwell(0.07, "bandpass", 1500 + Math.floor(Math.random() * 700), 0, vol * (0.6 + Math.random() * 0.5), (delay || 0) + Math.random() * (spread || 0.5), 0.012);
+    }
+  }
+  function crowdScore(score, delay) {
+    var key = String(score);
+    if (crowdMuted()) { return; }
+    if (typeof crowdCounts[key] !== "number") { return; }
+    if (!bAudio()) { return; }
+    crowdCounts[key] += 1;
+    var d = delay || 0;
+    try {
+      if (score >= 3) {
+        crowdSwell(1.15, "bandpass", 750, 1150, 0.30, d, 0.07);
+        crowdSwell(0.38, "bandpass", 600, 1900, 0.11, d, 0.05);
+        crowdHands(13, 0.10, d + 0.05, 0.65);
+      } else if (score === 2) {
+        crowdSwell(0.55, "bandpass", 850, 1000, 0.19, d, 0.05);
+        crowdHands(6, 0.09, d + 0.03, 0.3);
+      } else if (score === 1) {
+        crowdSwell(0.5, "lowpass", 520, 420, 0.10, d, 0.12);
+      } else {
+        crowdSwell(0.75, "bandpass", 430, 170, 0.16, d, 0.06);
+        bTone("sine", 112, 68, 0.5, 0.055, d);
+      }
+    } catch (e) {}
+  }
+  function crowdForBar(bar, delay) {
+    if (!bar) { return; }
+    if (bar.nature === "breath" || bar.nature === "tag") { return; }
+    var w = (typeof bar.w === "number") ? bar.w : 0;
+    var score = w >= 2.75 ? 3 : w >= 1.75 ? 2 : w >= 0.75 ? 1 : 0;
+    crowdScore(score, delay);
+  }
+  function crowdEnd(result, delay) {
+    if (crowdMuted()) { return; }
+    if (!bAudio()) { return; }
+    var d = delay || 0;
+    try {
+      if (result === "win" || result === "signed") {
+        crowdCounts.cheer += 1;
+        crowdSwell(1.7, "bandpass", 800, 1250, 0.33, d, 0.08);
+        crowdHands(22, 0.11, d + 0.05, 1.1);
+      } else if (result === "loss" || result === "walk") {
+        crowdCounts.deflated += 1;
+        crowdSwell(1.15, "bandpass", 460, 150, 0.15, d, 0.07);
+        crowdSwell(0.7, "lowpass", 480, 300, 0.08, d + 0.35, 0.15);
+      }
+    } catch (e) {}
+  }
+
   /* ---------- the chart strip: one renderer, two homes ----------
      the live visualizer strip and the post-battle chart are the
      same picture at two moments: x is the bar (time runs on the
@@ -18515,9 +18738,9 @@ render();
     box.appendChild(chartLegend(lc.chart));
     return box;
   };
-  function fighterFig(cls, label, fx) {
+  function fighterFig(cls, label, fx, stage) {
     var w = mkEl("div", "rd-v14-fighter " + cls + (fx ? " " + fx : ""), null);
-    w.appendChild(mkEl("div", "rd-v14-fig", null));
+    w.appendChild(stage || mkEl("div", "rd-v14-fig", null));
     w.appendChild(mkEl("span", null, label));
     return w;
   }
@@ -18757,6 +18980,7 @@ render();
     }
     f.them = Math.max(0, f.them - yb.dmg);
     f.chart.push({ n: f.bar, side: "you", nature: yb.nature, w: yb.w });
+    crowdForBar(yb, 0);
     fightLog(f, "bar " + f.bar + " · you: " + yb.line + " [" + yb.nature + " " + yb.w + "] (-" + yb.dmg + " their composure)" + (yb.note ? " : " + yb.note : ""));
     if (yb.dmg > 0) { bsfx("hit"); f.lastFx.you = "lunge"; f.lastFx.them = (f.them <= f.themMax * 0.3) ? "break" : (yb.w >= 3 ? "heavy" : "hit"); } else { bsfx("whiff"); }
     if (schemeDone) { f.scheme = null; }
@@ -18768,6 +18992,7 @@ render();
     if (f.them <= 0) { f.rngState = battleRngState; battleRngState = null; endFight("win"); return; }
     var ob = oppBar(f);
     f.chart.push({ n: f.bar, side: "them", nature: ob.n, w: ob.w });
+    crowdForBar(ob.choke ? { nature: "choke", w: 0 } : ob, 0.45);
     if (ob.choke) {
       bsfx("choke");
       f.lastFx.them = "stumble";
@@ -18800,6 +19025,7 @@ render();
     else if (result === "loss") { xp = 8; v14.losses += 1; bsfx("lose"); }
     else if (result === "signed") { xp = 14; bsfx("win"); }
     else { v14.walks += 1; }
+    crowdEnd(result);
     v14.fights += 1;
     v14.hist[f.name] = (v14.hist[f.name] || 0) + 1;
     if (f.chart && f.chart.length) {
@@ -18875,9 +19101,10 @@ render();
     var face = mkEl("div", "rd-v14-face", null);
     var fxYou = f.lastFx ? f.lastFx.you : "", fxThem = f.lastFx ? f.lastFx.them : "";
     if (f.over) { if (f.result === "win" || f.result === "signed") { fxThem = "break"; } else if (f.result === "loss") { fxYou = "break"; } }
-    face.appendChild(fighterFig("you", "you", fxYou));
+    var youStage = f.member ? oppStage(f.member.name, f.member.style || styleForName(f.member.name), f.member.shape || shapeFor(f.member.power || 3, f.member.name, false), (typeof RD_FEATURED_NAMES !== "undefined" && RD_FEATURED_NAMES.indexOf(f.member.name) >= 0)) : playerFigure();
+    face.appendChild(fighterFig("you", "you", fxYou, youStage));
     face.appendChild(mkEl("div", "rd-v14-vs", "VS"));
-    face.appendChild(fighterFig("them", f.name, fxThem));
+    face.appendChild(fighterFig("them", f.name, fxThem, oppStage(f.name, f.oppStyle, f.shape, !!f.named)));
     viz.appendChild(face);
     viz.appendChild(mkEl("div", "rd-v14-mlabel", (f.member ? f.member.name + " composure" : "your composure") + " · " + Math.max(0, Math.round(f.you)) + " of " + Math.round(f.youMax || 100)));
     var m1 = mkEl("div", "rd-v14-meter", null); var i1 = mkEl("i", null, null); i1.style.width = Math.max(0, f.you) + "%"; m1.appendChild(i1); viz.appendChild(m1);
@@ -19281,6 +19508,15 @@ render();
       } catch (e) {}
       return out;
     }
+  };
+  window.RapDreamV26 = {
+    version: "V26",
+    sigFor: sigFor,
+    crowdCounts: crowdCounts,
+    crowdScore: crowdScore,
+    crowdEnd: crowdEnd,
+    crowdForBar: crowdForBar,
+    muted: crowdMuted
   };
   window.RapDreamV16Battle = {
     styles: BATTLE_STYLES.slice(),
