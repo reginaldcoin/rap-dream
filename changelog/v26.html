@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07090F">
+<title>Rap Dream V26 : Battlers you recognize</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<meta name="description" content="Rap Dream V26: Battlers you recognize. Your dashboard fighter walks into the circle as you, every opponent keeps a look of their own, and the crowd answers every bar out loud.">
+<link rel="canonical" href="https://rapdream.link/changelog/v26.html">
+<meta property="og:title" content="Rap Dream V26 : Battlers you recognize">
+<meta property="og:description" content="Your dashboard fighter walks into the circle as you, every opponent keeps a look of their own, and the crowd answers every bar out loud.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rapdream.link/changelog/v26.html">
+<style>
+  :root{
+    --bg:#07090F; --bg-2:#0B0F1A; --panel:#0E1424;
+    --panel-edge:rgba(55,242,162,.16);
+    --ink:#EDF4F0; --muted:#9DB4AB; --accent:#37F2A2; --accent-ink:#04241A;
+    --radius:18px;--radius-pill:999px;--radius-lg:24px;--shadow-main:0 18px 44px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1000px 560px at 85% -10%, rgba(55,242,162,.11), transparent 60%),
+      radial-gradient(760px 520px at -10% 30%, rgba(64,120,255,.08), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Archivo","Segoe UI",system-ui,sans-serif;
+    font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  /* ---------- masthead ---------- */
+  header{
+    background:rgba(7,9,15,.9);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  .util{border-bottom:1px solid rgba(255,255,255,.06)}
+  .util-in{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .dateline{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;padding:7px 0}
+  .util-links{display:flex;gap:18px}
+  .util-links a{color:var(--muted);text-decoration:none;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-height:32px;display:inline-flex;align-items:center}
+  .util-links a:hover{color:var(--accent)}
+  .mast{text-align:center;padding:26px 0 20px}
+  .wordmark{font-weight:900;letter-spacing:.06em;font-size:clamp(34px,6vw,44px);line-height:1;color:var(--ink);text-decoration:none;text-transform:uppercase;white-space:nowrap}
+  .wordmark span{color:var(--accent)}
+  .tagline{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;margin-top:10px}
+  .navbar{
+    position:sticky;top:0;z-index:10;
+    background:rgba(7,9,15,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  nav{display:flex;justify-content:space-between;gap:8px}
+  nav a{
+    color:var(--muted);text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;
+    padding:0 10px;min-height:48px;display:inline-flex;align-items:center;white-space:nowrap;
+    transition:color .2s ease;
+  }
+  nav a:hover{color:var(--accent)}
+  nav a.play{color:var(--accent)}
+  .wordmark:focus-visible,nav a:focus-visible,.util-links a:focus-visible,.ticker a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--radius-pill)}
+  .ticker{display:flex;align-items:center;gap:12px;padding-top:10px;padding-bottom:12px}
+  .ticker-chip{font-weight:900;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent);border-radius:var(--radius-pill);padding:4px 12px;white-space:nowrap}
+  .ticker a{color:var(--ink);text-decoration:none;font-weight:600;font-size:15px}
+  .ticker a:hover{color:var(--accent)}
+  @media (max-width:820px){
+    .mast{padding:20px 0 16px}
+    .navbar nav{overflow-x:auto;justify-content:flex-start;gap:4px;-webkit-overflow-scrolling:touch}
+  }
+  .page-head{padding:72px 0 8px}
+  .kicker{
+    display:inline-block;color:var(--accent);font-weight:700;letter-spacing:.22em;
+    text-transform:uppercase;font-size:13px;margin-bottom:22px;
+    border:1px solid var(--panel-edge);border-radius:var(--radius-pill);padding:8px 16px;background:rgba(55,242,162,.05);
+  }
+  h1{font-size:clamp(40px,7vw,68px);line-height:1.02;font-weight:900;letter-spacing:-.01em;margin-bottom:18px}
+  h1 .accent{
+    background:linear-gradient(92deg,#37F2A2 10%,#7CFCD0 55%,#2BD98F 95%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+  }
+  .lede{font-size:clamp(18px,2.4vw,21px);color:var(--muted);max-width:58ch}
+  .log{padding:38px 0 20px}
+  .entry{
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));
+    border:1px solid rgba(255,255,255,.07);border-radius:var(--radius);
+    padding:28px 28px 24px;margin-bottom:16px;
+    box-shadow:var(--shadow-main);
+  }
+  .entry-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .ver{
+    font-weight:900;font-size:14px;letter-spacing:.1em;color:var(--accent-ink);
+    background:var(--accent);border-radius:var(--radius-pill);padding:5px 14px;
+  }
+  .entry h2{font-size:clamp(22px,3.4vw,29px);font-weight:900;line-height:1.15}
+  .date{color:var(--muted);font-size:15px;font-weight:600}
+  .entry p{color:var(--muted);font-size:17px;max-width:64ch}
+  .entry p b{color:var(--ink)}
+  .note{color:var(--muted);font-size:16px;padding:14px 0 64px}
+  footer{border-top:1px solid rgba(255,255,255,.06);padding:30px 0 44px}
+  .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+  .foot p{color:var(--muted);font-size:15px}
+  .foot-links{display:flex;gap:8px;flex-wrap:wrap}
+  .foot-links a{
+    color:var(--muted);text-decoration:none;font-size:15px;font-weight:600;
+    padding:10px 12px;border-radius:var(--radius-pill);min-height:48px;display:inline-flex;align-items:center;
+  }
+  .foot-links a:hover{color:var(--accent)}
+  @media (max-width:820px){
+    .page-head{padding:48px 0 4px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="util">
+    <div class="wrap util-in">
+      <span class="dateline" data-dateline>Jersey City</span>
+      <span class="util-links">
+        <a href="https://x.com/kanye" data-goatcounter-click="x-kanye">X</a>
+        <a href="https://open.spotify.com/artist/6pGOaet5SCp0qg9WEbAkN2" data-goatcounter-click="spotify-artist">Spotify</a>
+        <a href="https://rapdream.itch.io/rap-dream" data-goatcounter-click="itch-own">itch.io</a>
+      </span>
+    </div>
+  </div>
+  <div class="wrap mast">
+    <a class="wordmark" href="https://rapdream.link/">RAP <span>DREAM</span></a>
+    <p class="tagline">A rap career sim by Reginald Doucet Jr.</p>
+  </div>
+  <div class="navbar">
+    <div class="wrap">
+      <nav aria-label="Site">
+        <a href="../game.html" class="play">Play</a>
+        <a href="https://rapdream.link/#the-game">The Game</a>
+        <a href="https://rapdream.link/#the-music">The Music</a>
+        <a href="https://rapdream.link/#the-builder">The Builder</a>
+        <a href="../changelog.html">Changelog</a>
+        <a href="https://rapdream.link/#own-it">Own It</a>
+      </nav>
+    </div>
+  </div>
+  <div class="wrap ticker">
+    <span class="ticker-chip">Latest</span>
+    <a data-wire href="../changelog.html">V21: You always know where you are</a>
+  </div>
+  <script>(function(){var el=document.querySelector('[data-dateline]');if(el){el.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+' \u00B7 Jersey City';var wire=document.querySelector('[data-wire]');if(wire&&window.fetch){var prefix=/\/changelog\//.test(location.pathname)?'../':'';fetch(prefix+'changelog.html').then(function(r){return r.ok?r.text():'';}).then(function(html){if(!html)return;var doc=new DOMParser().parseFromString(html,'text/html');var entries=doc.querySelectorAll('.log .entry');for(var i=0;i<entries.length;i++){var ver=entries[i].querySelector('.ver');if(!ver)continue;var v=ver.textContent.trim();if(!/^V\d+$/.test(v))continue;var h2=entries[i].querySelector('h2');if(!h2)continue;var a=h2.querySelector('a');var raw=a?a.getAttribute('href'):null;var href;if(raw&&/^https?:/i.test(raw)){href=raw;}else if(raw&&raw.indexOf('changelog/')===0){href=prefix+raw;}else if(raw){href=raw;}else{href=prefix+'changelog/'+v.toLowerCase()+'.html';}wire.textContent=v+': '+h2.textContent.trim();wire.setAttribute('href',href);break;}}).catch(function(){});}}})();</script>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <div class="page-head">
+      <span class="kicker">The Changelog</span>
+      <h1>Battlers you recognize</h1>
+    </div>
+
+    <div class="log">
+      <article class="entry">
+        <div class="entry-top"><span class="ver">V26</span><h2>Battlers you recognize</h2><span class="date">Nov 11, 2026</span></div>
+        <p>Rap Dream battles have faces now.</p>
+        <p>The fighter standing in your corner is you. The same figure from your dashboard walks into the circle, so the name at the top of your screen and the fighter under it are the same person.</p>
+        <p>Across from you, nobody is a stranger twice. Every battler carries a look of their own and keeps it between meetings. The second time a name steps up, you know them on sight, before the first bar lands.</p>
+        <p>And the room is in it now. Bars land to a crowd that answers in the moment, loud when a bar earns it, low when it does not, and the end of a fight sounds like an ending.</p>
+        <p>Free to play in the browser.</p>
+      </article>
+    <p style="padding:28px 0 8px"><a href="../game.html">Play free</a> &nbsp;·&nbsp; <a href="../changelog.html">All versions</a></p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <p>© 2026 Reginald Doucet Jr.</p>
+    <div class="foot-links">
+      <a href="https://rapdream.itch.io/rap-dream" data-goatcounter-click="itch-own">itch.io</a>
+      <a href="https://github.com/reginaldcoin/rap-dream">GitHub</a>
+      <a href="https://rapdream.link/">Home</a>
+      <a href="game.html">Play full-screen</a>
+    </div>
+  </div>
+</footer>
+
+<script data-goatcounter="https://rapdream.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
