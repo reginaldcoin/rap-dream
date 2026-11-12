@@ -8385,6 +8385,7 @@ render();
     + ".rd-card h3{margin:0 0 6px;color:#69bdff;font-size:11px;text-transform:uppercase;letter-spacing:.07em}"
     + ".rd-card p{margin:0 0 4px;font-family:'VT323',monospace;font-size:17px;line-height:1.3}"
     + ".rd-close{margin-top:14px;width:100%;min-height:48px;padding:10px 12px;color:#06101b;background:var(--signal,#b5ff20);border:2px outset #d9efff;border-radius:10px;font-weight:700;text-transform:uppercase;cursor:pointer}"
+    + ".rd-room-action{margin-top:14px;width:100%;min-height:48px;padding:10px 12px;color:#06101b;background:var(--signal,#b5ff20);border:2px outset #d9efff;border-radius:10px;font-weight:700;text-transform:uppercase;cursor:pointer}"
     + ".rd-overlay *,.rd-overlay *::before,.rd-overlay *::after{box-sizing:border-box}"
     + ".rd-panel-body{min-width:0}"
     + ".rd-panel .rd-grid,.rd-panel .rd-room-grid{grid-template-columns:minmax(0,1fr)}"
@@ -8763,11 +8764,11 @@ render();
     }
     panel.appendChild(grid);
     var roomBtnRow = el("div", "rd-room-grid");
-    var chartsBtn = el("button", "rd-close", "charts");
+    var chartsBtn = el("button", "rd-room-action", "charts");
     chartsBtn.type = "button";
     chartsBtn.addEventListener("click", function () { roomOv.classList.add("hidden"); if (window.RapDreamOpenCharts) { window.RapDreamOpenCharts(); } });
     roomBtnRow.appendChild(chartsBtn);
-    var shopBtn = el("button", "rd-close", "shop · surprise package");
+    var shopBtn = el("button", "rd-room-action", "shop · surprise package");
     shopBtn.type = "button";
     shopBtn.id = "rd-shop-btn-room";
     shopBtn.addEventListener("click", function () { if (window.RapDreamShopBuy) { window.RapDreamShopBuy(); } paintRoom(); });
@@ -18021,7 +18022,7 @@ render();
   }
   function kitNames(name, stage) { return kitFor(name, stage).map(function (id) { var m = moveById(id); return m ? m.name : id; }); }
   function playerKitNames() { return kitOfPlayer().map(function (id) { var m = moveById(id); return m ? m.name : id; }); }
-  var dexFilter = "all";
+  var wallPick = null; /* V27: the wall slot the player tapped open, if any */
   function dexCounts() { var seen = 0, beaten = 0; for (var k in v14.dex) { if (v14.dex[k] && v14.dex[k].seen) { seen += 1; } if (v14.dex[k] && v14.dex[k].beaten) { beaten += 1; } } return { seen: seen, beaten: beaten, total: (typeof RD_FEATURED_NAMES !== "undefined" ? RD_FEATURED_NAMES.length : 0) }; }
   var LEAGUE_CARD = [
     { name: "Dugg", power: 4 },
@@ -18109,6 +18110,29 @@ render();
     + "@media (prefers-reduced-motion:reduce){.rd-v14-fig{animation:none}.rd-v14-fighter.lunge .rd-v14-fig{animation:none}}"
     + ".rd-v26-stage{width:92px;height:92px;margin:0 auto;display:grid;place-items:center}" + ".rd-v26-doll{width:88px;height:88px;overflow:visible;filter:drop-shadow(3px 4px 0 rgba(0,0,0,.22))}" + ".rd-v26-fig{width:88px;height:88px;display:block}" + ".rd-v26-stage{animation:rd14idle 1.4s ease-in-out infinite alternate}" + ".rd-v14-fighter.lunge.you .rd-v26-stage{animation:rd14lungeYou .45s ease}" + ".rd-v14-fighter.lunge.them .rd-v26-stage{animation:rd14lungeThem .45s ease}" + ".rd-v14-fighter.break .rd-v26-stage{animation:rd14break .5s ease forwards;filter:grayscale(.55) brightness(.75)}" + ".rd-v14-fighter.glow .rd-v26-stage{filter:drop-shadow(0 0 9px rgba(76,201,240,.85))}" + ".rd-v14-fighter span{margin-top:8px}" + ".rd-v26-chip{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:7px;vertical-align:-2px;border:1px solid rgba(255,255,255,.35)}" + "@media (prefers-reduced-motion:reduce){.rd-v26-stage{animation:none}.rd-v14-fighter.lunge .rd-v26-stage{animation:none}}" + ".rd-v26-doll .doll-body { fill: #020304; stroke: #020304; stroke-linecap: round; stroke-linejoin: round; } .rd-v26-doll .stitch { fill: none; stroke: var(--doll-thread, #b5ff20); stroke-width: 3.2; stroke-linecap: square; } .rd-v26-doll .aura { fill: none; stroke: var(--doll-aura, #0077ff); stroke-width: 4; stroke-dasharray: 4 5; } .rd-v26-doll .pixel-orbit { fill: var(--doll-aura, #0077ff); } .rd-v26-doll .style-accessory { display: none; } body[data-build-style=\"performer\"] .rd-v26-doll .performer, body[data-build-style=\"catalog\"] .rd-v26-doll .catalog, body[data-build-style=\"signal\"] .rd-v26-doll .signal, body[data-build-style=\"scholar\"] .rd-v26-doll .scholar, body[data-build-style=\"empire\"] .rd-v26-doll .empire, body[data-build-style=\"trader\"] .rd-v26-doll .trader { display: block; } body[data-build-style=\"archive\"] .rd-v26-doll .performer, body[data-build-style=\"archive\"] .rd-v26-doll .catalog, body[data-build-style=\"warfare\"] .rd-v26-doll .performer, body[data-build-style=\"warfare\"] .rd-v26-doll .signal { display: block; } /* Adaptive doll wardrobe: layered slots driven by the live build name. */ .rd-v26-doll .acc { display: none; } .rd-v26-doll .f-gold { fill: #ffcf3f; } .rd-v26-doll .f-red { fill: var(--danger); } .rd-v26-doll .f-wht { fill: #eefbff; } .rd-v26-doll .f-blu { fill: var(--electric); } .rd-v26-doll .f-cyn { fill: var(--cyan); } .rd-v26-doll .f-lim { fill: var(--signal); } .rd-v26-doll .f-drk { fill: #020304; } .rd-v26-doll .f-nav { fill: #26324a; } .rd-v26-doll .f-grn { fill: #2ee66b; } /* Lane = base outfit */ body[data-doll-lane=\"catalog\"] .rd-v26-doll .acc-homefit, body[data-doll-lane=\"catalog\"] .rd-v26-doll .acc-headphones, body[data-doll-lane=\"signal\"] .rd-v26-doll .acc-hoodie, body[data-doll-lane=\"signal\"] .rd-v26-doll .acc-cap, body[data-doll-lane=\"scholar\"] .rd-v26-doll .acc-vest, body[data-doll-lane=\"scholar\"] .rd-v26-doll .acc-glasses, body[data-doll-lane=\"empire\"] .rd-v26-doll .acc-suit, body[data-doll-lane=\"empire\"] .rd-v26-doll .acc-shades, body[data-doll-lane=\"performer\"] .rd-v26-doll .acc-jacket, body[data-doll-lane=\"performer\"] .rd-v26-doll .acc-headband, body[data-doll-lane=\"trader\"] .rd-v26-doll .acc-visor, body[data-doll-lane=\"trader\"] .rd-v26-doll .acc-tie, body[data-doll-lane=\"warfare\"] .rd-v26-doll .acc-bandana, body[data-doll-lane=\"warfare\"] .rd-v26-doll .acc-facepaint { display: block; } /* Wealth = visible drip */ body[data-doll-wealth=\"hungry\"] .rd-v26-doll .acc-patches, body[data-doll-wealth=\"working\"] .rd-v26-doll .acc-chain, body[data-doll-wealth=\"paid\"] .rd-v26-doll .acc-chain-big, body[data-doll-wealth=\"paid\"] .rd-v26-doll .acc-watch, body[data-doll-wealth=\"mogul\"] .rd-v26-doll .acc-chain-big, body[data-doll-wealth=\"mogul\"] .rd-v26-doll .acc-watch, body[data-doll-wealth=\"mogul\"] .rd-v26-doll .acc-suit, body[data-doll-wealth=\"dynasty\"] .rd-v26-doll .acc-chain-big, body[data-doll-wealth=\"dynasty\"] .rd-v26-doll .acc-watch, body[data-doll-wealth=\"dynasty\"] .rd-v26-doll .acc-suit, body[data-doll-wealth=\"dynasty\"] .rd-v26-doll .acc-crown, body[data-doll-suit=\"true\"] .rd-v26-doll .acc-suit { display: block; } /* Qualifier = the mark */ body[data-doll-qual=\"certified\"] .rd-v26-doll .acc-pin, body[data-doll-qual=\"prime\"] .rd-v26-doll .acc-trim, body[data-doll-qual=\"elite\"] .rd-v26-doll .acc-elite-aura { display: block; } /* Stat balance tells + live state */ body[data-doll-shades=\"true\"] .rd-v26-doll .acc-shades, body[data-doll-shades=\"true\"] .rd-v26-doll .acc-flashes, body[data-doll-mic=\"true\"] .rd-v26-doll .acc-mic, body[data-doll-crew=\"true\"] .rd-v26-doll .acc-crew, body[data-doll-records=\"true\"] .rd-v26-doll .acc-records, body[data-doll-beef=\"true\"] .rd-v26-doll .acc-beef, body[data-doll-belt=\"true\"] .rd-v26-doll .acc-belt { display: block; } /* Doll wears the merch line: the active / most recent drop dresses him too. */ body[data-doll-merch=\"1\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"2\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"2\"] .rd-v26-doll .acc-merch-cap, body[data-doll-merch=\"3\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"3\"] .rd-v26-doll .acc-merch-cap, body[data-doll-merch=\"3\"] .rd-v26-doll .acc-merch-stripe, body[data-doll-merch=\"4\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"4\"] .rd-v26-doll .acc-merch-cap, body[data-doll-merch=\"4\"] .rd-v26-doll .acc-merch-stripe, body[data-doll-merch=\"4\"] .rd-v26-doll .acc-merch-glow, body[data-doll-merch=\"5\"] .rd-v26-doll .acc-merch-tee, body[data-doll-merch=\"5\"] .rd-v26-doll .acc-merch-cap, body[data-doll-merch=\"5\"] .rd-v26-doll .acc-merch-stripe, body[data-doll-merch=\"5\"] .rd-v26-doll .acc-merch-glow { display: block; }";
   document.head.appendChild(css);
+  /* ---------- V27: the name card face and the wall of names ---------- */
+  var v27css = document.createElement("style");
+  v27css.textContent = ""
+    + ".rd-v27-face{display:flex;gap:12px;align-items:center}"
+    + ".rd-v27-face .rd-v26-stage{width:76px;height:76px;margin:0;flex:none}"
+    + ".rd-v27-face .rd-v26-doll,.rd-v27-face .rd-v26-fig{width:72px;height:72px}"
+    + ".rd-v27-face-meta{min-width:0}"
+    + ".rd-v27-face-meta strong{display:block;color:#eefbff;font:800 16px 'Space Grotesk',sans-serif;line-height:1.2}"
+    + ".rd-v27-face-meta small{display:block;color:#9fc6de;font:500 11.5px/1.45 'Space Grotesk',sans-serif;margin-top:2px}"
+    + ".rd-v27-wall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:4px}"
+    + ".rd-v27-slot{border:2px solid #2a4356;border-radius:12px;background:#0d1620;padding:8px 4px 7px;text-align:center;cursor:pointer;color:inherit;font:inherit;width:100%;min-width:0}"
+    + ".rd-v27-slot .rd-v26-stage{width:auto;height:auto;margin:0}"
+    + ".rd-v27-slot svg.rd-v26-fig{width:56px;height:60px}"
+    + ".rd-v27-slot .nm{display:block;color:#eefbff;font:800 10.5px 'Space Grotesk',sans-serif;line-height:1.25;margin-top:2px;overflow-wrap:anywhere}"
+    + ".rd-v27-slot.unseen{cursor:default}"
+    + ".rd-v27-slot.unseen svg.rd-v26-fig{filter:grayscale(1) brightness(.3) contrast(1.3)}"
+    + ".rd-v27-slot.unseen .nm{color:#5f7d92}"
+    + ".rd-v27-slot.beaten{border-color:#ffcf3f}"
+    + ".rd-v27-chips{display:block;margin-top:4px}"
+    + ".rd-v27-chips .rd-v26-chip{margin-right:0}"
+    + ".rd-v27-detail{margin-top:8px}"
+    + "@media (max-width:374px){.rd-v27-wall{grid-template-columns:repeat(3,minmax(0,1fr))}}";
+  document.head.appendChild(v27css);
 
   /* ---------------- the spawn: names up the stairs ---------------- */
   var SPAWN_FIRST = ["Young", "Lil", "Kid", "MC", "DJ", "Sir", "Lady", "King", "Queen", "Prince", "Saint", "Captain", "Doctor", "Baby"];
@@ -18228,52 +18252,101 @@ render();
     if (v14.fights === 0 && (v14.xp || 0) === 0) {
       baseBody.appendChild(mkEl("p", "rd-v14-note", "you started down here too. everybody did. the only way out of this room is up, and up is earned one battle at a time."));
     }
+    /* V27: the name card is a face, not a paragraph. The player's own
+       battle figure stands beside their name, battle level, and the room
+       record in one row. The kit, the locked moves, and the four stats
+       moved down to their own compact card below the wall, where a
+       player goes looking for them. No numbers changed. */
     var card = mkEl("div", "rd-v14-card", null);
-    card.appendChild(mkEl("h4", null, "your name in this room"));
+    card.id = "rd-v27-namecard";
+    var face = mkEl("div", "rd-v27-face", null);
+    face.appendChild(playerFigure());
+    var meta = mkEl("div", "rd-v27-face-meta", null);
+    var pname = "you";
+    try { if (typeof buildIdentity === "function") { var idn = buildIdentity(S); if (idn && idn.name) { pname = idn.name; } } } catch (e) {}
+    meta.appendChild(mkEl("strong", null, pname));
     var lv = levelOf(v14.xp);
-    var rec = v14.wins + " won · " + v14.losses + " lost" + (v14.walks ? " · " + v14.walks + " walked" : "");
-    card.appendChild(mkEl("p", null, "battle level " + lv + " · " + (v14.xp || 0) + " XP" + (xpToNext(v14.xp) ? " · " + xpToNext(v14.xp) + " XP to level " + (lv + 1) : " · top of the stairs") + " · " + rec));
-    var locked = MOVES.filter(function (m) { return !moveUnlocked(m); }).map(function (m) { return m.name + " (level " + m.level + ")"; }).join(", ");
-    card.appendChild(mkEl("p", null, "your kit: " + playerKitNames().join(", ") + " · four moves, fixed to your name and your stage" + (locked ? " · still locked: " + locked : "")));
-    card.appendChild(mkEl("p", null, "breath: two bottles ride into every fight, on the menu beside your moves."));
-    var pst = statsOfPlayer();
-    card.appendChild(mkEl("p", null, "you fight " + playerStyle() + " · " + STAGE_NAMES[stageOfPlayer()] + " · pen " + pst.pen + " · poise " + pst.poise + " · flow " + pst.flow + " · hook power " + pst.hook));
-    var dc = dexCounts();
-    card.appendChild(mkEl("p", null, "the record: seen " + dc.seen + " of " + dc.total + " names · beaten " + dc.beaten + " of " + dc.total + (v14.roster.length ? " · roster " + v14.roster.length + " of 6 riding with you" : "")));
+    var dc0 = dexCounts();
+    meta.appendChild(mkEl("small", null, "battle level " + lv + " · " + v14.wins + " won · " + v14.losses + " lost" + (v14.walks ? " · " + v14.walks + " walked" : "")));
+    meta.appendChild(mkEl("small", null, "the record: seen " + dc0.seen + " of " + dc0.total + " · beaten " + dc0.beaten + " of " + dc0.total));
+    face.appendChild(meta);
+    card.appendChild(face);
     baseBody.appendChild(card);
 
+    /* V27: the record is a wall now, all 34 names standing in a grid.
+       Unseen: a silhouette and no name to read yet. Sighted: the figure
+       in its signature palette, name shown. Beaten: the full figure plus
+       its two-color signature chip under the name. The style lives on
+       the figures themselves; the chip filter row is gone. State derives
+       from the same v14.dex record the game already keeps, and tapping a
+       read slot opens its detail (style, stage, the four moves) below
+       the wall, exactly what the old record rows carried. */
     var recCard = mkEl("div", "rd-v14-card", null);
     recCard.id = "rd-v17-record";
-    recCard.appendChild(mkEl("h4", null, "the record · kits read off the names"));
-    var filtRow = mkEl("div", "rd-v14-row", null);
-    ["all", "trap", "drill", "rnb", "experimental"].forEach(function (st) {
-      var fb = mkEl("button", "rd-v14-fight-btn", st === "all" ? "every style" : st);
-      fb.type = "button";
-      fb.setAttribute("data-dex-filter", st);
-      if (dexFilter === st) { fb.style.borderColor = "#ffcf3f"; fb.style.color = "#ffcf3f"; }
-      fb.addEventListener("click", function () { dexFilter = st; paintBasement(); });
-      filtRow.appendChild(fb);
-    });
-    recCard.appendChild(filtRow);
+    var dc = dexCounts();
+    recCard.appendChild(mkEl("h4", null, "the wall of names · seen " + dc.seen + " of " + dc.total + " · beaten " + dc.beaten + " of " + dc.total));
+    var wall = mkEl("div", "rd-v27-wall", null);
+    wall.id = "rd-v27-wall";
     var allNames = (typeof RD_FEATURED_NAMES !== "undefined" ? RD_FEATURED_NAMES : []);
-    var seenNames = allNames.filter(function (n) { return v14.dex[n] && v14.dex[n].seen; });
-    if (!seenNames.length) {
-      recCard.appendChild(mkEl("p", null, "no names read yet. the first sighting writes the first page: style, stage, and the four moves they carry."));
-    }
-    var shownNames = seenNames.filter(function (n) { return dexFilter === "all" || styleForName(n) === dexFilter; });
-    if (seenNames.length && !shownNames.length) {
-      recCard.appendChild(mkEl("p", null, "no names under that style in the record yet."));
-    }
-    shownNames.forEach(function (n) {
-      var drow = mkEl("div", "rd-v14-row", null);
-      var dwho = mkEl("div", "rd-v14-who", null);
-      dwho.appendChild(sigChip(n, styleForName(n), shapeFor(3, n, false), true));
-      dwho.appendChild(mkEl("strong", null, n));
-      dwho.appendChild(mkEl("small", null, styleForName(n) + " style · " + STAGE_NAMES[v14.dex[n].stage || 1] + " · kit: " + kitNames(n, v14.dex[n].stage || 1).join(", ") + (v14.dex[n].beaten ? " · beaten" : " · still standing")));
-      drow.appendChild(dwho);
-      recCard.appendChild(drow);
+    allNames.forEach(function (n) {
+      var d = v14.dex[n];
+      var seen = !!(d && d.seen);
+      var beaten = !!(d && d.beaten);
+      var slot = mkEl("button", "rd-v27-slot " + (beaten ? "beaten" : seen ? "sighted" : "unseen"), null);
+      slot.type = "button";
+      slot.setAttribute("data-wall-name", n);
+      slot.setAttribute("data-wall-state", beaten ? "beaten" : seen ? "sighted" : "unseen");
+      var st = styleForName(n);
+      var shp = shapeFor(3, n, false);
+      slot.appendChild(oppStage(n, st, shp, true));
+      slot.appendChild(mkEl("span", "nm", seen ? n : "???"));
+      if (beaten) {
+        var ch = mkEl("span", "rd-v27-chips", null);
+        ch.appendChild(sigChip(n, st, shp, true));
+        slot.appendChild(ch);
+      }
+      if (seen) {
+        slot.addEventListener("click", function () {
+          /* V27 origination: a wall tap repaints the room, and a repaint
+             used to drop the panel back to the top, losing the player's
+             place on the wall. Keep the scroll where their thumb left it. */
+          var panel = baseOv.querySelector(".rd-panel");
+          var sc = panel ? panel.scrollTop : 0;
+          wallPick = (wallPick === n ? null : n);
+          paintBasement();
+          var panel2 = baseOv.querySelector(".rd-panel");
+          if (panel2) { panel2.scrollTop = sc; }
+        });
+      }
+      wall.appendChild(slot);
     });
+    recCard.appendChild(wall);
+    if (wallPick && v14.dex[wallPick] && v14.dex[wallPick].seen) {
+      var wn = wallPick;
+      var det = mkEl("div", "rd-v14-row rd-v27-detail", null);
+      det.id = "rd-v27-detail";
+      var dwho = mkEl("div", "rd-v14-who", null);
+      dwho.appendChild(sigChip(wn, styleForName(wn), shapeFor(3, wn, false), true));
+      dwho.appendChild(mkEl("strong", null, wn));
+      dwho.appendChild(mkEl("small", null, styleForName(wn) + " style · " + STAGE_NAMES[v14.dex[wn].stage || 1] + " · kit: " + kitNames(wn, v14.dex[wn].stage || 1).join(", ") + (v14.dex[wn].beaten ? " · beaten" : " · still standing")));
+      det.appendChild(dwho);
+      recCard.appendChild(det);
+    }
     baseBody.appendChild(recCard);
+
+    /* V27: the kit card. What the old name card carried as a text wall
+       (the kit, the locked moves, the four stats, the XP line) lives
+       here now, compact, lower in the room. The breath note stays in
+       the fight itself, where it already lives. */
+    var kitCard = mkEl("div", "rd-v14-card", null);
+    kitCard.id = "rd-v27-kit";
+    kitCard.appendChild(mkEl("h4", null, "your kit"));
+    var locked = MOVES.filter(function (m) { return !moveUnlocked(m); }).map(function (m) { return m.name + " (level " + m.level + ")"; }).join(", ");
+    kitCard.appendChild(mkEl("p", null, "your kit: " + playerKitNames().join(", ") + " · four moves, fixed to your name and your stage" + (locked ? " · still locked: " + locked : "")));
+    var pst = statsOfPlayer();
+    kitCard.appendChild(mkEl("p", null, "you fight " + playerStyle() + " · " + STAGE_NAMES[stageOfPlayer()] + " · pen " + pst.pen + " · poise " + pst.poise + " · flow " + pst.flow + " · hook power " + pst.hook));
+    kitCard.appendChild(mkEl("p", null, "battle level " + lv + " · " + (v14.xp || 0) + " XP" + (xpToNext(v14.xp) ? " · " + xpToNext(v14.xp) + " XP to level " + (lv + 1) : " · top of the stairs") + (v14.roster.length ? " · roster " + v14.roster.length + " of 6 riding with you" : "")));
+    baseBody.appendChild(kitCard);
 
     var leagueCard = mkEl("div", "rd-v14-card", null);
     leagueCard.appendChild(mkEl("h4", null, "SkyTier Northwest · the league run"));
@@ -19508,6 +19581,10 @@ render();
       } catch (e) {}
       return out;
     }
+  };
+  window.RapDreamV27 = {
+    version: "V27",
+    wallPick: function () { return wallPick; }
   };
   window.RapDreamV26 = {
     version: "V26",
